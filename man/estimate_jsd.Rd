@@ -13,7 +13,8 @@ estimate_jsd(
   n_boot = 1000,
   min_tokens = 5,
   est_distance = FALSE,
-  conf_level = 0.95
+  conf_level = 0.95,
+  ...
 )
 }
 \arguments{
@@ -23,21 +24,25 @@ estimate_jsd(
 
 \item{category_col}{Name of the column giving the two-way category factor.}
 
-\item{group_col}{Optional grouping column (not yet implemented in this simple version).}
+\item{group_col}{Optional grouping column. If provided, returns per-group JSD.}
 
 \item{do_boot}{Logical; if TRUE, run nonparametric bootstrap.}
 
 \item{n_boot}{Number of bootstrap resamples.}
 
-\item{min_tokens}{Minimum tokens per category (currently not enforced here).}
+\item{min_tokens}{Minimum total tokens required (globally or per group).}
 
 \item{est_distance}{Logical; if TRUE, return Jensen–Shannon \emph{distance} (sqrt of divergence).}
 
 \item{conf_level}{Confidence level for bootstrap interval.}
+
+\item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
-A tibble with one row and columns:
+A tibble. Global: one row with columns
 scope, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+Grouped: one row per group with columns
+scope, group, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
 }
 \description{
 Estimate Jensen–Shannon divergence or distance between two categories

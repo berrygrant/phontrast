@@ -4,7 +4,14 @@
 \alias{estimate_bhatt}
 \title{Estimate Bhattacharyya distance, globally or by group}
 \usage{
-estimate_bhatt(data, features, category_col, group_col = NULL, min_tokens = 20)
+estimate_bhatt(
+  data,
+  features,
+  category_col,
+  group_col = NULL,
+  min_tokens = 20,
+  eps = 1e-06
+)
 }
 \arguments{
 \item{data}{Data frame.}
@@ -17,6 +24,8 @@ estimate_bhatt(data, features, category_col, group_col = NULL, min_tokens = 20)
 a single global Bhattacharyya distance is returned.}
 
 \item{min_tokens}{Minimum tokens (globally or per group).}
+
+\item{eps}{Small ridge constant passed to \code{bhattacharyya_mvnorm()}.}
 }
 \value{
 Data frame with either one global row or one row per group.
