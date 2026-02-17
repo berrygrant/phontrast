@@ -4,7 +4,7 @@
 \alias{bhattacharyya_mvnorm}
 \title{Bhattacharyya distance and affinity under multivariate normality}
 \usage{
-bhattacharyya_mvnorm(data, features, category_col)
+bhattacharyya_mvnorm(data, features, category_col, eps = 1e-06)
 }
 \arguments{
 \item{data}{Data frame.}
@@ -12,6 +12,9 @@ bhattacharyya_mvnorm(data, features, category_col)
 \item{features}{Character vector of numeric feature columns.}
 
 \item{category_col}{String; column with exactly two categories.}
+
+\item{eps}{Small ridge constant added to covariance matrices to improve
+numerical stability.}
 }
 \value{
 A list with \code{distance} and \code{affinity} (exp(-distance)).

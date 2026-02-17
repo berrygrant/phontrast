@@ -39,11 +39,15 @@ percent_overlap_kde <- function(data,
   kde1 <- ks::kde(x = X1, H = H1, eval.points = X_all)
   kde2 <- ks::kde(x = X2, H = H2, eval.points = X_all)
 
-  p <- kde1$estimate
-  q <- kde2$estimate
+  p <- as.numeric(kde1$estimate)
+  q <- as.numeric(kde2$estimate)
 
-  # Percent overlap is the integrated shared area: sum(min(p, q)) / sum(max density)
-  overlap <- sum(pmin(p, q)) / sum(p)
+  # Normalize to discrete probability masses on a shared grid
+  p <- p / sum(p)
+  q <- q / sum(q)
+
+  # Percent overlap is the shared area on the grid: sum(min(p, q))
+  overlap <- sum(pmin(p, q))
 
   # Bound numerically
   overlap <- max(min(overlap, 1), 0)

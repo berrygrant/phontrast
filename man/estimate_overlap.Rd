@@ -19,9 +19,9 @@ estimate_overlap(
 
 \item{category_col}{Name of the column giving the two-way category factor.}
 
-\item{group_col}{Optional grouping column (not yet implemented in this simple version).}
+\item{group_col}{Optional grouping column. If provided, returns per-group JSD.}
 
-\item{min_tokens}{Minimum tokens per category (currently not enforced here).}
+\item{min_tokens}{Minimum total tokens required (globally or per group).}
 }
 \value{
 A data frame (global = one row; grouped = one per group).

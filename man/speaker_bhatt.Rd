@@ -4,7 +4,14 @@
 \alias{speaker_bhatt}
 \title{Bhattacharyya distance by group}
 \usage{
-speaker_bhatt(data, group_col, category_col, features, min_tokens = 20)
+speaker_bhatt(
+  data,
+  group_col,
+  category_col,
+  features,
+  min_tokens = 20,
+  eps = 1e-06
+)
 }
 \arguments{
 \item{data}{Data frame.}
@@ -16,6 +23,8 @@ speaker_bhatt(data, group_col, category_col, features, min_tokens = 20)
 \item{features}{Character vector of numeric feature columns.}
 
 \item{min_tokens}{Minimum tokens per group.}
+
+\item{eps}{Small ridge constant passed to \code{bhattacharyya_mvnorm()}.}
 }
 \value{
 Data frame with columns: group, n_tokens, bhatt_dist, bhatt_affinity.

@@ -16,9 +16,8 @@
 #' @return A tibble with one row per group and columns:
 #'   \code{group}, \code{n_tokens}, and \code{jsd}.
 #' @export
-#' @importFrom dplyr group_by summarize n n_distinct filter ungroup rename
+#' @importFrom dplyr n_distinct
 #' @importFrom tibble tibble
-#' @importFrom rlang .data
 speaker_jsd <- function(data,
                         group_col,
                         category_col,
@@ -32,23 +31,45 @@ speaker_jsd <- function(data,
   if (!category_col %in% names(data)) {
     stop("`category_col` must be a column in `data`.")
   }
+  if (!all(features %in% names(data))) {
+    stop("All `features` must be columns in `data`.")
+  }
 
-  dplyr::group_by(data, .data[[group_col]]) |>
-    dplyr::filter(
-      dplyr::n_distinct(.data[[category_col]]) == 2L,
-      dplyr::n() >= min_tokens
-    ) |>
-    dplyr::summarize(
-      n_tokens = dplyr::n(),
-      jsd      = jsd_kde_nd(
-        data     = dplyr::cur_data_all(),
+  groups <- split(data, data[[group_col]])
+
+  out_list <- lapply(groups, function(df_g) {
+    n_tok <- nrow(df_g)
+    if (n_tok < min_tokens ||
+        dplyr::n_distinct(df_g[[category_col]]) != 2L) {
+      return(NULL)
+    }
+
+    jsd_val <- tryCatch(
+      jsd_kde_nd(
+        data     = df_g,
         features = features,
         group    = category_col,
         ...
       ),
-      .groups = "drop"
-    ) |>
-    dplyr::rename(group = 1)
+      error = function(e) NA_real_
+    )
+
+    tibble::tibble(
+      group    = df_g[[group_col]][1],
+      n_tokens = n_tok,
+      jsd      = jsd_val
+    )
+  })
+
+  out <- do.call(rbind, out_list)
+  if (is.null(out)) {
+    out <- tibble::tibble(
+      group    = character(0),
+      n_tokens = integer(0),
+      jsd      = numeric(0)
+    )
+  }
+  out
 }
 
 #' Bootstrap JSD for each group
@@ -58,13 +79,15 @@ speaker_jsd <- function(data,
 #'
 #' @inheritParams speaker_jsd
 #' @param n_boot Number of bootstrap resamples per group.
+#' @param est_distance Logical; if TRUE, return Jensen–Shannon distance
+#'   (sqrt of divergence) instead of divergence.
 #'
 #' @return A tibble with one row per group and columns:
 #'   \code{group}, \code{n_tokens}, \code{jsd_mean}, \code{jsd_sd},
 #'   \code{jsd_low}, and \code{jsd_high}.
 #' @export
 #' @importFrom purrr map
-#' @importFrom dplyr bind_rows
+#' @importFrom dplyr bind_rows n_distinct
 #' @importFrom stats quantile sd
 boot_jsd <- function(data,
                      group_col,
@@ -72,6 +95,7 @@ boot_jsd <- function(data,
                      features,
                      n_boot     = 300,
                      min_tokens = 30,
+                     est_distance = FALSE,
                      ...) {
 
   if (!group_col %in% names(data)) {
@@ -101,22 +125,44 @@ boot_jsd <- function(data,
       n_boot,
       {
         samp <- df_g[sample.int(nrow(df_g), size = nrow(df_g), replace = TRUE), ]
-        jsd_kde_nd(
-          data     = samp,
-          features = features,
-          group    = category_col,
-          ...
+        if (dplyr::n_distinct(samp[[category_col]]) < 2L) {
+          return(NA_real_)
+        }
+        jsd_div <- tryCatch(
+          jsd_kde_nd(
+            data     = samp,
+            features = features,
+            group    = category_col,
+            ...
+          ),
+          error = function(e) NA_real_
         )
+        if (!is.finite(jsd_div)) {
+          return(NA_real_)
+        }
+        if (est_distance) sqrt(jsd_div) else jsd_div
       }
     )
+
+    jsd_vals <- jsd_vals[!is.na(jsd_vals)]
+    if (!length(jsd_vals)) {
+      return(tibble::tibble(
+        group    = df_g[[group_col]][1],
+        n_tokens = nrow(df_g),
+        jsd_mean = NA_real_,
+        jsd_sd   = NA_real_,
+        jsd_low  = NA_real_,
+        jsd_high = NA_real_
+      ))
+    }
 
     tibble::tibble(
       group    = df_g[[group_col]][1],
       n_tokens = nrow(df_g),
       jsd_mean = mean(jsd_vals),
       jsd_sd   = stats::sd(jsd_vals),
-      jsd_low  = stats::quantile(jsd_vals, 0.025),
-      jsd_high = stats::quantile(jsd_vals, 0.975)
+      jsd_low  = stats::quantile(jsd_vals, 0.025, names = FALSE),
+      jsd_high = stats::quantile(jsd_vals, 0.975, names = FALSE)
     )
   })
 

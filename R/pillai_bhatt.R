@@ -177,11 +177,13 @@ estimate_pillai <- function(data,
 #' @param data Data frame.
 #' @param features Character vector of numeric feature columns.
 #' @param category_col String; column with exactly two categories.
+#' @param eps Small ridge constant added to covariance matrices to improve
+#'   numerical stability.
 #'
 #' @return A list with `distance` and `affinity` (exp(-distance)).
 #' @export
 #' @importFrom stats cov
-bhattacharyya_mvnorm <- function(data, features, category_col) {
+bhattacharyya_mvnorm <- function(data, features, category_col, eps = 1e-6) {
   if (!category_col %in% names(data)) {
     stop("`category_col` must be in `data`.")
   }
@@ -195,11 +197,34 @@ bhattacharyya_mvnorm <- function(data, features, category_col) {
 
   mu1 <- colMeans(X1); mu2 <- colMeans(X2)
   S1  <- stats::cov(X1); S2  <- stats::cov(X2)
+
+  if (any(!is.finite(S1)) || any(!is.finite(S2))) {
+    stop("Bhattacharyya distance failed: non-finite covariance estimates.")
+  }
+
+  # Ridge regularization to improve numerical stability
+  S1 <- S1 + diag(eps, ncol(S1))
+  S2 <- S2 + diag(eps, ncol(S2))
   S   <- (S1 + S2) / 2
 
   diff <- matrix(mu2 - mu1, ncol = 1)
-  term1 <- 0.125 * t(diff) %*% solve(S) %*% diff
-  term2 <- 0.5 * log(det(S) / sqrt(det(S1) * det(S2)))
+  invS <- tryCatch(solve(S), error = function(e) NULL)
+  if (is.null(invS)) {
+    stop("Bhattacharyya distance failed: covariance not positive definite. ",
+         "Try increasing `eps` or reducing feature dimensionality.")
+  }
+
+  detS  <- tryCatch(det(S),  error = function(e) NA_real_)
+  detS1 <- tryCatch(det(S1), error = function(e) NA_real_)
+  detS2 <- tryCatch(det(S2), error = function(e) NA_real_)
+  if (!is.finite(detS) || !is.finite(detS1) || !is.finite(detS2) ||
+      detS <= 0 || detS1 <= 0 || detS2 <= 0) {
+    stop("Bhattacharyya distance failed: non-positive determinant. ",
+         "Try increasing `eps` or reducing feature dimensionality.")
+  }
+
+  term1 <- 0.125 * t(diff) %*% invS %*% diff
+  term2 <- 0.5 * log(detS / sqrt(detS1 * detS2))
   d <- as.numeric(term1 + term2)
   list(
     distance = d,
@@ -217,6 +242,7 @@ bhattacharyya_mvnorm <- function(data, features, category_col) {
 #' @param category_col String; category column with exactly two levels per group.
 #' @param features Character vector of numeric feature columns.
 #' @param min_tokens Minimum tokens per group.
+#' @param eps Small ridge constant passed to \code{bhattacharyya_mvnorm()}.
 #'
 #' @return Data frame with columns: group, n_tokens, bhatt_dist, bhatt_affinity.
 #' @export
@@ -224,7 +250,8 @@ speaker_bhatt <- function(data,
                           group_col,
                           category_col,
                           features,
-                          min_tokens = 20) {
+                          min_tokens = 20,
+                          eps = 1e-6) {
 
   if (!group_col %in% names(data)) {
     stop("`group_col` must be in `data`.")
@@ -246,7 +273,8 @@ speaker_bhatt <- function(data,
     bh <- bhattacharyya_mvnorm(
       data         = df_g,
       features     = features,
-      category_col = category_col
+      category_col = category_col,
+      eps          = eps
     )
     data.frame(
       group         = df_g[[group_col]][1],
@@ -282,6 +310,7 @@ speaker_bhatt <- function(data,
 #' @param group_col Optional string; grouping column name. If \code{NULL},
 #'   a single global Bhattacharyya distance is returned.
 #' @param min_tokens Minimum tokens (globally or per group).
+#' @param eps Small ridge constant passed to \code{bhattacharyya_mvnorm()}.
 #'
 #' @return Data frame with either one global row or one row per group.
 #' @export
@@ -289,7 +318,8 @@ estimate_bhatt <- function(data,
                            features,
                            category_col,
                            group_col  = NULL,
-                           min_tokens = 20) {
+                           min_tokens = 20,
+                           eps = 1e-6) {
 
   if (is.null(group_col)) {
     # global
@@ -306,7 +336,8 @@ estimate_bhatt <- function(data,
     bh <- bhattacharyya_mvnorm(
       data         = df,
       features     = features,
-      category_col = category_col
+      category_col = category_col,
+      eps          = eps
     )
 
     out <- data.frame(
@@ -324,7 +355,8 @@ estimate_bhatt <- function(data,
       group_col    = group_col,
       category_col = category_col,
       features     = features,
-      min_tokens   = min_tokens
+      min_tokens   = min_tokens,
+      eps          = eps
     )
     sb$scope <- "group"
     sb <- sb[, c("scope", "group", "n_tokens", "bhatt_dist", "bhatt_affinity")]
