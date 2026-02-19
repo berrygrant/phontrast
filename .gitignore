@@ -52,6 +52,7 @@ rsconnect/
 .DS_Store
 
 # SBCAE alignment artifacts and derived data
+analysis/sbcae_*
 analysis/sbcae_mfa_corpus/
 analysis/sbcae_mfa_segments/
 analysis/sbcae_mfa_segments_aligned/

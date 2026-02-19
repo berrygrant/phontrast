@@ -3,7 +3,7 @@
 **phonJSD** is an R package for measuring phonological category separation using **Jensen–Shannon Divergence (JSD)**.  
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
-Version **0.0.1** is an early research release focused on core functionality, transparency, and reproducibility.
+Version **0.1.0** is an early research release focused on core functionality, transparency, and reproducibility.
 
 ---
 
@@ -20,7 +20,7 @@ This approach is especially useful when:
 
 ---
 
-## Core Features (v0.0.1)
+## Core Features (v0.1.0)
 
 - Jensen–Shannon Divergence for phonological category comparison  
 - Kernel density–based estimation of acoustic distributions  

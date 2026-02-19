@@ -1,6 +1,6 @@
 Package: phonJSD
 Title: Information-Theoretic Overlap Metrics for Phonological Categories
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: c(
     person("Grant", "Berry", email = "berry.grant@gmail.com", role = c("aut", "cre")),
     person("ChatGPT", "Assistant", role = "ctb")
