@@ -50,3 +50,17 @@ rsconnect/
 
 # MAC system files
 .DS_Store
+
+# SBCAE alignment artifacts and derived data
+analysis/sbcae_mfa_corpus/
+analysis/sbcae_mfa_segments/
+analysis/sbcae_mfa_segments_aligned/
+analysis/sbcae_mfa_aligned/
+analysis/sbcae_mfcc_vowels.csv
+*.TextGrid
+
+# Analysis outputs
+comparison_outputs/
+
+# Manuscript drafts (keep local)
+paper/

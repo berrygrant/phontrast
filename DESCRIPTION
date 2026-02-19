@@ -29,6 +29,8 @@ Imports:
 Suggests:
     mgcv,
     lme4,
+    seewave,
+    tuneR,
     testthat (>= 3.0.0),
     knitr,
     rmarkdown
