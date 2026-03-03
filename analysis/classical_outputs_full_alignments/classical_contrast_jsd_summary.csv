@@ -1,0 +1,7 @@
+"contrast_id","domain","cat1","cat2","feature_set","n_tokens_total","n_cat1","n_cat2","n_boot","jsd_point","jsd_mean","jsd_sd","jsd_low","jsd_high","expected_jsd","low_jsd_threshold","jsd_is_low","pillai","status","note"
+"stop_voicing_b_p","stop_voicing","b","p","vot_ms",600,300,300,0,0.0154043462510045,NA,NA,NA,NA,"low",0.2,TRUE,NA,"ok",NA
+"stop_voicing_d_t","stop_voicing","d","t","vot_ms",600,300,300,0,0.0445986723550501,NA,NA,NA,NA,"low",0.2,TRUE,NA,"ok",NA
+"stop_voicing_g_k","stop_voicing","g","k","vot_ms",600,300,300,0,0.0645304644925722,NA,NA,NA,NA,"low",0.2,TRUE,NA,"ok",NA
+"fricative_place_s_sh","fricative_place","s","sh","cog_hz,spec_sd_hz,spec_skew,spec_kurt,peak_hz,spec_slope_db_per_khz,band_ratio_hi_lo_db,intensity_db",600,300,300,0,0.992737834649645,NA,NA,NA,NA,"high",0.2,FALSE,0.229955171274178,"ok",NA
+"fricative_place_f_th","fricative_place","f","th","cog_hz,spec_sd_hz,spec_skew,spec_kurt,peak_hz,spec_slope_db_per_khz,band_ratio_hi_lo_db,intensity_db",600,300,300,0,0.953996130342102,NA,NA,NA,NA,"high",0.2,FALSE,0.0401374498209679,"ok",NA
+"fricative_place_z_zh","fricative_place","z","zh","cog_hz,spec_sd_hz,spec_skew,spec_kurt,peak_hz,spec_slope_db_per_khz,band_ratio_hi_lo_db,intensity_db",420,300,120,0,0.98753318145946,NA,NA,NA,NA,"high",0.2,FALSE,0.240144056956757,"ok",NA
