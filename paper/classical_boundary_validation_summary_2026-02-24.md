@@ -185,3 +185,67 @@ Ranking against expected low vs high separation labels, Spearman:
 1. The full-file alignment rerun reproduces the original conclusion: JSD is low for stop voicing under VOT and very high for fricative place under standard spectral cues.
 2. The result is now grounded in the complete aligned corpus rather than the earlier partial segment subset.
 3. On these full alignments, JSD remains in the top-performing group relative to standard comparison metrics and preserves the desired contrast ordering.
+
+## 2026-03-03 Vowel Benchmark Addendum
+
+### Classical vowel benchmark: PB52 /ɪ/ vs /ɛ/
+To complement the consonant validation, the existing `analysis/labphon2026_pb52_analysis.R` workflow was used as a reference point for the classical two-formant PB52 contrast (`/ɪ/` vs `/ɛ/`; `f1` + `f2`).
+
+Global pooled results (`n = 304` tokens):
+- JSD point estimate: **0.5720**
+- JSD bootstrap mean: **0.6150** (200 resamples; 95% interval **0.5000-0.7400**)
+- Pillai: **0.6021**
+- Bhattacharyya distance: **0.7750**
+- Overlap: **0.2565**
+
+This places the vowel contrast where it should be: clearly more separated than stop voicing on a single cue, but well below the near-maximal fricative place separations seen in the full-corpus SBCSAE fricative analysis.
+
+### PB52 subgroup structure
+Grouped PB52 results show the same moderate-to-strong separation with expected demographic variation:
+
+By sex:
+- female (`n = 144`): JSD **0.4793**, Pillai **0.5991**, Bhattacharyya **0.7686**, overlap **0.3368**
+- male (`n = 160`): JSD **0.6216**, Pillai **0.6242**, Bhattacharyya **0.8303**, overlap **0.2168**
+
+By speaker type:
+- children (`n = 60`): JSD **0.3775**, Pillai **0.5543**, Bhattacharyya **0.6271**, overlap **0.4626**
+- men (`n = 132`): JSD **0.6547**, Pillai **0.6288**, Bhattacharyya **0.8439**, overlap **0.2002**
+- women (`n = 112`): JSD **0.5761**, Pillai **0.6527**, Bhattacharyya **0.9904**, overlap **0.2632**
+
+The important point is not the subgroup ordering itself, but that JSD continues to scale sensibly across pooled and grouped classical vowel spaces without collapsing into the binary low/high pattern seen in the consonant benchmarks.
+
+### MFCC vowel-space comparison
+The existing MFCC13 pairwise vowel comparison table (`comparison_outputs/pairwise_metrics_mfcc13.csv`) contains **351** complete vowel-pair contrasts.
+
+Across those vowel-pair contrasts:
+- corr(JSD, Pillai): Pearson **0.8739**, Spearman **0.9114**
+- corr(JSD, overlap): Pearson **-0.9512**, Spearman **-0.9624**
+- corr(Pillai, overlap): Pearson **-0.8109**, Spearman **-0.8980**
+- corr(Bhattacharyya, overlap): Pearson **-0.6941**, Spearman **-0.8480**
+
+So, in the vowel MFCC setting, JSD and Pillai remain strongly aligned overall, but JSD tracks empirical overlap more tightly than Pillai or Bhattacharyya.
+
+### MFCC dominance analysis
+A follow-up dominance analysis treated `1 - overlap` as the continuous separability outcome and compared standardized `JSD`, `Pillai`, and `Bhattacharyya` predictors across the same **351** vowel-pair contrasts.
+
+Unadjusted model:
+- full-model `R^2`: **0.9084**
+- JSD general dominance: **0.4883** (**53.7%** of added model `R^2`)
+- Pillai general dominance: **0.2536** (**27.9%**)
+- Bhattacharyya general dominance: **0.1666** (**18.3%**)
+
+`n_tokens`-adjusted robustness check:
+- full-model `R^2`: **0.9091**
+- JSD general dominance: **0.4858** (**53.5%** of added model `R^2`)
+- Pillai general dominance: **0.2549** (**28.1%**)
+- Bhattacharyya general dominance: **0.1673** (**18.4%**)
+
+In both models, **JSD completely dominates both Pillai and Bhattacharyya**, meaning it contributes at least as much incremental explanatory value in every subset comparison and more in practice across the board.
+
+### Added interpretation
+Taken together with the consonant analyses, the vowel results strengthen the practical argument for `phonJSD`:
+1. JSD stays low on weak one-cue contrasts such as stop voicing via VOT.
+2. JSD rises to a midrange value on a classical two-formant vowel contrast (`/ɪ/` vs `/ɛ/` in PB52).
+3. JSD approaches ceiling on strong fricative place contrasts in a richer spectral cue space.
+4. In MFCC vowel spaces, JSD remains strongly correlated with Pillai while more closely reflecting overlap-based separability.
+
