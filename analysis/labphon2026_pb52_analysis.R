@@ -4,17 +4,43 @@
 
 set.seed(2026)
 
+# Prefer local package source when available (ensures group_col support)
+use_local_phonjsd <- FALSE
+script_path <- tryCatch(normalizePath(sys.frame(1)$ofile), error = function(e) NA_character_)
+if (is.na(script_path) && requireNamespace("rstudioapi", quietly = TRUE) &&
+    rstudioapi::isAvailable()) {
+  script_path <- tryCatch(
+    normalizePath(rstudioapi::getSourceEditorContext()$path),
+    error = function(e) NA_character_
+  )
+}
+if (!is.na(script_path)) {
+  pkg_root <- normalizePath(file.path(dirname(script_path), ".."))
+  if (file.exists(file.path(pkg_root, "DESCRIPTION")) &&
+      requireNamespace("devtools", quietly = TRUE)) {
+    try({
+      devtools::load_all(pkg_root, quiet = TRUE)
+      use_local_phonjsd <- TRUE
+    }, silent = TRUE)
+  }
+}
+
 # Core packages
-library(phonJSD)
+if (!use_local_phonjsd) {
+  library(phonJSD)
+}
 library(dplyr)
 library(tibble)
 library(purrr)
 library(ggplot2)
 library(phonTools)
 library(MASS)   # LDA (optional)
+library(tidyquant)
 
-# If running from source, you can use:
-# devtools::load_all()
+if (utils::packageVersion("phonJSD") < "0.1.0") {
+  stop("This script requires phonJSD >= 0.1.0 for `group_col` support. ",
+       "Update the package or run from source with devtools::load_all().")
+}
 
 ## ============================================================
 ## 1. Load Petersen & Barney (1952) data
@@ -150,6 +176,7 @@ ggplot(plot_df, aes(x = f2, y = f1, color = vowel_ipa)) +
   stat_ellipse(level = 0.68) +
   scale_x_reverse() +
   scale_y_reverse() +
+  scale_color_tq()+
   labs(
     x = "F2 (Hz)",
     y = "F1 (Hz)",

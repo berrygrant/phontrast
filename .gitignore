@@ -63,5 +63,8 @@ analysis/sbcae_mfcc_vowels.csv
 # Analysis outputs
 comparison_outputs/
 
+# Load test outputs
+load_test/outputs/
+
 # Manuscript drafts (keep local)
 paper/
