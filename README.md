@@ -38,6 +38,12 @@ Given two phonological categories (e.g., vowels /ɪ/ and /ɛ/), phonJSD:
 2. Estimates densities using kernel density estimation (KDE)  
 3. Computes Jensen–Shannon Divergence between the distributions  
 
+KDE is the package's default density-estimation strategy for continuous
+acoustic spaces. JSD itself, however, operates on probability distributions and
+is not intrinsically tied to KDE. Manuscript sensitivity analyses show that the
+same substantive contrast pattern is recovered when JSD is computed from KDE,
+histogram-based, empirical-binned, and Gaussian-mixture distribution estimates.
+
 JSD values:
 - **0** → complete overlap (no separation)
 - **Higher values** → greater distributional separation  
