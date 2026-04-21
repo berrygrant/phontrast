@@ -1,0 +1,18 @@
+JSD estimator robustness summary
+
+4 of 4 estimators preserve the expected pattern.
+Pattern criterion: every fricative-place contrast has higher JSD than every stop-voicing contrast.
+
+Estimator concordance:
+- empirical_quantile_binned: pattern_holds=TRUE; mean_stop=0.06251; mean_fricative=0.842; spearman_expected=0.8783
+- gaussian_mixture: pattern_holds=TRUE; mean_stop=0.04531; mean_fricative=0.4272; spearman_expected=0.8783
+- histogram_equal_width: pattern_holds=TRUE; mean_stop=0.06471; mean_fricative=0.5626; spearman_expected=0.8783
+- kde: pattern_holds=TRUE; mean_stop=0.02657; mean_fricative=0.9742; spearman_expected=0.8783
+
+Pairwise method correlations:
+- kde vs histogram_equal_width: n=6; spearman=0.9429; mean_abs_diff=0.2248
+- kde vs empirical_quantile_binned: n=6; spearman=0.8857; mean_abs_diff=0.08405
+- kde vs gaussian_mixture: n=6; spearman=0.8286; mean_abs_diff=0.2828
+- histogram_equal_width vs empirical_quantile_binned: n=6; spearman=0.7714; mean_abs_diff=0.1426
+- histogram_equal_width vs gaussian_mixture: n=6; spearman=0.9429; mean_abs_diff=0.0774
+- empirical_quantile_binned vs gaussian_mixture: n=6; spearman=0.7143; mean_abs_diff=0.216
