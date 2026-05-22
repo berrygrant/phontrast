@@ -37,7 +37,7 @@ jsd_summary <- function(data,
     min_tokens   = min_tokens,
     ...
   ) |>
-    dplyr::rename(jsd_point = .data$jsd)
+    dplyr::rename(jsd_point = "jsd")
 
   if (!do_boot) {
     return(pt)

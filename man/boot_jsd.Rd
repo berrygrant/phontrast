@@ -38,8 +38,8 @@ JSD. Groups with fewer tokens are dropped.}
 }
 \value{
 A tibble with one row per group and columns:
-\code{group}, \code{n_tokens}, \code{jsd_mean}, \code{jsd_sd},
-\code{jsd_low}, and \code{jsd_high}.
+\code{group}, \code{n_tokens}, \code{n_boot}, \code{jsd_mean},
+\code{jsd_sd}, \code{jsd_low}, and \code{jsd_high}.
 }
 \description{
 Computes bootstrap mean, SD, and confidence interval for JSD within each

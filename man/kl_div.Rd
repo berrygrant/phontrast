@@ -14,5 +14,6 @@ A single numeric value: the KL divergence in bits.
 }
 \description{
 Computes KL(p || q) in bits for discrete probability vectors.
-Zeros are handled by replacing them with a small epsilon.
+Zero-probability events in \code{p} contribute zero; positive mass in \code{p}
+where \code{q} is zero returns \code{Inf}.
 }
