@@ -4,8 +4,8 @@
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
 Version **0.5.0** is a research release focused on stable core metrics, reproducible uncertainty estimates, and comparison with classical overlap measures.
-[![DOI](https://zenodo.org/badge/1192114337.svg)](https://doi.org/10.5281/zenodo.20346257)
 
+[![DOI](https://zenodo.org/badge/1192114337.svg)](https://doi.org/10.5281/zenodo.20346257)
 ---
 
 ## Motivation
