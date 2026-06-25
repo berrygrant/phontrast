@@ -1,3 +1,13 @@
+# phonJSD 0.5.1
+
+## Maintenance
+
+- Aligned DESCRIPTION metadata with the 0.5.1 README/DOI release.
+- Added explicit Author and Maintainer fields for source-package checks on
+  current R tooling.
+- Removed old draft analysis scripts from the main package branch; the final
+  LabPhon 2026 poster and reproducibility bundle live on `labphon_2026`.
+
 # phonJSD 0.5.0
 
 ## Package Quality

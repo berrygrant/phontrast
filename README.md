@@ -22,7 +22,7 @@ This approach is especially useful when:
 
 ---
 
-## Core Features (v0.5.0)
+## Core Features (v0.5.1)
 
 - Jensen–Shannon Divergence for phonological category comparison  
 - Kernel density–based estimation of acoustic distributions  
@@ -62,3 +62,12 @@ This package is currently in early development and not yet on CRAN.
 ```r
 # install.packages("remotes")
 remotes::install_github("berrygrant/phonJSD")
+```
+
+## LabPhon 2026 Poster
+
+The final LabPhon 2026 poster and reproducibility bundle are maintained on the
+`labphon_2026` branch so the main package branch can stay lightweight.
+
+- [Download the final poster PDF](https://raw.githubusercontent.com/berrygrant/phonJSD/labphon_2026/analysis/labphon_2026/poster/LabPhon2026_Poster_Berry_Final.pdf)
+- [Browse the poster reproducibility bundle](https://github.com/berrygrant/phonJSD/tree/labphon_2026/analysis/labphon_2026)

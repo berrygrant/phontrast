@@ -1,10 +1,13 @@
 Package: phonJSD
 Title: Information-Theoretic Overlap Metrics for Phonological Categories
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: c(
     person("Grant", "Berry", email = "berry.grant@gmail.com", role = c("aut", "cre")),
     person("ChatGPT", "Assistant", role = "ctb")
   )
+Author: Grant Berry [aut, cre],
+    ChatGPT Assistant [ctb]
+Maintainer: Grant Berry <berry.grant@gmail.com>
 Description: Tools for quantifying separation between phonological categories 
     (e.g., vowels, consonants) using information-theoretic measures such as 
     Jensen-Shannon divergence (JSD) in arbitrary n-dimensional acoustic spaces 

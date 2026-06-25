@@ -1,5 +1,7 @@
 ^analysis(/|$)
 ^load_test(/|$)
+^outputs(/|$)
 ^revisions(/|$)
+^tmp(/|$)
 ^\.git$
 ^\.gitignore$
