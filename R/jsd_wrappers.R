@@ -29,18 +29,11 @@ estimate_jsd <- function(data,
                          conf_level   = 0.95,
                          ...) {
   
-  # Basic checks
-  if (!all(features %in% names(data))) {
-    stop("estimate_jsd(): All `features` must be columns in `data`.")
-  }
-  if (!category_col %in% names(data)) {
-    stop("estimate_jsd(): `category_col` must be a column in `data`.")
-  }
+  .check_columns(data, c(category_col, features))
   
   if (is.null(group_col)) {
     # ---- Global ----
-    df <- data[, c(category_col, features), drop = FALSE]
-    df <- df[stats::complete.cases(df), , drop = FALSE]
+    df <- .metric_data(data, c(category_col, features))
     
     n <- nrow(df)
     if (n < min_tokens) {
@@ -49,10 +42,7 @@ estimate_jsd <- function(data,
     }
     
     # Ensure exactly two categories
-    g <- droplevels(factor(df[[category_col]]))
-    if (nlevels(g) != 2L) {
-      stop("estimate_jsd(): `category_col` must have exactly 2 levels in the filtered data.")
-    }
+    .two_levels(df[[category_col]], "category_col")
     
     # ---- Point estimate via KDE ----
     jsd_div_point <- jsd_kde_nd(
@@ -80,7 +70,7 @@ estimate_jsd <- function(data,
     # ---- Bootstrap case ----
     alpha <- 1 - conf_level
     
-    boot_vals <- replicate(n_boot, {
+    boot_vals <- vapply(seq_len(n_boot), function(i) {
       idx <- sample.int(n, replace = TRUE)
       df_boot <- df[idx, , drop = FALSE]
       
@@ -103,7 +93,7 @@ estimate_jsd <- function(data,
       }
       
       if (est_distance) sqrt(jsd_div_boot) else jsd_div_boot
-    })
+    }, numeric(1))
     
     boot_vals <- boot_vals[!is.na(boot_vals)]
     if (!length(boot_vals)) {
@@ -131,13 +121,10 @@ estimate_jsd <- function(data,
   }
   
   # ---- Grouped ----
-  if (!group_col %in% names(data)) {
-    stop("estimate_jsd(): `group_col` must be a column in `data`.")
-  }
-  
+  .check_columns(data, group_col, "group_col")
+
   keep_cols <- c(group_col, category_col, features)
-  df <- data[, keep_cols, drop = FALSE]
-  df <- df[stats::complete.cases(df), , drop = FALSE]
+  df <- .metric_data(data, keep_cols)
   
   pt <- speaker_jsd(
     data         = df,
@@ -147,7 +134,7 @@ estimate_jsd <- function(data,
     min_tokens   = min_tokens,
     ...
   ) |>
-    dplyr::rename(jsd_point = .data$jsd)
+    dplyr::rename(jsd_point = "jsd")
   
   if (est_distance) {
     pt$jsd_point <- sqrt(pt$jsd_point)
@@ -179,7 +166,6 @@ estimate_jsd <- function(data,
   
   out <- dplyr::left_join(pt, bt, by = c("group", "n_tokens"))
   out$scope <- "group"
-  out$n_boot <- as.integer(n_boot)
   out <- out[, c("scope", "group", "n_tokens", "n_boot",
                  "jsd_point", "jsd_mean", "jsd_sd", "jsd_low", "jsd_high")]
   out

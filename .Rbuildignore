@@ -1,0 +1,5 @@
+^analysis(/|$)
+^load_test(/|$)
+^revisions(/|$)
+^\.git$
+^\.gitignore$

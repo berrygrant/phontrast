@@ -1,0 +1,2 @@
+"contrast","data","response_space","conditional_on_speakers","n_model_rows","n_posterior_draws","ba_mean","ba_median","ba_q025","ba_q975","max_rhat","min_bulk_ess","max_treedepth_observed","treedepth_limit_hit_count","divergences"
+"/ɛ/ ~ /ɪ/","PB52","speaker-normalized F1/F2",TRUE,304,1000,0.264641230570985,0.262375569281675,0.19616213695743,0.335388134545771,1.00912565902488,490.077735528682,5,0,0

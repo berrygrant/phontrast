@@ -1,7 +1,0 @@
-"contrast_id","domain","cat1","cat2","expected_sep","n_cat1","n_cat2","feature_set","jsd_kde","jsd_histogram_equal_width","jsd_empirical_quantile_binned","jsd_gaussian_mixture"
-"stop_voicing_b_p","stop_voicing","b","p",0,300,300,"vot_ms",0.0259173680326658,0.0609142669683701,0.0663186343966704,0.0350335361519352
-"stop_voicing_d_t","stop_voicing","d","t",0,300,300,"vot_ms",0.0224442766575514,0.0610200567024916,0.054909107146598,0.052194680443645
-"stop_voicing_g_k","stop_voicing","g","k",0,300,300,"vot_ms",0.0313614128365029,0.072183649371981,0.0662898691784105,0.0487103430900432
-"fricative_place_s_sh","fricative_place","s","sh",1,300,300,"cog_hz,spec_sd_hz,spec_skew,spec_kurt,peak_hz,spec_slope_db_per_khz,band_ratio_hi_lo_db,intensity_db",0.983149996346715,0.6105658328301,0.901510693448083,0.486677246115916
-"fricative_place_f_th","fricative_place","f","th",1,300,300,"cog_hz,spec_sd_hz,spec_skew,spec_kurt,peak_hz,spec_slope_db_per_khz,band_ratio_hi_lo_db,intensity_db",0.946255155495332,0.395496825467276,0.737977286757496,0.234645856540736
-"fricative_place_z_zh","fricative_place","z","zh",1,300,120,"cog_hz,spec_sd_hz,spec_skew,spec_kurt,peak_hz,spec_slope_db_per_khz,band_ratio_hi_lo_db,intensity_db",0.993149934747134,0.681857440329715,0.886565571080736,0.560388806062133

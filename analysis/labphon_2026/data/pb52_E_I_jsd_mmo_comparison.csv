@@ -1,0 +1,5 @@
+"measure","model","estimand","point","low","high","interval","n_tokens","note"
+"JSD","Empirical KDE","separation",0.802143306274475,0.719729646052897,0.915819979696312,"95% bootstrap CI",304,"JSD is an information-theoretic separation index: 0 = identical, 1 = maximally distinct."
+"1 - MMO BA","PB52 MMO-framework","separation",0.737624430718325,0.664611865454229,0.80383786304257,"95% posterior CrI",304,"MMO returns Bhattacharyya affinity overlap, so 1 - BA is shown to put it on a separation scale."
+"KDE overlap","Empirical KDE","overlap",0.077622789937396,NA,NA,NA,304,"Reference empirical overlap used for the main PB52 metric comparison."
+"MMO BA","PB52 MMO-framework","overlap",0.262375569281675,0.19616213695743,0.335388134545771,"95% posterior CrI",304,"Posterior predictive Bhattacharyya affinity from the brms mixed-effects model."

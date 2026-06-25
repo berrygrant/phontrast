@@ -16,15 +16,10 @@ percent_overlap_kde <- function(data,
                                 category_col,
                                 ...) {
 
-  if (!category_col %in% names(data))
-    stop("`category_col` must be a column in `data`.")
+  .check_columns(data, c(category_col, features))
+  data <- .metric_data(data, c(category_col, features))
 
-  if (!all(features %in% names(data)))
-    stop("Not all `features` exist in `data`.")
-
-  levs <- unique(data[[category_col]])
-  if (length(levs) != 2L)
-    stop("`category_col` must have exactly two categories.")
+  levs <- .two_levels(data[[category_col]], "category_col")
 
   d1 <- data[data[[category_col]] == levs[1], features, drop = FALSE]
   d2 <- data[data[[category_col]] == levs[2], features, drop = FALSE]
@@ -72,8 +67,7 @@ estimate_overlap <- function(data,
   if (is.null(group_col)) {
     # ---- Global ----
     keep_cols <- c(category_col, features)
-    df <- data[stats::complete.cases(data[, keep_cols, drop = FALSE]),
-               keep_cols, drop = FALSE]
+    df <- .metric_data(data, keep_cols)
 
     n <- nrow(df)
     if (n < min_tokens)
@@ -94,8 +88,8 @@ estimate_overlap <- function(data,
   }
 
   # ---- Grouped ----
-  if (!group_col %in% names(data))
-    stop("`group_col` must be a column in `data`.")
+  .check_columns(data, c(group_col, category_col, features))
+  data <- .metric_data(data, c(group_col, category_col, features))
 
   groups <- split(data, data[[group_col]])
 
@@ -120,5 +114,16 @@ estimate_overlap <- function(data,
     )
   })
 
-  do.call(rbind, out)
+  out <- do.call(rbind, out)
+  if (is.null(out)) {
+    out <- data.frame(
+      scope = character(),
+      group = character(),
+      n_tokens = integer(),
+      overlap = numeric(),
+      stringsAsFactors = FALSE
+    )
+  }
+  rownames(out) <- NULL
+  out
 }

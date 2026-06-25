@@ -3,7 +3,9 @@
 **phonJSD** is an R package for measuring phonological category separation using **Jensen–Shannon Divergence (JSD)**.  
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
-Version **0.1.0** is an early research release focused on core functionality, transparency, and reproducibility.
+Version **0.5.1** is a research release focused on stable core metrics, reproducible uncertainty estimates, and comparison with classical overlap measures.
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20816586.svg)](https://doi.org/10.5281/zenodo.20816586)
 
 ---
 
@@ -20,11 +22,13 @@ This approach is especially useful when:
 
 ---
 
-## Core Features (v0.1.0)
+## Core Features (v0.5.1)
 
 - Jensen–Shannon Divergence for phonological category comparison  
 - Kernel density–based estimation of acoustic distributions  
 - Support for **1D and n-dimensional acoustic features**
+- Global and group-level bootstrap summaries
+- Comparison metrics including Pillai-Bartlett trace, Bhattacharyya distance, and percent overlap
 - Reproducible pipelines compatible with tidyverse workflows
 - Designed for integration with forced alignment and acoustic extraction tools
 
@@ -37,6 +41,12 @@ Given two phonological categories (e.g., vowels /ɪ/ and /ɛ/), phonJSD:
 1. Represents each category as a probability distribution over acoustic space  
 2. Estimates densities using kernel density estimation (KDE)  
 3. Computes Jensen–Shannon Divergence between the distributions  
+
+KDE is the package's default density-estimation strategy for continuous
+acoustic spaces. JSD itself, however, operates on probability distributions and
+is not intrinsically tied to KDE. Manuscript sensitivity analyses show that the
+same substantive contrast pattern is recovered when JSD is computed from KDE,
+histogram-based, empirical-binned, and Gaussian-mixture distribution estimates.
 
 JSD values:
 - **0** → complete overlap (no separation)
@@ -54,72 +64,19 @@ This package is currently in early development and not yet on CRAN.
 remotes::install_github("berrygrant/phonJSD")
 ```
 
-## Boundary Testing (Consonants + Tones)
+## LabPhon 2026 Poster Branch
 
-To test JSD on commonly studied non-vowel boundaries (stop voicing, fricative distinctions, and tone contrasts), run:
+This branch contains the final LabPhon 2026 poster replication bundle in
+`analysis/labphon_2026/`.
 
-```bash
-BOUNDARY_DATA_PATH="/absolute/path/to/your_data.csv" \
-BOUNDARY_GROUP_COL="speaker" \
-BOUNDARY_SEGMENT_COL="segment" \
-BOUNDARY_TONE_COL="tone" \
-BOUNDARY_FEATURES="mfcc1,mfcc2,mfcc3,mfcc4,mfcc5,mfcc6,mfcc7,mfcc8,mfcc9,mfcc10,mfcc11,mfcc12,mfcc13" \
-Rscript analysis/boundary_jsd_tests.R
-```
-
-This writes:
-- `analysis/boundary_outputs/boundary_jsd_global.csv`
-- `analysis/boundary_outputs/boundary_jsd_by_group.csv`
-- `analysis/boundary_outputs/boundary_jsd_skipped.csv`
-
-Optional tuning parameters:
-- `BOUNDARY_N_BOOT_GLOBAL` (default `300`; set `0` for point-estimate only)
-- `BOUNDARY_N_BOOT_GROUP` (default `150`; set `0` for point-estimate only)
-- `BOUNDARY_MIN_TOKENS_GLOBAL` (default `80`)
-- `BOUNDARY_MIN_TOKENS_GROUP` (default `30`)
-- `BOUNDARY_MIN_PER_CATEGORY` (default `15`)
-- `BOUNDARY_BW` (default `Hpi.diag`)
-- `BOUNDARY_EVAL_ON` (default `pooled`)
-- `BOUNDARY_OUT_DIR` (default `analysis/boundary_outputs`)
-- `BOUNDARY_LOAD_LOCAL` (default `false`; set `true` to force `devtools::load_all()` from local source)
-
-Notes:
-- The script includes preset aliases for contrasts such as `b~p`, `d~t`, `g~k`, `s~sh`, `z~zh`, `f~th`, high~low tone, and rising~falling tone.
-- If your labels use a different scheme, edit `analysis/boundary_jsd_tests.R` alias lists for each contrast.
-
-## Estimator Robustness Check
-
-To address concerns that the substantive pattern depends on KDE specifically,
-run:
+To regenerate the poster-facing analyses and figures from the committed
+processed inputs:
 
 ```bash
-Rscript analysis/robust_jsd_estimators.R
+python3 -m pip install -r analysis/labphon_2026/requirements-python.txt
+python3 analysis/labphon_2026/reproduce_poster_figures.py
 ```
 
-This computes contrast-level JSD with:
-- KDE
-- equal-width histograms
-- quantile-binned empirical discrete distributions
-- Gaussian mixtures selected by BIC via `mclust`
-
-Install `mclust` first if it is not already available:
-
-```r
-install.packages("mclust")
-```
-
-The script writes:
-- `analysis/estimator_robustness_outputs/robust_jsd_by_method.csv`
-- `analysis/estimator_robustness_outputs/robust_jsd_wide.csv`
-- `analysis/estimator_robustness_outputs/robust_jsd_method_concordance.csv`
-- `analysis/estimator_robustness_outputs/robust_jsd_method_correlations.csv`
-- `analysis/estimator_robustness_outputs/robust_jsd_summary.txt`
-- `analysis/estimator_robustness_outputs/robust_jsd_by_method.png` when `ggplot2` is installed
-
-Optional tuning parameters:
-- `ROBUST_JSD_DATA_PATH` (defaults to full-alignment consonant metrics when present)
-- `ROBUST_JSD_MAX_PER_CATEGORY` (default `300`)
-- `ROBUST_JSD_HIST_BINS_1D` and `ROBUST_JSD_HIST_BINS_ND`
-- `ROBUST_JSD_EMP_BINS_1D` and `ROBUST_JSD_EMP_BINS_ND`
-- `ROBUST_JSD_GMM_COMPONENTS` (default `3`)
-- `ROBUST_JSD_OUT_DIR` (default `analysis/estimator_robustness_outputs`)
+See `analysis/labphon_2026/README.md` for the data inventory, exact outputs,
+the no-MMO overlap-estimator robustness analysis, and the optional faithful
+PB52 MMO talking-point rerun.

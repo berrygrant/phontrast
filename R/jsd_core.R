@@ -1,18 +1,26 @@
 #' Kullback–Leibler divergence for discrete distributions
 #'
 #' Computes KL(p || q) in bits for discrete probability vectors.
-#' Zeros are handled by replacing them with a small epsilon.
+#' Zero-probability events in `p` contribute zero; positive mass in `p`
+#' where `q` is zero returns `Inf`.
 #'
 #' @param p,q Numeric probability vectors of the same length.
 #'
 #' @return A single numeric value: the KL divergence in bits.
 #' @export
 kl_div <- function(p, q) {
-  stopifnot(length(p) == length(q))
-  eps <- .Machine$double.eps
-  p_safe <- ifelse(p == 0, eps, p)
-  q_safe <- ifelse(q == 0, eps, q)
-  sum(p_safe * (log(p_safe / q_safe) / log(2)))
+  if (length(p) != length(q)) {
+    stop("`p` and `q` must have the same length.", call. = FALSE)
+  }
+  if (any(!is.finite(p)) || any(!is.finite(q)) || any(p < 0) || any(q < 0)) {
+    stop("`p` and `q` must be finite, non-negative vectors.", call. = FALSE)
+  }
+
+  keep <- p > 0
+  if (any(q[keep] == 0)) {
+    return(Inf)
+  }
+  sum(p[keep] * log2(p[keep] / q[keep]))
 }
 
 #' Jensen–Shannon divergence for discrete distributions
@@ -25,7 +33,16 @@ kl_div <- function(p, q) {
 #' @return A single numeric value: the Jensen–Shannon divergence in bits.
 #' @export
 jsd <- function(p, q) {
-  stopifnot(length(p) == length(q))
+  if (length(p) != length(q)) {
+    stop("`p` and `q` must have the same length.", call. = FALSE)
+  }
+  if (any(!is.finite(p)) || any(!is.finite(q)) || any(p < 0) || any(q < 0)) {
+    stop("`p` and `q` must be finite, non-negative vectors.", call. = FALSE)
+  }
+  if (sum(p) <= 0 || sum(q) <= 0) {
+    stop("`p` and `q` must each have positive mass.", call. = FALSE)
+  }
+
   p <- p / sum(p)
   q <- q / sum(q)
   m <- 0.5 * (p + q)

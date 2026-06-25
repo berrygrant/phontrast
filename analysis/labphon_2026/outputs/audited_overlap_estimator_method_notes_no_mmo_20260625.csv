@@ -1,0 +1,6 @@
+overlap_estimator,definition,status
+KDE density overlap (13D),Shared mass from the same KDE framework used for the main overlap benchmark.,primary but circular with KDE-based JSD
+kNN density overlap k=10/25/50 (13D),Shared mass from k-nearest-neighbor class-conditional density estimates on pooled points.,independent density-family sensitivity check
+MVN Monte Carlo overlap (13D),"Posterior overlap under one full-covariance multivariate normal per category; 10,000 Monte Carlo draws.",parametric Gaussian reference; close to Bhattacharyya assumptions
+PCA-2D grid overlap,Shared histogram mass after pairwise projection to two principal components.,low-dimensional projection diagnostic
+PCA-2D convex hull support,Intersection area of PCA-2D convex-hull supports divided by smaller hull area.,"support-overlap diagnostic, not a density-overlap estimate"

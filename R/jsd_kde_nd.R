@@ -29,17 +29,10 @@ jsd_kde_nd <- function(data,
   bw      <- match.arg(bw)
   eval_on <- match.arg(eval_on)
 
-  if (!all(features %in% names(data))) {
-    stop("All `features` must be column names in `data`.")
-  }
-  if (!group %in% names(data)) {
-    stop("`group` must be the name of a column in `data`.")
-  }
+  .check_columns(data, c(group, features))
+  data <- .metric_data(data, c(group, features))
 
-  levs <- unique(data[[group]])
-  if (length(levs) != 2L) {
-    stop("`group` must have exactly two unique values in `data`.")
-  }
+  levs <- .two_levels(data[[group]], "group")
 
   d1 <- data[data[[group]] == levs[1], , drop = FALSE]
   d2 <- data[data[[group]] == levs[2], , drop = FALSE]
@@ -75,8 +68,9 @@ jsd_kde_nd <- function(data,
   p <- as.numeric(kde1$estimate)
   q <- as.numeric(kde2$estimate)
 
-  p <- p / sum(p)
-  q <- q / sum(q)
+  if (any(!is.finite(p)) || any(!is.finite(q)) || sum(p) <= 0 || sum(q) <= 0) {
+    stop("KDE returned invalid density estimates.", call. = FALSE)
+  }
 
   jsd(p, q)
 }

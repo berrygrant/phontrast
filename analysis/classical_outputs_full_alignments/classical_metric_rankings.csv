@@ -1,8 +1,0 @@
-"metric","spearman_with_expected_sep"
-"jsd",0.87831006565368
-"bhatt_dist",0.87831006565368
-"sep_from_overlap",0.87831006565368
-"euclid",0.87831006565368
-"mahal",0.29277002188456
-"lda_acc",0.29277002188456
-"pillai",NA

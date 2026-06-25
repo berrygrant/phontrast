@@ -1,0 +1,2 @@
+"max_rhat","median_rhat","min_bulk_ess","min_tail_ess","max_treedepth_limit","max_treedepth_observed","treedepth_limit_hit_count","divergences"
+1.00912565902488,1.00080642843193,490.077735528682,711.860693634212,12,5,0,0

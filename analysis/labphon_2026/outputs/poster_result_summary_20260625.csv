@@ -1,0 +1,49 @@
+section,dataset,measure,statistic,value,n
+main_metric_comparison,PB52 F1/F2,JSD,Pearson r with KDE overlap,-0.9760294628379158,45
+main_metric_comparison,PB52 F1/F2,JSD,Spearman rho with KDE overlap,-0.9913043478260868,45
+main_metric_comparison,PB52 F1/F2,Pillai,Pearson r with KDE overlap,-0.9159067418482083,45
+main_metric_comparison,PB52 F1/F2,Pillai,Spearman rho with KDE overlap,-0.9876152832674571,45
+main_metric_comparison,PB52 F1/F2,Bhattacharyya distance,Pearson r with KDE overlap,-0.5377915187650623,45
+main_metric_comparison,PB52 F1/F2,Bhattacharyya distance,Spearman rho with KDE overlap,-0.9872200263504611,45
+main_metric_comparison,SBCSAE 13-MFCC,JSD,Pearson r with KDE overlap,-0.9511654884611759,351
+main_metric_comparison,SBCSAE 13-MFCC,JSD,Spearman rho with KDE overlap,-0.9624234099234099,351
+main_metric_comparison,SBCSAE 13-MFCC,Pillai,Pearson r with KDE overlap,-0.8108912977996308,351
+main_metric_comparison,SBCSAE 13-MFCC,Pillai,Spearman rho with KDE overlap,-0.8980150405150404,351
+main_metric_comparison,SBCSAE 13-MFCC,Bhattacharyya distance,Pearson r with KDE overlap,-0.6940942698192377,351
+main_metric_comparison,SBCSAE 13-MFCC,Bhattacharyya distance,Spearman rho with KDE overlap,-0.8479689754689754,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with KDE density overlap (13D),0.9511654884611759,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with KDE density overlap (13D),0.8108912977996308,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with KDE density overlap (13D),0.6940942698192377,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with kNN density overlap k=10 (13D),0.8628099662306836,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with kNN density overlap k=10 (13D),0.9246943353315257,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with kNN density overlap k=10 (13D),0.8316080603709702,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with kNN density overlap k=25 (13D),0.8644724860955808,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with kNN density overlap k=25 (13D),0.950721275352576,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with kNN density overlap k=25 (13D),0.8759946858342053,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with kNN density overlap k=50 (13D),0.8608494004155605,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with kNN density overlap k=50 (13D),0.9633994522793212,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with kNN density overlap k=50 (13D),0.8980147480418202,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with MVN Monte Carlo overlap (13D),0.792865874795911,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with MVN Monte Carlo overlap (13D),0.9605092826538321,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with MVN Monte Carlo overlap (13D),0.9295002461231029,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with PCA-2D grid overlap,0.8347287712041245,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with PCA-2D grid overlap,0.9368064631320687,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with PCA-2D grid overlap,0.9143312361703936,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,JSD,abs Pearson r with PCA-2D convex hull support,0.6721270075774328,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Pillai,abs Pearson r with PCA-2D convex hull support,0.7979127159373234,351
+overlap_estimator_robustness,SBCSAE 13-MFCC,Bhattacharyya distance,abs Pearson r with PCA-2D convex hull support,0.8071658113628748,351
+sample_size_simulation,simulated complete overlap,JSD,n=10 mean JSD,0.116235423455723,1000.0
+sample_size_simulation,simulated complete overlap,JSD,n=10 95% simulation interval,"[0.035535, 0.249215]",1000.0
+sample_size_simulation,simulated complete overlap,JSD,n=20 mean JSD,0.0605801007229938,1000.0
+sample_size_simulation,simulated complete overlap,JSD,n=20 95% simulation interval,"[0.022768, 0.122845]",1000.0
+sample_size_simulation,simulated complete overlap,JSD,n=25 mean JSD,0.052057189443541,1000.0
+sample_size_simulation,simulated complete overlap,JSD,n=25 95% simulation interval,"[0.019608, 0.104053]",1000.0
+contrast_generalization,SBCSAE exploratory consonants,Stop voicing,/b/ ~ /p/,0.0155514539999302,n=362+350
+contrast_generalization,SBCSAE exploratory consonants,Stop voicing,/d/ ~ /t/,0.0199807423413181,n=700+700
+contrast_generalization,SBCSAE exploratory consonants,Stop voicing,/g/ ~ /k/,0.0286131560590612,n=262+351
+contrast_generalization,SBCSAE exploratory consonants,Fricative place,/s/ ~ /sh/,0.987977927376694,n=700+454
+contrast_generalization,SBCSAE exploratory consonants,Fricative place,/f/ ~ /th/,0.927039162107901,n=700+358
+pb52_mmo_talking_point,PB52 /E/-/I/,JSD,95% bootstrap CI,0.802143306274475,304
+pb52_mmo_talking_point,PB52 /E/-/I/,1 - MMO BA,95% posterior CrI,0.737624430718325,304
+pb52_mmo_talking_point,PB52 /E/-/I/,KDE overlap,,0.077622789937396,304
+pb52_mmo_talking_point,PB52 /E/-/I/,MMO BA,95% posterior CrI,0.262375569281675,304

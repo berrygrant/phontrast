@@ -25,22 +25,15 @@ speaker_jsd <- function(data,
                         min_tokens = 20,
                         ...) {
 
-  if (!group_col %in% names(data)) {
-    stop("`group_col` must be a column in `data`.")
-  }
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be a column in `data`.")
-  }
-  if (!all(features %in% names(data))) {
-    stop("All `features` must be columns in `data`.")
-  }
+  .check_columns(data, c(group_col, category_col, features))
+  data <- .metric_data(data, c(group_col, category_col, features))
 
   groups <- split(data, data[[group_col]])
 
   out_list <- lapply(groups, function(df_g) {
     n_tok <- nrow(df_g)
     if (n_tok < min_tokens ||
-        dplyr::n_distinct(df_g[[category_col]]) != 2L) {
+        length(unique(df_g[[category_col]])) != 2L) {
       return(NULL)
     }
 
@@ -61,15 +54,8 @@ speaker_jsd <- function(data,
     )
   })
 
-  out <- do.call(rbind, out_list)
-  if (is.null(out)) {
-    out <- tibble::tibble(
-      group    = character(0),
-      n_tokens = integer(0),
-      jsd      = numeric(0)
-    )
-  }
-  out
+  out <- dplyr::bind_rows(out_list)
+  if (nrow(out)) out else .empty_group_jsd()
 }
 
 #' Bootstrap JSD for each group
@@ -83,8 +69,8 @@ speaker_jsd <- function(data,
 #'   (sqrt of divergence) instead of divergence.
 #'
 #' @return A tibble with one row per group and columns:
-#'   \code{group}, \code{n_tokens}, \code{jsd_mean}, \code{jsd_sd},
-#'   \code{jsd_low}, and \code{jsd_high}.
+#'   \code{group}, \code{n_tokens}, \code{n_boot}, \code{jsd_mean},
+#'   \code{jsd_sd}, \code{jsd_low}, and \code{jsd_high}.
 #' @export
 #' @importFrom purrr map
 #' @importFrom dplyr bind_rows n_distinct
@@ -98,12 +84,8 @@ boot_jsd <- function(data,
                      est_distance = FALSE,
                      ...) {
 
-  if (!group_col %in% names(data)) {
-    stop("`group_col` must be a column in `data`.")
-  }
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be a column in `data`.")
-  }
+  .check_columns(data, c(group_col, category_col, features))
+  data <- .metric_data(data, c(group_col, category_col, features))
 
   groups <- split(data, data[[group_col]])
 
@@ -114,6 +96,7 @@ boot_jsd <- function(data,
       return(tibble::tibble(
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
+        n_boot   = 0L,
         jsd_mean = NA_real_,
         jsd_sd   = NA_real_,
         jsd_low  = NA_real_,
@@ -121,9 +104,9 @@ boot_jsd <- function(data,
       ))
     }
 
-    jsd_vals <- replicate(
-      n_boot,
-      {
+    jsd_vals <- vapply(
+      seq_len(n_boot),
+      function(i) {
         samp <- df_g[sample.int(nrow(df_g), size = nrow(df_g), replace = TRUE), ]
         if (dplyr::n_distinct(samp[[category_col]]) < 2L) {
           return(NA_real_)
@@ -141,7 +124,8 @@ boot_jsd <- function(data,
           return(NA_real_)
         }
         if (est_distance) sqrt(jsd_div) else jsd_div
-      }
+      },
+      numeric(1)
     )
 
     jsd_vals <- jsd_vals[!is.na(jsd_vals)]
@@ -149,6 +133,7 @@ boot_jsd <- function(data,
       return(tibble::tibble(
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
+        n_boot   = 0L,
         jsd_mean = NA_real_,
         jsd_sd   = NA_real_,
         jsd_low  = NA_real_,
@@ -159,6 +144,7 @@ boot_jsd <- function(data,
     tibble::tibble(
       group    = df_g[[group_col]][1],
       n_tokens = nrow(df_g),
+      n_boot   = length(jsd_vals),
       jsd_mean = mean(jsd_vals),
       jsd_sd   = stats::sd(jsd_vals),
       jsd_low  = stats::quantile(jsd_vals, 0.025, names = FALSE),

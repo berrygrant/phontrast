@@ -11,9 +11,10 @@
 #' @export
 #' @importFrom stats manova cov
 pillai_overlap <- function(data, features, category_col) {
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be in `data`.")
-  }
+  .check_columns(data, c(category_col, features))
+  data <- .metric_data(data, c(category_col, features))
+  .two_levels(data[[category_col]], "category_col")
+
   Y <- as.matrix(data[, features, drop = FALSE])
   cat <- data[[category_col]]
   m <- stats::manova(Y ~ cat)
@@ -44,25 +45,25 @@ speaker_pillai <- function(data,
                            features,
                            min_tokens = 20) {
 
-  if (!group_col %in% names(data)) {
-    stop("`group_col` must be in `data`.")
-  }
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be in `data`.")
-  }
+  .check_columns(data, c(group_col, category_col, features))
+  data <- .metric_data(data, c(group_col, category_col, features))
 
-  dplyr::group_by(data, .data[[group_col]]) |>
-    dplyr::filter(
-      dplyr::n() >= min_tokens,
-      dplyr::n_distinct(.data[[category_col]]) >= 2L
-    ) |>
-    dplyr::summarize(
-      n_tokens = dplyr::n(),
-      pillai   = pillai_overlap(dplyr::cur_data_all(), features, category_col)$pillai,
-      p_value  = pillai_overlap(dplyr::cur_data_all(), features, category_col)$p_value,
-      .groups  = "drop"
-    ) |>
-    dplyr::rename(group = 1)
+  out <- lapply(split(data, data[[group_col]]), function(df_g) {
+    n_tok <- nrow(df_g)
+    if (n_tok < min_tokens || length(unique(df_g[[category_col]])) < 2L) {
+      return(NULL)
+    }
+
+    po <- pillai_overlap(df_g, features, category_col)
+    tibble::tibble(
+      group = df_g[[group_col]][1],
+      n_tokens = n_tok,
+      pillai = po$pillai,
+      p_value = po$p_value
+    )
+  })
+
+  dplyr::bind_rows(out)
 }
 
 #' Global Pillai trace (point estimate)
@@ -85,17 +86,8 @@ global_pillai <- function(data,
                           category_col,
                           min_tokens = 20) {
 
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be in `data`.")
-  }
-  if (!all(features %in% names(data))) {
-    stop("All `features` must be in `data`.")
-  }
-
   keep_cols <- c(category_col, features)
-
-  df <- data[stats::complete.cases(data[, keep_cols, drop = FALSE]),
-             keep_cols, drop = FALSE]
+  df <- .metric_data(data, keep_cols)
 
   n <- nrow(df)
   if (n < min_tokens) {
@@ -184,14 +176,9 @@ estimate_pillai <- function(data,
 #' @export
 #' @importFrom stats cov
 bhattacharyya_mvnorm <- function(data, features, category_col, eps = 1e-6) {
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be in `data`.")
-  }
-
-  levs <- unique(data[[category_col]])
-  if (length(levs) != 2L) {
-    stop("`category_col` must have exactly two levels.")
-  }
+  .check_columns(data, c(category_col, features))
+  data <- .metric_data(data, c(category_col, features))
+  levs <- .two_levels(data[[category_col]], "category_col")
   X1 <- as.matrix(data[data[[category_col]] == levs[1], features, drop = FALSE])
   X2 <- as.matrix(data[data[[category_col]] == levs[2], features, drop = FALSE])
 
@@ -253,15 +240,8 @@ speaker_bhatt <- function(data,
                           min_tokens = 20,
                           eps = 1e-6) {
 
-  if (!group_col %in% names(data)) {
-    stop("`group_col` must be in `data`.")
-  }
-  if (!category_col %in% names(data)) {
-    stop("`category_col` must be in `data`.")
-  }
-  if (!all(features %in% names(data))) {
-    stop("All `features` must be in `data`.")
-  }
+  .check_columns(data, c(group_col, category_col, features))
+  data <- .metric_data(data, c(group_col, category_col, features))
 
   groups <- split(data, data[[group_col]])
   out_list <- lapply(groups, function(df_g) {
@@ -286,15 +266,7 @@ speaker_bhatt <- function(data,
   })
 
   out <- do.call(rbind, out_list)
-  if (is.null(out)) {
-    out <- data.frame(
-      group          = character(0),
-      n_tokens       = integer(0),
-      bhatt_dist     = numeric(0),
-      bhatt_affinity = numeric(0),
-      stringsAsFactors = FALSE
-    )
-  }
+  if (is.null(out)) out <- .empty_group_bhatt()
   rownames(out) <- NULL
   out
 }
@@ -324,8 +296,7 @@ estimate_bhatt <- function(data,
   if (is.null(group_col)) {
     # global
     keep_cols <- c(category_col, features)
-    df <- data[stats::complete.cases(data[, keep_cols, drop = FALSE]),
-               keep_cols, drop = FALSE]
+    df <- .metric_data(data, keep_cols)
 
     n <- nrow(df)
     if (n < min_tokens) {
