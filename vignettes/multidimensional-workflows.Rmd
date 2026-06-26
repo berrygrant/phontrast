@@ -1,0 +1,99 @@
+---
+title: "Multidimensional workflows"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Multidimensional workflows}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+`phonJSD` can estimate category separation in feature spaces with more than two
+dimensions, such as MFCC vectors, formants plus duration, or other acoustic
+embeddings. The key distinction is that metrics and plots answer different
+questions:
+
+- `compare_overlap_metrics()` estimates metrics in the full feature space you
+  pass to `features`.
+- `plot_category_space()` shows one or two selected dimensions.
+- `plot_category_pca()` shows a two-dimensional PCA projection for diagnosing a
+  multidimensional space.
+
+```{r}
+library(phonJSD)
+
+set.seed(2026)
+features <- paste0("feature_", 1:6)
+tokens <- data.frame(
+  speaker = rep(c("s01", "s02"), each = 80),
+  category = rep(rep(c("A", "B"), each = 40), 2),
+  matrix(rnorm(160 * length(features)), ncol = length(features))
+)
+names(tokens)[-(1:2)] <- features
+tokens[tokens$category == "B", features[1:3]] <-
+  tokens[tokens$category == "B", features[1:3]] + 0.65
+```
+
+Compute metrics in all dimensions.
+
+```{r}
+metrics <- compare_overlap_metrics(
+  data = tokens,
+  features = features,
+  category_col = "category",
+  group_col = "speaker",
+  output = "long"
+)
+
+metrics[, c("group", "metric", "estimate", "orientation", "separation_value")]
+```
+
+Visualize a projection without changing the metric estimand.
+
+```{r, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot_category_pca(
+  data = tokens,
+  features = features,
+  category_col = "category",
+  group_col = "speaker"
+)
+```
+
+For a specific pair of interpretable dimensions, use `plot_category_space()`.
+
+```{r, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot_category_space(
+  data = tokens,
+  features = c("feature_1", "feature_2"),
+  category_col = "category",
+  group_col = "speaker"
+)
+```
+
+PCA plots are useful for sanity checks and presentations, but they can hide
+separation that lives outside the first two principal components. Use them as a
+visual diagnostic; report metric estimates from the intended full feature set.
+
+## PB52 note
+
+The Peterson and Barney 1952 data in `phonTools::pb52` are useful for global
+vowel contrasts. For example, a global `I/i` comparison in F1/F2 has many
+tokens. Per-speaker `I/i` F1/F2 comparisons are not estimable with KDE-based
+metrics because each speaker has only two repetitions per vowel.
+
+```{r, eval = FALSE}
+data(pb52, package = "phonTools")
+pb_i <- subset(pb52, as.character(vowel) %in% c("I", "i"))
+
+compare_overlap_metrics(
+  data = pb_i,
+  features = c("f1", "f2"),
+  category_col = "vowel"
+)
+```

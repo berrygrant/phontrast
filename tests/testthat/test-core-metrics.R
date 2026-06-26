@@ -438,6 +438,34 @@ test_that("category space plotting supports one and two dimensions", {
   )
 })
 
+test_that("PCA category plotting supports multidimensional feature sets", {
+  testthat::skip_if_not_installed("ggplot2")
+  set.seed(203)
+  features <- paste0("x", 1:5)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 50),
+    category = rep(c("a", "b"), each = 50),
+    matrix(rnorm(100 * length(features)), ncol = length(features))
+  )
+  names(data)[-(1:2)] <- features
+  data[data$category == "b", features[1:2]] <- data[data$category == "b", features[1:2]] + 0.75
+
+  p <- plot_category_pca(
+    data = data,
+    features = features,
+    category_col = "category",
+    group_col = "speaker"
+  )
+
+  expect_s3_class(p, "ggplot")
+  expect_s3_class(attr(p, "pca"), "prcomp")
+  expect_true(all(c("component", "variance_explained") %in% names(attr(p, "variance_explained"))))
+  expect_error(
+    plot_category_pca(data, features = "x1", category_col = "category"),
+    "at least two"
+  )
+})
+
 test_that("compare_overlap_metrics diagnoses grouped contrasts with no estimable groups", {
   set.seed(21)
   data <- data.frame(

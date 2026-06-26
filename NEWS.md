@@ -5,6 +5,8 @@
 - Added ggplot2-backed `plot_overlap_metrics()` and `plot_category_space()`
   helpers for visualizing metric comparisons and one- or two-dimensional
   phonological category spaces.
+- Added `plot_category_pca()` for two-dimensional PCA diagnostics of arbitrary
+  multidimensional feature spaces.
 
 ## Metrics
 
@@ -19,11 +21,15 @@
 - Made two-category metric checks ignore unused factor levels after filtering,
   so filtered factor data such as PB52 `I/i` contrasts work without manually
   calling `droplevels()`.
+- Clarified that percent-overlap outputs are 0--1 proportions, not 0--100
+  percentages.
 
 ## Documentation
 
+- Added quick-start and multidimensional-workflow vignettes.
 - Added a README quick start that starts from a vowel token table and moves to
   metric output.
+- Added metric-choice guidance and PB52 small-sample notes.
 - Added preferred-path and metric-direction guidance to the package manual.
 - Added runnable examples for the main metric comparison, JSD estimation,
   direct KDE JSD, beta-regression preparation, MFCC extraction, and

@@ -1,8 +1,9 @@
-#' Percent overlap between two distributions via KDE
+#' Proportional overlap between two distributions via KDE
 #'
-#' Computes the percentage overlap (shared area) between two categories
+#' Computes the proportional overlap (shared area) between two categories
 #' in an n-dimensional acoustic space using multivariate kernel density
-#' estimation. Range: 0 = no overlap, 1 = identical.
+#' estimation. Despite the historical function name, the return value is a
+#' 0--1 proportion: 0 = no overlap, 1 = identical.
 #'
 #' @param data Data frame.
 #' @param features Character vector of numeric feature columns.
@@ -13,7 +14,7 @@
 #'   \code{jsd_kde_nd()}: \code{"pooled"}, \code{"group1"}, or \code{"group2"}.
 #' @param ... Reserved for future extensions; currently unused.
 #'
-#' @return Numeric scalar in \code{[0, 1]}.
+#' @return Numeric scalar proportion in \code{[0, 1]}.
 #' @export
 percent_overlap_kde <- function(data,
                                 features,
@@ -35,7 +36,7 @@ percent_overlap_kde <- function(data,
   p <- dens$p / sum(dens$p)
   q <- dens$q / sum(dens$q)
 
-  # Percent overlap is the shared area on the grid: sum(min(p, q))
+  # Overlap is the shared area on the grid: sum(min(p, q))
   overlap <- sum(pmin(p, q))
 
   # Bound numerically
@@ -44,13 +45,18 @@ percent_overlap_kde <- function(data,
   overlap
 }
 
-#' Estimate percent overlap globally or by group
+#' Estimate proportional overlap globally or by group
 #'
-#' Unified front-end for KDE-based percent overlap between two categories.
+#' Unified front-end for KDE-based proportional overlap between two categories.
+#' The returned \code{overlap} column is a 0--1 proportion, not a 0--100
+#' percentage.
 #'
 #' @inheritParams estimate_jsd
+#' @param bw Bandwidth selection method passed to \code{percent_overlap_kde()}.
+#' @param eval_on KDE evaluation points passed to \code{percent_overlap_kde()}.
 #'
-#' @return A data frame (global = one row; grouped = one per group).
+#' @return A data frame (global = one row; grouped = one per group) with
+#'   \code{overlap} as a 0--1 proportion.
 #' @export
 estimate_overlap <- function(data,
                              features,

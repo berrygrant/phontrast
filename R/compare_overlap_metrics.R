@@ -2,9 +2,11 @@
 #'
 #' Computes the package's main category-separation and overlap metrics in one
 #' call: Pillai trace, Bhattacharyya distance and affinity, Jensen-Shannon
-#' divergence, Jensen-Shannon distance, Mahalanobis distance, and percent
+#' divergence, Jensen-Shannon distance, Mahalanobis distance, and proportional
 #' overlap. Results can be returned in a wide format for analysis tables or a
-#' long format for plotting and rank-based comparison.
+#' long format for plotting and rank-based comparison. The
+#' \code{percent_overlap} column is retained for compatibility, but its values
+#' are 0--1 proportions rather than 0--100 percentages.
 #'
 #' This is the recommended entry point when you want to compare more than one
 #' overlap metric for the same phonological contrast. Use \code{estimate_jsd()}
@@ -642,7 +644,7 @@ compare_overlap_metrics <- function(data,
   if (!nrow(out)) {
     return(out)
   }
-  out$separation_rank <- ave(
+  out$separation_rank <- stats::ave(
     out$separation_value,
     out$metric,
     FUN = function(x) rank(-x, ties.method = "average", na.last = "keep")

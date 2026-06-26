@@ -1,7 +1,15 @@
 ^analysis(/|$)
+^comparison_outputs(/|$)
 ^load_test(/|$)
 ^outputs(/|$)
+^paper(/|$)
 ^revisions(/|$)
 ^tmp(/|$)
+^\.DS_Store$
 ^\.git$
+^\.github(/|$)
 ^\.gitignore$
+^\.Rhistory$
+^\.Rproj\.user(/|$)
+^\.ruff_cache(/|$)
+^Rplots\.pdf$

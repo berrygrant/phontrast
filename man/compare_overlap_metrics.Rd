@@ -66,9 +66,11 @@ long output includes \code{boot_mean}, \code{boot_sd}, \code{ci_lower},
 \description{
 Computes the package's main category-separation and overlap metrics in one
 call: Pillai trace, Bhattacharyya distance and affinity, Jensen-Shannon
-divergence, Jensen-Shannon distance, Mahalanobis distance, and percent
+divergence, Jensen-Shannon distance, Mahalanobis distance, and proportional
 overlap. Results can be returned in a wide format for analysis tables or a
-long format for plotting and rank-based comparison.
+long format for plotting and rank-based comparison. The
+\code{percent_overlap} column is retained for compatibility, but its values
+are 0--1 proportions rather than 0--100 percentages.
 }
 \details{
 This is the recommended entry point when you want to compare more than one

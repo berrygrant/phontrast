@@ -257,6 +257,141 @@ plot_category_space <- function(data,
   p
 }
 
+#' Plot a PCA projection of multidimensional category space
+#'
+#' Projects an arbitrary multidimensional acoustic feature set onto two
+#' principal components and visualizes the result with \pkg{ggplot2}. This is a
+#' diagnostic plot for high-dimensional workflows: metric estimates should still
+#' be computed on the full feature set when that is the intended analysis.
+#'
+#' @param data Data frame containing category labels and acoustic features.
+#' @param features Character vector of two or more numeric feature columns used
+#'   for PCA.
+#' @param category_col String; category column.
+#' @param group_col Optional grouping column used for facets.
+#' @param components Two positive integers giving principal components to plot.
+#' @param center,scale. Passed to \code{stats::prcomp()}.
+#' @param points Logical; if \code{TRUE}, show projected observations.
+#' @param ellipses Logical; if \code{TRUE}, add normal ellipses when enough
+#'   observations are available.
+#' @param point_alpha Point transparency.
+#' @param point_size Point size.
+#' @param equal_axes Logical; if \code{TRUE}, use a fixed coordinate ratio.
+#' @param facet_scales Scales passed to \code{ggplot2::facet_wrap()} when
+#'   \code{group_col} is supplied.
+#'
+#' @return A \pkg{ggplot2} plot object. The fitted \code{prcomp} object and
+#'   variance-explained table are stored as \code{"pca"} and
+#'   \code{"variance_explained"} attributes.
+#' @examples
+#' set.seed(2026)
+#' features <- paste0("mfcc", 1:5)
+#' vowels <- data.frame(
+#'   vowel = rep(c("ih", "eh"), each = 50),
+#'   matrix(rnorm(100 * length(features)), ncol = length(features))
+#' )
+#' names(vowels)[-1] <- features
+#' vowels[vowels$vowel == "eh", features[1:2]] <- vowels[vowels$vowel == "eh", features[1:2]] + 0.8
+#'
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   plot_category_pca(vowels, features = features, category_col = "vowel")
+#' }
+#' @export
+plot_category_pca <- function(data,
+                              features,
+                              category_col,
+                              group_col = NULL,
+                              components = c(1L, 2L),
+                              center = TRUE,
+                              scale. = TRUE,
+                              points = TRUE,
+                              ellipses = TRUE,
+                              point_alpha = 0.65,
+                              point_size = 1.8,
+                              equal_axes = TRUE,
+                              facet_scales = c("fixed", "free", "free_x", "free_y")) {
+  .require_ggplot2()
+  facet_scales <- match.arg(facet_scales)
+  .check_bool(center, "center")
+  .check_bool(scale., "scale.")
+  .check_bool(points, "points")
+  .check_bool(ellipses, "ellipses")
+  .check_bool(equal_axes, "equal_axes")
+  .check_plot_number(point_alpha, "point_alpha", lower = 0, upper = 1)
+  .check_plot_number(point_size, "point_size", lower = 0)
+
+  if (!is.character(features) || length(features) < 2L) {
+    stop("`features` must contain at least two numeric feature columns.", call. = FALSE)
+  }
+  if (!is.numeric(components) || length(components) != 2L ||
+      any(!is.finite(components)) || any(components < 1) ||
+      any(components != as.integer(components))) {
+    stop("`components` must contain two positive integers.", call. = FALSE)
+  }
+  components <- as.integer(components)
+
+  keep_cols <- c(category_col, features, group_col)
+  .check_columns(data, keep_cols)
+  plot_data <- .metric_data(data, keep_cols)
+  .check_numeric_features(plot_data, features)
+  if (.observed_n_categories(plot_data[[category_col]]) < 2L) {
+    stop("`category_col` must contain at least two observed categories.", call. = FALSE)
+  }
+
+  max_component <- min(nrow(plot_data), length(features))
+  if (any(components > max_component)) {
+    stop(
+      "`components` must be no larger than the number of available principal components (",
+      max_component, ").",
+      call. = FALSE
+    )
+  }
+
+  fit <- stats::prcomp(plot_data[, features, drop = FALSE], center = center, scale. = scale.)
+  scores <- as.data.frame(fit$x[, components, drop = FALSE])
+  score_cols <- paste0("PC", components)
+  names(scores) <- score_cols
+  scores[[category_col]] <- .drop_unused_levels(plot_data[[category_col]])
+  if (!is.null(group_col)) {
+    scores[[group_col]] <- .drop_unused_levels(plot_data[[group_col]])
+  }
+
+  variance_explained <- (fit$sdev^2) / sum(fit$sdev^2)
+  axis_labels <- paste0(
+    score_cols,
+    " (",
+    format(round(100 * variance_explained[components], 1), nsmall = 1),
+    "%)"
+  )
+
+  p <- .plot_category_space_2d(
+    plot_data = scores,
+    features = score_cols,
+    category_col = category_col,
+    group_col = group_col,
+    points = points,
+    ellipses = ellipses,
+    point_alpha = point_alpha,
+    point_size = point_size,
+    reverse_x = FALSE,
+    reverse_y = FALSE,
+    equal_axes = equal_axes,
+    facet_scales = facet_scales
+  ) +
+    ggplot2::labs(
+      x = axis_labels[[1]],
+      y = axis_labels[[2]]
+    )
+
+  attr(p, "pca") <- fit
+  attr(p, "variance_explained") <- data.frame(
+    component = paste0("PC", seq_along(variance_explained)),
+    variance_explained = variance_explained,
+    stringsAsFactors = FALSE
+  )
+  p
+}
+
 .require_ggplot2 <- function() {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop(

@@ -2,7 +2,7 @@
 % Please edit documentation in R/percent_overlap.R
 \name{percent_overlap_kde}
 \alias{percent_overlap_kde}
-\title{Percent overlap between two distributions via KDE}
+\title{Proportional overlap between two distributions via KDE}
 \usage{
 percent_overlap_kde(
   data,
@@ -29,10 +29,11 @@ percent_overlap_kde(
 \item{...}{Reserved for future extensions; currently unused.}
 }
 \value{
-Numeric scalar in \code{[0, 1]}.
+Numeric scalar proportion in \code{[0, 1]}.
 }
 \description{
-Computes the percentage overlap (shared area) between two categories
+Computes the proportional overlap (shared area) between two categories
 in an n-dimensional acoustic space using multivariate kernel density
-estimation. Range: 0 = no overlap, 1 = identical.
+estimation. Despite the historical function name, the return value is a
+0--1 proportion: 0 = no overlap, 1 = identical.
 }

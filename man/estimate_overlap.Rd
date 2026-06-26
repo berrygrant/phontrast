@@ -2,7 +2,7 @@
 % Please edit documentation in R/percent_overlap.R
 \name{estimate_overlap}
 \alias{estimate_overlap}
-\title{Estimate percent overlap globally or by group}
+\title{Estimate proportional overlap globally or by group}
 \usage{
 estimate_overlap(
   data,
@@ -26,11 +26,18 @@ estimate_overlap(
 
 \item{min_tokens}{Minimum total tokens required (globally or per group).}
 
+\item{bw}{Bandwidth selection method passed to \code{percent_overlap_kde()}.}
+
+\item{eval_on}{KDE evaluation points passed to \code{percent_overlap_kde()}.}
+
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
-A data frame (global = one row; grouped = one per group).
+A data frame (global = one row; grouped = one per group) with
+\code{overlap} as a 0--1 proportion.
 }
 \description{
-Unified front-end for KDE-based percent overlap between two categories.
+Unified front-end for KDE-based proportional overlap between two categories.
+The returned \code{overlap} column is a 0--1 proportion, not a 0--100
+percentage.
 }
