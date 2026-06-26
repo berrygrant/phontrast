@@ -1,4 +1,4 @@
-# phonJSD 0.5.1
+# phonJSD 1.0.0
 
 ## Visualization
 
@@ -41,7 +41,7 @@
 
 ## Maintenance
 
-- Aligned DESCRIPTION metadata with the 0.5.1 README/DOI release.
+- Aligned DESCRIPTION metadata with the v1.0.0 README/DOI release.
 - Added explicit Author and Maintainer fields for source-package checks on
   current R tooling.
 - Removed old draft analysis scripts from the main package branch; the final
