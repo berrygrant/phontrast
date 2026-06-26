@@ -28,9 +28,76 @@ This approach is especially useful when:
 - Kernel density–based estimation of acoustic distributions  
 - Support for **1D and n-dimensional acoustic features**
 - Global and group-level bootstrap summaries
-- Comparison metrics including Pillai-Bartlett trace, Bhattacharyya distance, and percent overlap
+- Comparison metrics including Pillai-Bartlett trace, Bhattacharyya distance/affinity, Mahalanobis distance, and percent overlap
 - Reproducible pipelines compatible with tidyverse workflows
 - Designed for integration with forced alignment and acoustic extraction tools
+
+---
+
+## Quick Start
+
+Most users should start with `compare_overlap_metrics()`. It takes a token-level
+vowel table, compares two category labels in a numeric acoustic space, and
+returns the major overlap/separation metrics side by side.
+
+```r
+library(phonJSD)
+
+set.seed(2026)
+vowels <- data.frame(
+  speaker = rep(c("s01", "s02"), each = 80),
+  vowel = rep(rep(c("ih", "eh"), each = 40), 2),
+  f1 = c(
+    rnorm(40, 500, 55), rnorm(40, 560, 60),
+    rnorm(40, 510, 60), rnorm(40, 575, 65)
+  ),
+  f2 = c(
+    rnorm(40, 1980, 150), rnorm(40, 1880, 155),
+    rnorm(40, 1960, 160), rnorm(40, 1840, 165)
+  )
+)
+
+compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  output = "wide"
+)
+```
+
+For plotting or ranking, use the long output:
+
+```r
+metrics_long <- compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  output = "long"
+)
+
+metrics_long[, c("group", "metric", "estimate", "orientation",
+                 "separation_value", "separation_rank")]
+```
+
+If you only need the package's main information-theoretic estimate, use
+`estimate_jsd()`:
+
+```r
+estimate_jsd(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  do_boot = TRUE,
+  n_boot = 100
+)
+```
+
+Use lower-level helpers such as `jsd_kde_nd()`, `percent_overlap_kde()`,
+`pillai_overlap()`, and `bhattacharyya_mvnorm()` when you are validating a
+method, debugging one contrast, or need direct control over one metric.
 
 ---
 
@@ -52,6 +119,24 @@ JSD values:
 - **0** → complete overlap (no separation)
 - **Higher values** → greater distributional separation  
 - **Bounded and symmetric**, making cross-study comparisons more interpretable
+
+## Interpreting Metrics
+
+The metrics are not all oriented in the same direction:
+
+| Metric | Direction | Notes |
+| --- | --- | --- |
+| JSD | Higher = more separation | Bounded from 0 to 1 in bits |
+| Jensen-Shannon distance | Higher = more separation | `sqrt(JSD)` |
+| Pillai trace | Higher = more separation | Classical MANOVA-based comparison |
+| Bhattacharyya distance | Higher = more separation | Assumes multivariate normality |
+| Mahalanobis distance | Higher = more separation | Mean separation relative to pooled covariance |
+| Percent overlap | Higher = more overlap | 1 means near-complete shared density |
+| Bhattacharyya affinity | Higher = more overlap | `exp(-Bhattacharyya distance)` |
+
+For side-by-side comparison, `compare_overlap_metrics(output = "long")` adds
+`orientation`, `separation_value`, and `separation_rank` columns so overlap
+metrics can be read on the same separation-oriented scale as distance metrics.
 
 ---
 

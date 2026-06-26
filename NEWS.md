@@ -11,6 +11,12 @@
 - Improved empty grouped outputs and small-sample diagnostics across metric
   wrappers.
 
+## Documentation
+
+- Added a README quick start that starts from a vowel token table and moves to
+  metric output.
+- Added preferred-path and metric-direction guidance to the package manual.
+
 ## Maintenance
 
 - Aligned DESCRIPTION metadata with the 0.5.1 README/DOI release.

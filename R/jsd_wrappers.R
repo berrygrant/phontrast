@@ -1,5 +1,14 @@
 #' Estimate Jensen–Shannon divergence or distance between two categories
 #'
+#' Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon
+#' distance is the primary outcome. If you want to compare JSD with Pillai,
+#' Bhattacharyya, Mahalanobis, and percent-overlap metrics, start with
+#' \code{compare_overlap_metrics()} instead.
+#'
+#' JSD is bounded from 0 to 1 for two equally weighted distributions. Larger
+#' values indicate greater category separation. Jensen-Shannon distance is
+#' \code{sqrt(JSD)} and has the same direction of interpretation.
+#'
 #' @param data Data frame with at least `category_col` and `features`.
 #' @param features Character vector of feature column names (e.g., c("F1","F2")).
 #' @param category_col Name of the column giving the two-way category factor.

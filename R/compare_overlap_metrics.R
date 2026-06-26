@@ -6,6 +6,18 @@
 #' overlap. Results can be returned in a wide format for analysis tables or a
 #' long format for plotting and rank-based comparison.
 #'
+#' This is the recommended entry point when you want to compare more than one
+#' overlap metric for the same phonological contrast. Use \code{estimate_jsd()}
+#' when JSD is the only outcome of interest, and use lower-level metric helpers
+#' only when you need direct control over one estimator.
+#'
+#' Metric directions differ. JSD, Jensen-Shannon distance, Pillai trace,
+#' Bhattacharyya distance, and Mahalanobis distance increase as categories
+#' become more separated. Percent overlap and Bhattacharyya affinity increase
+#' as categories overlap more. Long output includes \code{orientation},
+#' \code{separation_value}, and \code{separation_rank} columns so all metrics
+#' can be read on a separation-oriented scale.
+#'
 #' @param data Data frame containing category labels and acoustic features.
 #' @param features Character vector of numeric feature columns.
 #' @param category_col String; column giving the two categories to compare.
