@@ -19,6 +19,10 @@
 - Added runnable examples for the main metric comparison, JSD estimation,
   direct KDE JSD, beta-regression preparation, MFCC extraction, and
   hierarchical bootstrap modeling workflows.
+- Standardized JSD bootstrap outputs with `conf_level`, `ci_lower`, and
+  `ci_upper` columns while retaining `jsd_low` and `jsd_high` as aliases.
+- Added optional bootstrapping to `compare_overlap_metrics()` with progress
+  messages and metric-specific confidence intervals.
 
 ## Maintenance
 

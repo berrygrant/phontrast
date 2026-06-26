@@ -13,7 +13,11 @@ compare_overlap_metrics(
   bw = c("Hpi", "Hscv", "Hpi.diag"),
   eval_on = c("pooled", "group1", "group2"),
   eps = 1e-06,
-  output = c("wide", "long")
+  output = c("wide", "long"),
+  do_boot = FALSE,
+  n_boot = 300,
+  conf_level = 0.95,
+  progress = TRUE
 )
 }
 \arguments{
@@ -38,12 +42,26 @@ are computed globally.}
 
 \item{output}{Output format: \code{"wide"} returns one row per global/group
 comparison; \code{"long"} returns one row per metric per comparison.}
+
+\item{do_boot}{Logical; if \code{TRUE}, compute bootstrap means, standard
+deviations, and confidence intervals for each reported metric.}
+
+\item{n_boot}{Number of bootstrap resamples if \code{do_boot = TRUE}.}
+
+\item{conf_level}{Confidence level for bootstrap intervals.}
+
+\item{progress}{Logical; if \code{TRUE}, print progress messages while
+bootstrap resamples are running.}
 }
 \value{
 A data frame. Wide output contains one column per metric. Long output
 contains \code{metric}, \code{estimate}, \code{orientation},
 \code{bounded_0_1}, \code{separation_value}, and
-\code{separation_rank} columns.
+\code{separation_rank} columns. If \code{do_boot = TRUE}, wide output
+also includes metric-specific \code{*_mean}, \code{*_sd},
+\code{*_ci_lower}, \code{*_ci_upper}, and \code{*_n_boot} columns, while
+long output includes \code{boot_mean}, \code{boot_sd}, \code{ci_lower},
+\code{ci_upper}, \code{n_boot}, and \code{conf_level}.
 }
 \description{
 Computes the package's main category-separation and overlap metrics in one
@@ -64,6 +82,12 @@ become more separated. Percent overlap and Bhattacharyya affinity increase
 as categories overlap more. Long output includes \code{orientation},
 \code{separation_value}, and \code{separation_rank} columns so all metrics
 can be read on a separation-oriented scale.
+
+If \code{do_boot = TRUE}, each metric is recomputed on \code{n_boot}
+nonparametric bootstrap resamples to estimate uncertainty. This can take
+substantial time because every resample recomputes KDE, MANOVA, and
+covariance-based metrics. Progress messages are printed by default while
+bootstrapping is running; set \code{progress = FALSE} to suppress them.
 }
 \examples{
 set.seed(2026)
@@ -98,4 +122,19 @@ metrics_long <- compare_overlap_metrics(
 
 metrics_long[, c("group", "metric", "estimate", "orientation",
                  "separation_value", "separation_rank")]
+
+\donttest{
+# Bootstrapping all metrics is useful but slower because every metric is
+# recomputed on every resample. Use a larger n_boot for real analyses.
+compare_overlap_metrics(
+  data = vowels,
+  features = "f1",
+  category_col = "vowel",
+  group_col = "speaker",
+  do_boot = TRUE,
+  n_boot = 5,
+  progress = FALSE,
+  output = "long"
+)
+}
 }

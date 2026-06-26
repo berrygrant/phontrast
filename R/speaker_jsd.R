@@ -71,8 +71,11 @@ speaker_jsd <- function(data,
 #' @param conf_level Confidence level for bootstrap intervals.
 #'
 #' @return A tibble with one row per group and columns:
-#'   \code{group}, \code{n_tokens}, \code{n_boot}, \code{jsd_mean},
-#'   \code{jsd_sd}, \code{jsd_low}, and \code{jsd_high}.
+#'   \code{group}, \code{n_tokens}, \code{n_boot}, \code{conf_level},
+#'   \code{jsd_mean}, \code{jsd_sd}, \code{ci_lower}, \code{ci_upper},
+#'   \code{jsd_low}, and \code{jsd_high}.
+#'   \code{jsd_low} and \code{jsd_high} are retained as legacy aliases for
+#'   \code{ci_lower} and \code{ci_upper}.
 #' @export
 #' @importFrom purrr map
 #' @importFrom dplyr bind_rows n_distinct
@@ -104,8 +107,11 @@ boot_jsd <- function(data,
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
         n_boot   = 0L,
+        conf_level = conf_level,
         jsd_mean = NA_real_,
         jsd_sd   = NA_real_,
+        ci_lower = NA_real_,
+        ci_upper = NA_real_,
         jsd_low  = NA_real_,
         jsd_high = NA_real_
       ))
@@ -141,21 +147,33 @@ boot_jsd <- function(data,
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
         n_boot   = 0L,
+        conf_level = conf_level,
         jsd_mean = NA_real_,
         jsd_sd   = NA_real_,
+        ci_lower = NA_real_,
+        ci_upper = NA_real_,
         jsd_low  = NA_real_,
         jsd_high = NA_real_
       ))
     }
 
+    qs <- stats::quantile(
+      jsd_vals,
+      probs = c(alpha / 2, 1 - alpha / 2),
+      names = FALSE
+    )
+
     tibble::tibble(
       group    = df_g[[group_col]][1],
       n_tokens = nrow(df_g),
       n_boot   = length(jsd_vals),
+      conf_level = conf_level,
       jsd_mean = mean(jsd_vals),
       jsd_sd   = stats::sd(jsd_vals),
-      jsd_low  = stats::quantile(jsd_vals, alpha / 2, names = FALSE),
-      jsd_high = stats::quantile(jsd_vals, 1 - alpha / 2, names = FALSE)
+      ci_lower = qs[1],
+      ci_upper = qs[2],
+      jsd_low  = qs[1],
+      jsd_high = qs[2]
     )
   })
 

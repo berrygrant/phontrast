@@ -40,9 +40,13 @@ estimate_jsd(
 }
 \value{
 A tibble. Global: one row with columns
-scope, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,
+ci_lower, ci_upper, jsd_low, jsd_high.
 Grouped: one row per group with columns
-scope, group, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+scope, group, n_tokens, n_boot, conf_level, jsd_point, jsd_mean,
+jsd_sd, ci_lower, ci_upper, jsd_low, jsd_high.
+\code{ci_lower} and \code{ci_upper} are the preferred confidence interval
+columns; \code{jsd_low} and \code{jsd_high} are retained as legacy aliases.
 }
 \description{
 Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon

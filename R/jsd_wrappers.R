@@ -21,9 +21,13 @@
 #' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
 #'
 #' @return A tibble. Global: one row with columns
-#'   scope, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+#'   scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,
+#'   ci_lower, ci_upper, jsd_low, jsd_high.
 #'   Grouped: one row per group with columns
-#'   scope, group, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+#'   scope, group, n_tokens, n_boot, conf_level, jsd_point, jsd_mean,
+#'   jsd_sd, ci_lower, ci_upper, jsd_low, jsd_high.
+#'   \code{ci_lower} and \code{ci_upper} are the preferred confidence interval
+#'   columns; \code{jsd_low} and \code{jsd_high} are retained as legacy aliases.
 #'
 #' @examples
 #' set.seed(2026)
@@ -110,9 +114,12 @@ estimate_jsd <- function(data,
         scope     = "global",
         n_tokens  = n,
         n_boot    = 0L,
+        conf_level = conf_level,
         jsd_point = jsd_point,
         jsd_mean  = NA_real_,
         jsd_sd    = NA_real_,
+        ci_lower  = NA_real_,
+        ci_upper  = NA_real_,
         jsd_low   = NA_real_,
         jsd_high  = NA_real_
       ))
@@ -164,9 +171,12 @@ estimate_jsd <- function(data,
       scope     = "global",
       n_tokens  = n,
       n_boot    = as.integer(length(boot_vals)),
+      conf_level = conf_level,
       jsd_point = jsd_point,
       jsd_mean  = jsd_mean,
       jsd_sd    = jsd_sd,
+      ci_lower  = qs[1],
+      ci_upper  = qs[2],
       jsd_low   = qs[1],
       jsd_high  = qs[2]
     ))
@@ -196,12 +206,16 @@ estimate_jsd <- function(data,
     out <- pt
     out$scope <- "group"
     out$n_boot <- 0L
+    out$conf_level <- conf_level
     out$jsd_mean <- NA_real_
     out$jsd_sd   <- NA_real_
+    out$ci_lower <- NA_real_
+    out$ci_upper <- NA_real_
     out$jsd_low  <- NA_real_
     out$jsd_high <- NA_real_
     out <- out[, c("scope", "group", "n_tokens", "n_boot",
-                   "jsd_point", "jsd_mean", "jsd_sd", "jsd_low", "jsd_high")]
+                   "conf_level", "jsd_point", "jsd_mean", "jsd_sd",
+                   "ci_lower", "ci_upper", "jsd_low", "jsd_high")]
     return(out)
   }
   
@@ -220,6 +234,7 @@ estimate_jsd <- function(data,
   out <- dplyr::left_join(pt, bt, by = c("group", "n_tokens"))
   out$scope <- "group"
   out <- out[, c("scope", "group", "n_tokens", "n_boot",
-                 "jsd_point", "jsd_mean", "jsd_sd", "jsd_low", "jsd_high")]
+                 "conf_level", "jsd_point", "jsd_mean", "jsd_sd",
+                 "ci_lower", "ci_upper", "jsd_low", "jsd_high")]
   out
 }

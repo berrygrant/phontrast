@@ -88,9 +88,12 @@ test_that("bootstrap JSD summaries preserve successful replicate counts", {
   )
 
   expect_equal(out$n_boot, 3)
+  expect_equal(out$conf_level, 0.95)
   expect_true(is.finite(out$jsd_mean))
   expect_true(is.finite(out$jsd_low))
   expect_true(is.finite(out$jsd_high))
+  expect_equal(out$ci_lower, out$jsd_low)
+  expect_equal(out$ci_upper, out$jsd_high)
 })
 
 test_that("one-dimensional KDE metrics are supported", {
@@ -163,7 +166,114 @@ test_that("grouped bootstrap JSD respects confidence level", {
 
   width50 <- ci50$jsd_high - ci50$jsd_low
   width95 <- ci95$jsd_high - ci95$jsd_low
+  expect_equal(ci50$conf_level, rep(0.50, 2))
+  expect_equal(ci95$conf_level, rep(0.95, 2))
+  expect_equal(ci50$ci_lower, ci50$jsd_low)
+  expect_equal(ci50$ci_upper, ci50$jsd_high)
   expect_true(all(width50 <= width95))
+})
+
+test_that("JSD bootstrap outputs include standard CI columns and confidence level", {
+  set.seed(17)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 80),
+    category = rep(rep(c("a", "b"), each = 40), 2),
+    f1 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2)),
+    f2 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2))
+  )
+
+  set.seed(18)
+  global <- estimate_jsd(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    do_boot = TRUE,
+    n_boot = 4,
+    min_tokens = 20,
+    conf_level = 0.80
+  )
+  expect_true(all(c("conf_level", "ci_lower", "ci_upper", "jsd_low", "jsd_high") %in% names(global)))
+  expect_equal(global$conf_level, 0.80)
+  expect_equal(global$ci_lower, global$jsd_low)
+  expect_equal(global$ci_upper, global$jsd_high)
+
+  set.seed(18)
+  grouped <- estimate_jsd(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = "speaker",
+    do_boot = TRUE,
+    n_boot = 4,
+    min_tokens = 20,
+    conf_level = 0.80
+  )
+  expect_true(all(c("conf_level", "ci_lower", "ci_upper", "jsd_low", "jsd_high") %in% names(grouped)))
+  expect_equal(grouped$conf_level, rep(0.80, 2))
+  expect_equal(grouped$ci_lower, grouped$jsd_low)
+  expect_equal(grouped$ci_upper, grouped$jsd_high)
+
+  no_boot <- estimate_jsd(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = "speaker",
+    min_tokens = 20
+  )
+  expect_equal(no_boot$n_boot, rep(0L, 2))
+  expect_equal(no_boot$conf_level, rep(0.95, 2))
+  expect_true(all(is.na(no_boot$ci_lower)))
+  expect_true(all(is.na(no_boot$ci_upper)))
+})
+
+test_that("lower-level JSD summaries carry standard CI columns", {
+  set.seed(19)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 80),
+    category = rep(rep(c("a", "b"), each = 40), 2),
+    f1 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2)),
+    f2 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2))
+  )
+
+  set.seed(20)
+  boot <- boot_jsd(
+    data = data,
+    group_col = "speaker",
+    category_col = "category",
+    features = c("f1", "f2"),
+    n_boot = 4,
+    min_tokens = 20,
+    conf_level = 0.90
+  )
+  expect_equal(boot$conf_level, rep(0.90, 2))
+  expect_equal(boot$ci_lower, boot$jsd_low)
+  expect_equal(boot$ci_upper, boot$jsd_high)
+
+  no_boot_summary <- jsd_summary(
+    data = data,
+    group_col = "speaker",
+    category_col = "category",
+    features = c("f1", "f2"),
+    do_boot = FALSE,
+    min_tokens = 20
+  )
+  expect_equal(no_boot_summary$n_boot, rep(0L, 2))
+  expect_equal(no_boot_summary$conf_level, rep(0.95, 2))
+  expect_true(all(is.na(no_boot_summary$ci_lower)))
+  expect_true(all(is.na(no_boot_summary$ci_upper)))
+
+  set.seed(21)
+  global <- global_boot_jsd(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    n_boot = 4,
+    min_tokens = 20,
+    conf_level = 0.90
+  )
+  expect_equal(global$conf_level, 0.90)
+  expect_equal(global$ci_lower, global$jsd_low)
+  expect_equal(global$ci_upper, global$jsd_high)
 })
 
 test_that("grouped metrics return shaped empty outputs when all groups are filtered", {
@@ -244,6 +354,92 @@ test_that("compare_overlap_metrics returns wide and long comparisons", {
   expect_true(all(c(
     "metric", "estimate", "orientation", "separation_value", "separation_rank"
   ) %in% names(long)))
+})
+
+test_that("compare_overlap_metrics can bootstrap all reported metrics", {
+  set.seed(22)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 60),
+    category = rep(rep(c("a", "b"), each = 30), 2),
+    f1 = c(rnorm(30, 0), rnorm(30, 1), rnorm(30, 0.2), rnorm(30, 1.2))
+  )
+
+  set.seed(23)
+  wide <- compare_overlap_metrics(
+    data = data,
+    features = "f1",
+    category_col = "category",
+    group_col = "speaker",
+    min_tokens = 20,
+    do_boot = TRUE,
+    n_boot = 2,
+    conf_level = 0.80,
+    progress = FALSE,
+    output = "wide"
+  )
+
+  expect_equal(nrow(wide), 2)
+  expect_equal(wide$n_boot, rep(2, 2))
+  expect_equal(wide$conf_level, rep(0.80, 2))
+  expect_true(all(c(
+    "jsd_mean", "jsd_sd", "jsd_ci_lower", "jsd_ci_upper", "jsd_n_boot",
+    "percent_overlap_mean", "percent_overlap_ci_lower", "percent_overlap_ci_upper",
+    "mahalanobis_dist_mean", "bhatt_affinity_mean"
+  ) %in% names(wide)))
+  expect_true(all(wide$jsd_n_boot <= 2))
+  expect_true(all(is.finite(wide$jsd_ci_lower)))
+  expect_true(all(is.finite(wide$jsd_ci_upper)))
+
+  set.seed(23)
+  long <- compare_overlap_metrics(
+    data = data,
+    features = "f1",
+    category_col = "category",
+    group_col = "speaker",
+    min_tokens = 20,
+    do_boot = TRUE,
+    n_boot = 2,
+    conf_level = 0.80,
+    progress = FALSE,
+    output = "long"
+  )
+
+  expect_equal(nrow(long), 14)
+  expect_true(all(c(
+    "boot_mean", "boot_sd", "ci_lower", "ci_upper", "n_boot", "conf_level"
+  ) %in% names(long)))
+  expect_equal(unique(long$conf_level), 0.80)
+  expect_true(all(long$n_boot <= 2))
+})
+
+test_that("compare_overlap_metrics reports progress while bootstrapping", {
+  set.seed(24)
+  data <- data.frame(
+    category = rep(c("a", "b"), each = 30),
+    f1 = c(rnorm(30, 0), rnorm(30, 1))
+  )
+
+  messages <- character()
+  withCallingHandlers(
+    compare_overlap_metrics(
+      data = data,
+      features = "f1",
+      category_col = "category",
+      min_tokens = 20,
+      do_boot = TRUE,
+      n_boot = 2,
+      progress = TRUE
+    ),
+    message = function(m) {
+      messages <<- c(messages, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+
+  expect_true(any(grepl("Bootstrapping overlap metrics", messages)))
+  expect_true(any(grepl("This may take time", messages)))
+  expect_true(any(grepl("bootstrap replicate 1 / 2", messages)))
+  expect_true(any(grepl("bootstrap replicate 2 / 2", messages)))
 })
 
 test_that("hierarchical bootstrap preserves repeated group draws", {

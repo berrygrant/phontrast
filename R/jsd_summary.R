@@ -14,8 +14,11 @@
 #'     \item \code{group} – group ID (e.g., speaker)
 #'     \item \code{n_tokens} – number of tokens for that group
 #'     \item \code{jsd_point} – single JSD point estimate
-#'     \item \code{jsd_mean}, \code{jsd_sd}, \code{jsd_low}, \code{jsd_high}
-#'       – bootstrap summary (if \code{do_boot = TRUE})
+#'     \item \code{n_boot}, \code{conf_level}, \code{jsd_mean},
+#'       \code{jsd_sd}, \code{ci_lower}, \code{ci_upper},
+#'       \code{jsd_low}, \code{jsd_high} – bootstrap summary columns.
+#'       These are \code{NA} (or 0 for \code{n_boot}) if
+#'       \code{do_boot = FALSE}.
 #'   }
 #' @export
 #' @importFrom dplyr left_join rename
@@ -48,6 +51,14 @@ jsd_summary <- function(data,
     dplyr::rename(jsd_point = "jsd")
 
   if (!do_boot) {
+    pt$n_boot <- 0L
+    pt$conf_level <- conf_level
+    pt$jsd_mean <- NA_real_
+    pt$jsd_sd <- NA_real_
+    pt$ci_lower <- NA_real_
+    pt$ci_upper <- NA_real_
+    pt$jsd_low <- NA_real_
+    pt$jsd_high <- NA_real_
     return(pt)
   }
 
