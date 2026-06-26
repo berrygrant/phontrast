@@ -8,6 +8,26 @@
 #' @param eps Small constant used to bound JSD away from 0 and 1.
 #'
 #' @return A modified data frame with an added `jsd_beta` column.
+#'
+#' @examples
+#' jsd_by_speaker <- data.frame(
+#'   speaker = paste0("s", 1:8),
+#'   age = c(18, 22, 27, 31, 38, 45, 52, 60),
+#'   jsd_mean = c(0.02, 0.05, 0.08, 0.13, 0.18, 0.24, 0.31, 0.39)
+#' )
+#'
+#' model_data <- prepare_jsd_beta(jsd_by_speaker)
+#' model_data
+#'
+#' if (requireNamespace("mgcv", quietly = TRUE)) {
+#'   fit <- mgcv::gam(
+#'     jsd_beta ~ age,
+#'     data = model_data,
+#'     family = mgcv::betar(),
+#'     method = "REML"
+#'   )
+#'   stats::predict(fit, type = "response")
+#' }
 #' @export
 prepare_jsd_beta <- function(jsd_df,
                              jsd_col = "jsd_mean",

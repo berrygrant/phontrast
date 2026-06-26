@@ -55,3 +55,40 @@ JSD is bounded from 0 to 1 for two equally weighted distributions. Larger
 values indicate greater category separation. Jensen-Shannon distance is
 \code{sqrt(JSD)} and has the same direction of interpretation.
 }
+\examples{
+set.seed(2026)
+vowels <- data.frame(
+  speaker = rep(c("s01", "s02"), each = 60),
+  vowel = rep(rep(c("ih", "eh"), each = 30), 2),
+  f1 = c(
+    rnorm(30, 500, 55), rnorm(30, 560, 60),
+    rnorm(30, 510, 60), rnorm(30, 575, 65)
+  ),
+  f2 = c(
+    rnorm(30, 1980, 150), rnorm(30, 1880, 155),
+    rnorm(30, 1960, 160), rnorm(30, 1840, 165)
+  )
+)
+
+# Global JSD with a small bootstrap interval.
+# Increase n_boot for real analyses.
+estimate_jsd(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  do_boot = TRUE,
+  n_boot = 5,
+  min_tokens = 20
+)
+
+# Grouped JSD by speaker, again with a small example bootstrap.
+estimate_jsd(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  do_boot = TRUE,
+  n_boot = 5,
+  min_tokens = 20
+)
+}

@@ -25,6 +25,23 @@
 #' @param ... Additional arguments passed to \code{seewave::mfcc()}.
 #'
 #' @return The input data frame with added MFCC columns.
+#'
+#' @examples
+#' \dontrun{
+#' segments <- data.frame(
+#'   wav_path = c("speaker01_utt01.wav", "speaker01_utt02.wav"),
+#'   vowel_start = c(0.42, 1.15),
+#'   vowel_end = c(0.57, 1.31)
+#' )
+#'
+#' extract_mfcc(
+#'   data = segments,
+#'   file_col = "wav_path",
+#'   start_col = "vowel_start",
+#'   end_col = "vowel_end",
+#'   numcep = 13
+#' )
+#' }
 #' @export
 extract_mfcc <- function(data,
                          file_col,

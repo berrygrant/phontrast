@@ -16,6 +16,9 @@
 - Added a README quick start that starts from a vowel token table and moves to
   metric output.
 - Added preferred-path and metric-direction guidance to the package manual.
+- Added runnable examples for the main metric comparison, JSD estimation,
+  direct KDE JSD, beta-regression preparation, MFCC extraction, and
+  hierarchical bootstrap modeling workflows.
 
 ## Maintenance
 

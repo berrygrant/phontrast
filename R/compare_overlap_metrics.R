@@ -36,6 +36,40 @@
 #'   contains \code{metric}, \code{estimate}, \code{orientation},
 #'   \code{bounded_0_1}, \code{separation_value}, and
 #'   \code{separation_rank} columns.
+#'
+#' @examples
+#' set.seed(2026)
+#' vowels <- data.frame(
+#'   speaker = rep(c("s01", "s02"), each = 60),
+#'   vowel = rep(rep(c("ih", "eh"), each = 30), 2),
+#'   f1 = c(
+#'     rnorm(30, 500, 55), rnorm(30, 560, 60),
+#'     rnorm(30, 510, 60), rnorm(30, 575, 65)
+#'   ),
+#'   f2 = c(
+#'     rnorm(30, 1980, 150), rnorm(30, 1880, 155),
+#'     rnorm(30, 1960, 160), rnorm(30, 1840, 165)
+#'   )
+#' )
+#'
+#' compare_overlap_metrics(
+#'   data = vowels,
+#'   features = c("f1", "f2"),
+#'   category_col = "vowel",
+#'   group_col = "speaker",
+#'   output = "wide"
+#' )
+#'
+#' metrics_long <- compare_overlap_metrics(
+#'   data = vowels,
+#'   features = c("f1", "f2"),
+#'   category_col = "vowel",
+#'   group_col = "speaker",
+#'   output = "long"
+#' )
+#'
+#' metrics_long[, c("group", "metric", "estimate", "orientation",
+#'                  "separation_value", "separation_rank")]
 #' @export
 compare_overlap_metrics <- function(data,
                                     features,

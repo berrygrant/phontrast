@@ -40,3 +40,17 @@ Computes Jensen–Shannon divergence between two categories in an
 arbitrary n-dimensional acoustic space using multivariate KDE from
 the \pkg{ks} package.
 }
+\examples{
+set.seed(2026)
+vowels <- data.frame(
+  vowel = rep(c("ih", "eh"), each = 40),
+  f1 = c(rnorm(40, 500, 55), rnorm(40, 565, 60)),
+  f2 = c(rnorm(40, 1980, 150), rnorm(40, 1870, 155))
+)
+
+# One-dimensional JSD, for example a single formant or duration.
+jsd_kde_nd(vowels, features = "f1", group = "vowel")
+
+# Two-dimensional JSD in F1/F2 space.
+jsd_kde_nd(vowels, features = c("f1", "f2"), group = "vowel")
+}

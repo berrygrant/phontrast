@@ -28,6 +28,34 @@
 #'     \item \code{term} – model term
 #'     \item \code{estimate} – estimate for that term in that replicate
 #'   }
+#'
+#' @examples
+#' \donttest{
+#' set.seed(2026)
+#' speakers <- paste0("s", 1:4)
+#' dat <- data.frame(
+#'   speaker = rep(speakers, each = 60),
+#'   age = rep(c(22, 35, 48, 61), each = 60),
+#'   vowel = rep(rep(c("ih", "eh"), each = 30), 4)
+#' )
+#' dat$f1 <- rnorm(
+#'   nrow(dat),
+#'   mean = ifelse(dat$vowel == "ih", 500, 560) + dat$age * 0.3,
+#'   sd = 55
+#' )
+#'
+#' hier_boot_jsd_model(
+#'   data = dat,
+#'   group_col = "speaker",
+#'   category_col = "vowel",
+#'   features = "f1",
+#'   formula = jsd_beta ~ age,
+#'   fit_fun = stats::lm,
+#'   n_outer = 3,
+#'   min_tokens = 20,
+#'   progress = FALSE
+#' )
+#' }
 #' @export
 #' @importFrom dplyr group_by ungroup summarize n first bind_rows left_join across all_of
 #' @importFrom purrr map
