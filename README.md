@@ -5,7 +5,7 @@ It is designed for researchers working in sociophonetics, laboratory phonology, 
 
 Version **1.0.0** is the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20816586.svg)](https://doi.org/10.5281/zenodo.20816586)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20932518.svg)](https://doi.org/10.5281/zenodo.20932518)
 
 ---
 
