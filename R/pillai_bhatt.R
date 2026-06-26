@@ -99,9 +99,9 @@ speaker_pillai <- function(data,
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  out <- lapply(split(data, data[[group_col]]), function(df_g) {
+  out <- lapply(.split_groups(data, group_col), function(df_g) {
     n_tok <- nrow(df_g)
-    if (n_tok < min_tokens || length(unique(df_g[[category_col]])) < 2L) {
+    if (n_tok < min_tokens || .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
 
@@ -322,11 +322,10 @@ speaker_bhatt <- function(data,
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
   out_list <- lapply(groups, function(df_g) {
     n_tok <- nrow(df_g)
-    levs <- unique(df_g[[category_col]])
-    if (n_tok < min_tokens || length(levs) != 2L) {
+    if (n_tok < min_tokens || .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
     bh <- tryCatch(

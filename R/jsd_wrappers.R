@@ -133,7 +133,7 @@ estimate_jsd <- function(data,
       df_boot <- df[idx, , drop = FALSE]
       
       # Guard: some bootstrap samples may lose one category
-      if (length(unique(df_boot[[category_col]])) < 2L) {
+      if (.observed_n_categories(df_boot[[category_col]]) != 2L) {
         return(NA_real_)
       }
       

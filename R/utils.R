@@ -23,9 +23,24 @@
   out
 }
 
+.observed_category_counts <- function(x) {
+  x <- x[!is.na(x)]
+  if (is.factor(x)) {
+    x <- droplevels(x)
+  }
+  table(x)
+}
+
+.observed_n_categories <- function(x) {
+  length(.observed_category_counts(x))
+}
+
 .two_levels <- function(x, arg = "category") {
+  x <- x[!is.na(x)]
+  if (is.factor(x)) {
+    x <- as.character(droplevels(x))
+  }
   levs <- unique(x)
-  levs <- levs[!is.na(levs)]
   if (length(levs) != 2L) {
     stop("`", arg, "` must have exactly two non-missing values.", call. = FALSE)
   }
@@ -105,7 +120,7 @@
 }
 
 .check_two_category_sample_size <- function(data, category_col, min_per_category, metric) {
-  counts <- table(data[[category_col]])
+  counts <- .observed_category_counts(data[[category_col]])
   if (length(counts) != 2L || any(counts < min_per_category)) {
     stop(
       metric, " requires at least ", min_per_category,
@@ -113,6 +128,10 @@
       call. = FALSE
     )
   }
+}
+
+.split_groups <- function(data, group_col) {
+  split(data, data[[group_col]], drop = TRUE)
 }
 
 .select_univariate_bandwidth <- function(x, bw) {

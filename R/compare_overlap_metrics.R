@@ -141,6 +141,15 @@ compare_overlap_metrics <- function(data,
     eval_on = eval_on,
     eps = eps
   )
+  if (!nrow(wide)) {
+    .warn_empty_overlap_comparison(
+      data = data,
+      features = features,
+      category_col = category_col,
+      group_col = group_col,
+      min_tokens = min_tokens
+    )
+  }
 
   if (isTRUE(do_boot) && nrow(wide)) {
     boot <- .bootstrap_compare_overlap_metrics(
@@ -250,6 +259,14 @@ compare_overlap_metrics <- function(data,
     mahal_wide,
     overlap_wide
   )
+  if (!is.null(group_col)) {
+    pieces <- lapply(pieces, function(piece) {
+      if ("group" %in% names(piece)) {
+        piece$group <- as.character(piece$group)
+      }
+      piece
+    })
+  }
   wide <- Reduce(function(x, y) {
     dplyr::full_join(x, y, by = intersect(key_cols, intersect(names(x), names(y))))
   }, pieces)
@@ -267,6 +284,66 @@ compare_overlap_metrics <- function(data,
     "mahalanobis_dist",
     "percent_overlap"
   )
+}
+
+.warn_empty_overlap_comparison <- function(data,
+                                           features,
+                                           category_col,
+                                           group_col = NULL,
+                                           min_tokens = 20) {
+  keep_cols <- if (is.null(group_col)) c(category_col, features) else c(group_col, category_col, features)
+  df <- tryCatch(.metric_data(data, keep_cols), error = function(e) NULL)
+  min_per_category <- .kde_min_category_tokens(length(features))
+
+  if (is.null(df) || !nrow(df)) {
+    warning(
+      "compare_overlap_metrics() returned no rows after removing missing or non-finite values.",
+      call. = FALSE
+    )
+    return(invisible(NULL))
+  }
+
+  if (is.null(group_col)) {
+    counts <- .observed_category_counts(df[[category_col]])
+    warning(
+      "compare_overlap_metrics() returned no rows. Observed category counts after filtering were: ",
+      paste(names(counts), as.integer(counts), sep = "=", collapse = ", "),
+      ". Exactly two observed categories and at least ", min_per_category,
+      " observations per category are required for KDE-based metrics.",
+      call. = FALSE
+    )
+    return(invisible(NULL))
+  }
+
+  groups <- .split_groups(df, group_col)
+  group_n <- vapply(groups, nrow, integer(1))
+  category_counts <- lapply(groups, function(df_g) .observed_category_counts(df_g[[category_col]]))
+  exactly_two <- vapply(category_counts, length, integer(1)) == 2L
+  meets_min <- group_n >= min_tokens
+  meets_kde <- vapply(
+    category_counts,
+    function(x) length(x) == 2L && all(x >= min_per_category),
+    logical(1)
+  )
+  min_category_counts <- vapply(
+    category_counts,
+    function(x) if (length(x)) min(as.integer(x)) else 0L,
+    integer(1)
+  )
+
+  warning(
+    "compare_overlap_metrics() returned no grouped rows. After removing missing/non-finite values, ",
+    sum(meets_min & exactly_two), " of ", length(groups),
+    " groups had at least min_tokens = ", min_tokens,
+    " and exactly two observed categories; ",
+    sum(meets_min & meets_kde), " also had at least ", min_per_category,
+    " observations per category for KDE metrics. Max group size was ",
+    max(group_n), "; largest within-group minimum category count was ",
+    max(min_category_counts), ". If you intended a global contrast, omit `group_col`; ",
+    "otherwise group at a coarser level or use a feature space with enough observations per category.",
+    call. = FALSE
+  )
+  invisible(NULL)
 }
 
 .bootstrap_compare_overlap_metrics <- function(data,
@@ -304,7 +381,7 @@ compare_overlap_metrics <- function(data,
   }
 
   df <- .metric_data(data, c(group_col, category_col, features))
-  groups <- split(df, df[[group_col]])
+  groups <- .split_groups(df, group_col)
   boot_rows <- lapply(seq_len(nrow(point_wide)), function(i) {
     group_id <- as.character(point_wide$group[i])
     df_g <- groups[[group_id]]
@@ -361,6 +438,9 @@ compare_overlap_metrics <- function(data,
     }
 
     samp <- df[sample.int(n, size = n, replace = TRUE), , drop = FALSE]
+    if (.observed_n_categories(samp[[category_col]]) != 2L) {
+      next
+    }
     vals <- tryCatch(
       .compare_overlap_metrics_point(
         data = samp,
@@ -479,9 +559,9 @@ compare_overlap_metrics <- function(data,
 
   .check_columns(data, c(group_col, category_col, features))
   df <- .metric_data(data, c(group_col, category_col, features))
-  out <- lapply(split(df, df[[group_col]]), function(df_g) {
+  out <- lapply(.split_groups(df, group_col), function(df_g) {
     n_tok <- nrow(df_g)
-    if (n_tok < min_tokens || length(unique(df_g[[category_col]])) != 2L) {
+    if (n_tok < min_tokens || .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
     dist <- tryCatch(

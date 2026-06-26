@@ -112,6 +112,30 @@ test_that("one-dimensional KDE metrics are supported", {
   expect_true(overlap >= 0 && overlap <= 1)
 })
 
+test_that("KDE metrics ignore unused factor levels after filtering", {
+  set.seed(41)
+  data <- data.frame(
+    category = factor(rep(c("a", "b"), each = 30), levels = c("a", "b", "unused")),
+    f1 = c(rnorm(30, 0), rnorm(30, 1)),
+    f2 = c(rnorm(30, 0), rnorm(30, 1))
+  )
+
+  jsd_val <- jsd_kde_nd(data, c("f1", "f2"), "category")
+  overlap <- percent_overlap_kde(data, c("f1", "f2"), "category")
+  metrics <- compare_overlap_metrics(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    min_tokens = 20
+  )
+
+  expect_true(is.finite(jsd_val))
+  expect_true(is.finite(overlap))
+  expect_equal(nrow(metrics), 1)
+  expect_true(is.finite(metrics$jsd))
+  expect_true(is.finite(metrics$percent_overlap))
+})
+
 test_that("global JSD wrapper forwards KDE controls", {
   set.seed(5)
   data <- data.frame(
@@ -354,6 +378,27 @@ test_that("compare_overlap_metrics returns wide and long comparisons", {
   expect_true(all(c(
     "metric", "estimate", "orientation", "separation_value", "separation_rank"
   ) %in% names(long)))
+})
+
+test_that("compare_overlap_metrics diagnoses grouped contrasts with no estimable groups", {
+  set.seed(21)
+  data <- data.frame(
+    speaker = rep(paste0("s", 1:5), each = 4),
+    category = factor(rep(c("I", "I", "i", "i"), 5), levels = c("i", "I", "E")),
+    f1 = rnorm(20),
+    f2 = rnorm(20)
+  )
+
+  expect_warning(
+    metrics <- compare_overlap_metrics(
+      data = data,
+      features = c("f1", "f2"),
+      category_col = "category",
+      group_col = "speaker"
+    ),
+    "returned no grouped rows"
+  )
+  expect_equal(nrow(metrics), 0)
 })
 
 test_that("compare_overlap_metrics can bootstrap all reported metrics", {

@@ -10,6 +10,9 @@
 - Made grouped JSD bootstrap intervals respect `conf_level`.
 - Improved empty grouped outputs and small-sample diagnostics across metric
   wrappers.
+- Made two-category metric checks ignore unused factor levels after filtering,
+  so filtered factor data such as PB52 `I/i` contrasts work without manually
+  calling `droplevels()`.
 
 ## Documentation
 

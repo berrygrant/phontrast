@@ -29,12 +29,12 @@ speaker_jsd <- function(data,
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
 
   out_list <- lapply(groups, function(df_g) {
     n_tok <- nrow(df_g)
     if (n_tok < min_tokens ||
-        length(unique(df_g[[category_col]])) != 2L) {
+        .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
 
@@ -97,12 +97,12 @@ boot_jsd <- function(data,
   data <- .metric_data(data, c(group_col, category_col, features))
   alpha <- 1 - conf_level
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
 
   res_list <- purrr::map(groups, function(df_g) {
 
     if (nrow(df_g) < min_tokens ||
-        dplyr::n_distinct(df_g[[category_col]]) < 2L) {
+        .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(tibble::tibble(
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
@@ -121,7 +121,7 @@ boot_jsd <- function(data,
       seq_len(n_boot),
       function(i) {
         samp <- df_g[sample.int(nrow(df_g), size = nrow(df_g), replace = TRUE), ]
-        if (dplyr::n_distinct(samp[[category_col]]) < 2L) {
+        if (.observed_n_categories(samp[[category_col]]) != 2L) {
           return(NA_real_)
         }
         jsd_div <- tryCatch(

@@ -95,21 +95,24 @@ estimate_overlap <- function(data,
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
 
   out <- lapply(groups, function(df_g) {
     n_tok <- nrow(df_g)
     if (n_tok < min_tokens ||
-        length(unique(df_g[[category_col]])) != 2L)
+        .observed_n_categories(df_g[[category_col]]) != 2L)
       return(NULL)
 
-    ov <- percent_overlap_kde(
-      data         = df_g,
-      features     = features,
-      category_col = category_col,
-      bw           = bw,
-      eval_on      = eval_on,
-      ...
+    ov <- tryCatch(
+      percent_overlap_kde(
+        data         = df_g,
+        features     = features,
+        category_col = category_col,
+        bw           = bw,
+        eval_on      = eval_on,
+        ...
+      ),
+      error = function(e) NA_real_
     )
 
     data.frame(
