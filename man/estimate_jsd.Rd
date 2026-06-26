@@ -40,10 +40,59 @@ estimate_jsd(
 }
 \value{
 A tibble. Global: one row with columns
-scope, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,
+ci_lower, ci_upper, jsd_low, jsd_high.
 Grouped: one row per group with columns
-scope, group, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+scope, group, n_tokens, n_boot, conf_level, jsd_point, jsd_mean,
+jsd_sd, ci_lower, ci_upper, jsd_low, jsd_high.
+\code{ci_lower} and \code{ci_upper} are the preferred confidence interval
+columns; \code{jsd_low} and \code{jsd_high} are retained as legacy aliases.
 }
 \description{
-Estimate Jensen–Shannon divergence or distance between two categories
+Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon
+distance is the primary outcome. If you want to compare JSD with Pillai,
+Bhattacharyya, Mahalanobis, and percent-overlap metrics, start with
+\code{compare_overlap_metrics()} instead.
+}
+\details{
+JSD is bounded from 0 to 1 for two equally weighted distributions. Larger
+values indicate greater category separation. Jensen-Shannon distance is
+\code{sqrt(JSD)} and has the same direction of interpretation.
+}
+\examples{
+set.seed(2026)
+vowels <- data.frame(
+  speaker = rep(c("s01", "s02"), each = 60),
+  vowel = rep(rep(c("ih", "eh"), each = 30), 2),
+  f1 = c(
+    rnorm(30, 500, 55), rnorm(30, 560, 60),
+    rnorm(30, 510, 60), rnorm(30, 575, 65)
+  ),
+  f2 = c(
+    rnorm(30, 1980, 150), rnorm(30, 1880, 155),
+    rnorm(30, 1960, 160), rnorm(30, 1840, 165)
+  )
+)
+
+# Global JSD with a small bootstrap interval.
+# Increase n_boot for real analyses.
+estimate_jsd(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  do_boot = TRUE,
+  n_boot = 5,
+  min_tokens = 20
+)
+
+# Grouped JSD by speaker, again with a small example bootstrap.
+estimate_jsd(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  do_boot = TRUE,
+  n_boot = 5,
+  min_tokens = 20
+)
 }

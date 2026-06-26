@@ -1,0 +1,100 @@
+---
+title: "Quick start: from vowel table to metrics and plots"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Quick start: from vowel table to metrics and plots}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Most analyses should start with a token-level table: one row per observation,
+one column for the category contrast, and one or more numeric acoustic
+features. `compare_overlap_metrics()` is the preferred entry point because it
+returns the main overlap and separation metrics side by side.
+
+```{r}
+library(phonJSD)
+
+set.seed(2026)
+vowels <- data.frame(
+  speaker = rep(c("s01", "s02"), each = 60),
+  vowel = rep(rep(c("ih", "eh"), each = 30), 2),
+  f1 = c(
+    rnorm(30, 500, 55), rnorm(30, 560, 60),
+    rnorm(30, 510, 60), rnorm(30, 575, 65)
+  ),
+  f2 = c(
+    rnorm(30, 1980, 150), rnorm(30, 1880, 155),
+    rnorm(30, 1960, 160), rnorm(30, 1840, 165)
+  )
+)
+```
+
+The wide output is useful for analysis tables and joining to speaker metadata.
+
+```{r}
+metrics_wide <- compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  output = "wide"
+)
+
+metrics_wide
+```
+
+The long output is easier to rank, filter, and plot. `separation_value` puts
+all metrics on a separation-oriented scale: larger values mean greater category
+separation, even for overlap metrics such as percent overlap and
+Bhattacharyya affinity.
+
+```{r}
+metrics_long <- compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  output = "long"
+)
+
+metrics_long[, c("group", "metric", "estimate", "orientation", "separation_value")]
+```
+
+If `ggplot2` is installed, the same objects can be visualized directly.
+
+```{r, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot_category_space(
+  data = vowels,
+  features = c("f2", "f1"),
+  category_col = "vowel",
+  group_col = "speaker",
+  reverse_x = TRUE,
+  reverse_y = TRUE
+)
+
+plot_overlap_metrics(metrics_long)
+```
+
+For uncertainty intervals, use `do_boot = TRUE`. Bootstrapping recomputes every
+metric on every resample, so use a larger `n_boot` for final analyses than for
+interactive examples.
+
+```{r, eval = FALSE}
+compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  do_boot = TRUE,
+  n_boot = 1000,
+  output = "long"
+)
+```

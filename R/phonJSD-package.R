@@ -5,8 +5,47 @@
 #' arbitrary n-dimensional acoustic spaces such as formants, MFCCs,
 #' spectral features, or learned embeddings. The package provides unified 
 #' functions to estimate global and group-level JSD (with optional bootstrap),
-#' and comparison metrics such as the Pillai–Bartlett trace and 
-#' Bhattacharyya distance.
+#' and comparison metrics such as the Pillai–Bartlett trace, Bhattacharyya
+#' distance and affinity, Mahalanobis distance, and percent overlap. Percent
+#' overlap is returned as a 0--1 proportion, not a 0--100 percentage.
+#'
+#' @section Recommended workflow:
+#' \enumerate{
+#'   \item Start with \code{compare_overlap_metrics()} when you want a complete
+#'     comparison table for one contrast, either globally or by group.
+#'   \item Use \code{estimate_jsd()} when Jensen-Shannon divergence or
+#'     Jensen-Shannon distance is the primary outcome and you need optional
+#'     bootstrap intervals.
+#'   \item Use lower-level helpers such as \code{jsd_kde_nd()},
+#'     \code{percent_overlap_kde()}, \code{pillai_overlap()}, and
+#'     \code{bhattacharyya_mvnorm()} when validating methods, debugging one
+#'     contrast, or reproducing a specific metric.
+#'   \item Use \code{plot_overlap_metrics()}, \code{plot_category_space()}, and
+#'     \code{plot_category_pca()} for ggplot2-backed diagnostics and
+#'     presentation figures.
+#' }
+#'
+#' @section Choosing metrics:
+#' JSD, Jensen-Shannon distance, Pillai trace, Bhattacharyya distance, and
+#' Mahalanobis distance increase as categories become more separated. Percent
+#' overlap and Bhattacharyya affinity increase as categories overlap more. The
+#' long output from \code{compare_overlap_metrics()} includes an
+#' \code{orientation} column and a separation-oriented \code{separation_value}
+#' column to make these directions explicit. JSD and percent overlap estimate
+#' distributional separation/overlap using KDE by default; Pillai and
+#' Mahalanobis emphasize mean separation; Bhattacharyya metrics use a
+#' multivariate-normal approximation.
+#'
+#' @section High-dimensional workflows:
+#' Metrics can be estimated in arbitrary n-dimensional numeric feature spaces,
+#' including MFCCs and learned embeddings. Use \code{plot_category_pca()} for a
+#' two-dimensional PCA diagnostic, but report metric estimates from the intended
+#' full feature set.
+#'
+#' @section Confidence intervals:
+#' Confidence intervals use \code{ci_lower} and \code{ci_upper} columns.
+#' Legacy JSD aliases \code{jsd_low} and \code{jsd_high} are retained for
+#' compatibility.
 #'
 #' @keywords internal
 "_PACKAGE"

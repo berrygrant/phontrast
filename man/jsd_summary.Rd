@@ -12,6 +12,7 @@ jsd_summary(
   do_boot = TRUE,
   n_boot = 300,
   min_tokens = 30,
+  conf_level = 0.95,
   ...
 )
 }
@@ -34,6 +35,8 @@ to compare (e.g., "vowel"). Each group must have exactly two categories.}
 \item{min_tokens}{Minimum number of tokens per group required to compute
 JSD. Groups with fewer tokens are dropped.}
 
+\item{conf_level}{Confidence level for bootstrap intervals.}
+
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
@@ -42,8 +45,11 @@ A tibble with one row per group and columns:
 \item \code{group} – group ID (e.g., speaker)
 \item \code{n_tokens} – number of tokens for that group
 \item \code{jsd_point} – single JSD point estimate
-\item \code{jsd_mean}, \code{jsd_sd}, \code{jsd_low}, \code{jsd_high}
-– bootstrap summary (if \code{do_boot = TRUE})
+\item \code{n_boot}, \code{conf_level}, \code{jsd_mean},
+\code{jsd_sd}, \code{ci_lower}, \code{ci_upper},
+\code{jsd_low}, \code{jsd_high} – bootstrap summary columns.
+These are \code{NA} (or 0 for \code{n_boot}) if
+\code{do_boot = FALSE}.
 }
 }
 \description{

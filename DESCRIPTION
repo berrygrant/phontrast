@@ -30,6 +30,7 @@ Imports:
     rlang,
     stats
 Suggests:
+    ggplot2,
     mgcv,
     lme4,
     seewave,
@@ -38,4 +39,5 @@ Suggests:
     knitr,
     rmarkdown
 Config/testthat/edition: 3
+VignetteBuilder: knitr
 LazyData: true

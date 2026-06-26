@@ -13,12 +13,62 @@
 pillai_overlap <- function(data, features, category_col) {
   .check_columns(data, c(category_col, features))
   data <- .metric_data(data, c(category_col, features))
+  .check_numeric_features(data, features)
   .two_levels(data[[category_col]], "category_col")
 
-  Y <- as.matrix(data[, features, drop = FALSE])
-  cat <- data[[category_col]]
-  m <- stats::manova(Y ~ cat)
-  s <- summary(m, test = "Pillai")
+  if (length(features) == 1L) {
+    model_df <- data.frame(
+      y = data[[features]],
+      category = data[[category_col]]
+    )
+    fit <- tryCatch(
+      stats::lm(y ~ category, data = model_df),
+      error = function(e) {
+        stop(
+          "Pillai trace failed. Check that each category has enough finite ",
+          "observations. Original error: ", conditionMessage(e),
+          call. = FALSE
+        )
+      }
+    )
+    aov_tab <- stats::anova(fit)
+    ss_effect <- aov_tab[1, "Sum Sq"]
+    ss_resid <- aov_tab[nrow(aov_tab), "Sum Sq"]
+    return(list(
+      pillai = as.numeric(ss_effect / (ss_effect + ss_resid)),
+      p_value = as.numeric(aov_tab[1, "Pr(>F)"])
+    ))
+  }
+
+  feature_cols <- paste0("feature_", seq_along(features))
+  model_df <- data.frame(
+    category = data[[category_col]],
+    data[, features, drop = FALSE]
+  )
+  names(model_df) <- c("category", feature_cols)
+  response <- paste0("cbind(", paste(feature_cols, collapse = ", "), ")")
+  m <- tryCatch(
+    stats::manova(stats::as.formula(paste(response, "~ category")), data = model_df),
+    error = function(e) {
+      stop(
+        "Pillai trace failed. Check that each category has enough finite, ",
+        "non-collinear observations for the requested feature space. Original error: ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+  s <- tryCatch(
+    summary(m, test = "Pillai"),
+    error = function(e) {
+      stop(
+        "Pillai trace failed. Check that each category has enough finite, ",
+        "non-collinear observations for the requested feature space. Original error: ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
   list(
     pillai  = s$stats[1, "Pillai"],
     p_value = s$stats[1, "Pr(>F)"]
@@ -45,16 +95,23 @@ speaker_pillai <- function(data,
                            features,
                            min_tokens = 20) {
 
+  .check_positive_count(min_tokens, "min_tokens")
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  out <- lapply(split(data, data[[group_col]]), function(df_g) {
+  out <- lapply(.split_groups(data, group_col), function(df_g) {
     n_tok <- nrow(df_g)
-    if (n_tok < min_tokens || length(unique(df_g[[category_col]])) < 2L) {
+    if (n_tok < min_tokens || .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
 
-    po <- pillai_overlap(df_g, features, category_col)
+    po <- tryCatch(
+      pillai_overlap(df_g, features, category_col),
+      error = function(e) NULL
+    )
+    if (is.null(po)) {
+      return(NULL)
+    }
     tibble::tibble(
       group = df_g[[group_col]][1],
       n_tokens = n_tok,
@@ -63,7 +120,8 @@ speaker_pillai <- function(data,
     )
   })
 
-  dplyr::bind_rows(out)
+  out <- dplyr::bind_rows(out)
+  if (nrow(out)) out else .empty_group_pillai()
 }
 
 #' Global Pillai trace (point estimate)
@@ -86,6 +144,7 @@ global_pillai <- function(data,
                           category_col,
                           min_tokens = 20) {
 
+  .check_positive_count(min_tokens, "min_tokens")
   keep_cols <- c(category_col, features)
   df <- .metric_data(data, keep_cols)
 
@@ -131,6 +190,7 @@ estimate_pillai <- function(data,
                             group_col  = NULL,
                             min_tokens = 20) {
 
+  .check_positive_count(min_tokens, "min_tokens")
   if (is.null(group_col)) {
     # global
     gp <- global_pillai(
@@ -151,6 +211,15 @@ estimate_pillai <- function(data,
       features     = features,
       min_tokens   = min_tokens
     )
+    if (!nrow(sp)) {
+      return(tibble::tibble(
+        scope = character(),
+        group = character(),
+        n_tokens = integer(),
+        pillai = numeric(),
+        p_value = numeric()
+      ))
+    }
     sp$scope <- "group"
     sp <- sp[, c("scope", "group", "n_tokens", "pillai", "p_value")]
     return(sp)
@@ -178,7 +247,15 @@ estimate_pillai <- function(data,
 bhattacharyya_mvnorm <- function(data, features, category_col, eps = 1e-6) {
   .check_columns(data, c(category_col, features))
   data <- .metric_data(data, c(category_col, features))
+  .check_numeric_features(data, features)
+  .check_ridge_eps(eps, "eps")
   levs <- .two_levels(data[[category_col]], "category_col")
+  .check_two_category_sample_size(
+    data,
+    category_col,
+    .kde_min_category_tokens(length(features)),
+    "Bhattacharyya distance"
+  )
   X1 <- as.matrix(data[data[[category_col]] == levs[1], features, drop = FALSE])
   X2 <- as.matrix(data[data[[category_col]] == levs[2], features, drop = FALSE])
 
@@ -240,22 +317,29 @@ speaker_bhatt <- function(data,
                           min_tokens = 20,
                           eps = 1e-6) {
 
+  .check_positive_count(min_tokens, "min_tokens")
+  .check_ridge_eps(eps, "eps")
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
   out_list <- lapply(groups, function(df_g) {
     n_tok <- nrow(df_g)
-    levs <- unique(df_g[[category_col]])
-    if (n_tok < min_tokens || length(levs) != 2L) {
+    if (n_tok < min_tokens || .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
-    bh <- bhattacharyya_mvnorm(
-      data         = df_g,
-      features     = features,
-      category_col = category_col,
-      eps          = eps
+    bh <- tryCatch(
+      bhattacharyya_mvnorm(
+        data         = df_g,
+        features     = features,
+        category_col = category_col,
+        eps          = eps
+      ),
+      error = function(e) NULL
     )
+    if (is.null(bh)) {
+      return(NULL)
+    }
     data.frame(
       group         = df_g[[group_col]][1],
       n_tokens      = n_tok,
@@ -293,6 +377,8 @@ estimate_bhatt <- function(data,
                            min_tokens = 20,
                            eps = 1e-6) {
 
+  .check_positive_count(min_tokens, "min_tokens")
+  .check_ridge_eps(eps, "eps")
   if (is.null(group_col)) {
     # global
     keep_cols <- c(category_col, features)
@@ -329,6 +415,9 @@ estimate_bhatt <- function(data,
       min_tokens   = min_tokens,
       eps          = eps
     )
+    if (!nrow(sb)) {
+      return(.empty_estimate_bhatt_group())
+    }
     sb$scope <- "group"
     sb <- sb[, c("scope", "group", "n_tokens", "bhatt_dist", "bhatt_affinity")]
     return(sb)

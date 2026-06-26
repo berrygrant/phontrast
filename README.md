@@ -3,7 +3,7 @@
 **phonJSD** is an R package for measuring phonological category separation using **Jensen–Shannon Divergence (JSD)**.  
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
-Version **0.5.1** is a research release focused on stable core metrics, reproducible uncertainty estimates, and comparison with classical overlap measures.
+The current development branch is focused on stable core metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20816586.svg)](https://doi.org/10.5281/zenodo.20816586)
 
@@ -22,15 +22,122 @@ This approach is especially useful when:
 
 ---
 
-## Core Features (v0.5.1)
+## Core Features
 
 - Jensen–Shannon Divergence for phonological category comparison  
 - Kernel density–based estimation of acoustic distributions  
 - Support for **1D and n-dimensional acoustic features**
 - Global and group-level bootstrap summaries
-- Comparison metrics including Pillai-Bartlett trace, Bhattacharyya distance, and percent overlap
+- Comparison metrics including Pillai-Bartlett trace, Bhattacharyya distance/affinity, Mahalanobis distance, and percent overlap
+- ggplot2-backed visualizations for metric tables, category spaces, and PCA projections
 - Reproducible pipelines compatible with tidyverse workflows
 - Designed for integration with forced alignment and acoustic extraction tools
+
+---
+
+## Quick Start
+
+Most users should start with `compare_overlap_metrics()`. It takes a token-level
+vowel table, compares two category labels in a numeric acoustic space, and
+returns the major overlap/separation metrics side by side.
+
+```r
+library(phonJSD)
+
+set.seed(2026)
+vowels <- data.frame(
+  speaker = rep(c("s01", "s02"), each = 80),
+  vowel = rep(rep(c("ih", "eh"), each = 40), 2),
+  f1 = c(
+    rnorm(40, 500, 55), rnorm(40, 560, 60),
+    rnorm(40, 510, 60), rnorm(40, 575, 65)
+  ),
+  f2 = c(
+    rnorm(40, 1980, 150), rnorm(40, 1880, 155),
+    rnorm(40, 1960, 160), rnorm(40, 1840, 165)
+  )
+)
+
+compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  output = "wide"
+)
+```
+
+For plotting or ranking, use the long output:
+
+```r
+metrics_long <- compare_overlap_metrics(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  output = "long"
+)
+
+metrics_long[, c("group", "metric", "estimate", "orientation",
+                 "separation_value", "separation_rank")]
+```
+
+If `ggplot2` is installed, the same workflow can be visualized directly:
+
+```r
+plot_category_space(
+  data = vowels,
+  features = c("f2", "f1"),
+  category_col = "vowel",
+  group_col = "speaker",
+  reverse_x = TRUE,
+  reverse_y = TRUE
+)
+
+plot_overlap_metrics(metrics_long)
+```
+
+For multidimensional features such as MFCCs or acoustic embeddings, compute
+metrics on the full feature set and use PCA plots as a diagnostic projection:
+
+```r
+features <- paste0("mfcc", 1:13)
+
+metrics_13d <- compare_overlap_metrics(
+  data = vowel_tokens,
+  features = features,
+  category_col = "vowel",
+  output = "long"
+)
+
+plot_category_pca(
+  data = vowel_tokens,
+  features = features,
+  category_col = "vowel"
+)
+```
+
+`plot_category_pca()` helps visualize high-dimensional structure, but it does
+not change the estimand: the metric table above is still estimated in all 13
+dimensions.
+
+If you only need the package's main information-theoretic estimate, use
+`estimate_jsd()`:
+
+```r
+estimate_jsd(
+  data = vowels,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker",
+  do_boot = TRUE,
+  n_boot = 100
+)
+```
+
+Use lower-level helpers such as `jsd_kde_nd()`, `percent_overlap_kde()`,
+`pillai_overlap()`, and `bhattacharyya_mvnorm()` when you are validating a
+method, debugging one contrast, or need direct control over one metric.
 
 ---
 
@@ -53,6 +160,47 @@ JSD values:
 - **Higher values** → greater distributional separation  
 - **Bounded and symmetric**, making cross-study comparisons more interpretable
 
+## Choosing and Interpreting Metrics
+
+The metrics are not all oriented in the same direction:
+
+| Metric | Direction | Scale | Best used when | Main caveat |
+| --- | --- | --- | --- | --- |
+| JSD | Higher = more separation | 0-1 bits | You want a bounded distributional separation metric | KDE estimates need adequate sample size per category |
+| Jensen-Shannon distance | Higher = more separation | 0-1 | You want a distance transform of JSD | Same estimator caveats as JSD |
+| Pillai trace | Higher = more separation | 0-1 | You want a classical MANOVA-style comparison | Primarily mean-based; less sensitive to distribution shape |
+| Bhattacharyya distance | Higher = more separation | 0 to infinity | You want a parametric distribution-distance comparison | Assumes approximately multivariate normal categories |
+| Mahalanobis distance | Higher = more separation | 0 to infinity | You want mean separation scaled by covariance | Sensitive to covariance estimation and small samples |
+| Percent overlap | Higher = more overlap | 0-1 proportion | You want a directly interpretable shared-density estimate | Despite the name, output is a proportion, not 0-100 |
+| Bhattacharyya affinity | Higher = more overlap | 0-1 | You want a parametric overlap analogue | Assumes approximately multivariate normal categories |
+
+For side-by-side comparison, `compare_overlap_metrics(output = "long")` adds
+`orientation`, `separation_value`, and `separation_rank` columns so overlap
+metrics can be read on the same separation-oriented scale as distance metrics.
+Confidence interval columns are named `ci_lower` and `ci_upper`; legacy
+JSD-specific aliases `jsd_low` and `jsd_high` are retained for compatibility.
+
+## PB52 Example Note
+
+The Peterson and Barney 1952 data in `phonTools::pb52` are useful for global
+vowel contrasts. After filtering the factor-valued `vowel` column, phonJSD
+counts observed levels only, so manual `droplevels()` is not required.
+
+```r
+data(pb52, package = "phonTools")
+pb_i <- subset(pb52, as.character(vowel) %in% c("I", "i"))
+
+compare_overlap_metrics(
+  data = pb_i,
+  features = c("f1", "f2"),
+  category_col = "vowel"
+)
+```
+
+Do not use per-speaker F1/F2 `I/i` overlap metrics in PB52 without a coarser
+grouping or different design: each speaker has only two repetitions per vowel,
+which is too few for KDE-based two-dimensional overlap estimates.
+
 ---
 
 ## Installation
@@ -63,11 +211,3 @@ This package is currently in early development and not yet on CRAN.
 # install.packages("remotes")
 remotes::install_github("berrygrant/phonJSD")
 ```
-
-## LabPhon 2026 Poster
-
-The final LabPhon 2026 poster and reproducibility bundle are maintained on the
-`labphon_2026` branch so the main package branch can stay lightweight.
-
-- [Download the final poster PDF](https://raw.githubusercontent.com/berrygrant/phonJSD/labphon_2026/analysis/labphon_2026/poster/LabPhon2026_Poster_Berry_Final.pdf)
-- [Browse the poster reproducibility bundle](https://github.com/berrygrant/phonJSD/tree/labphon_2026/analysis/labphon_2026)

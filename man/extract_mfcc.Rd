@@ -12,6 +12,8 @@ extract_mfcc(
   fs = NULL,
   numcep = 13,
   prefix = "mfcc",
+  strict = FALSE,
+  warn = TRUE,
   ...
 )
 }
@@ -33,6 +35,13 @@ uses the file's sampling rate.}
 
 \item{prefix}{String; prefix for output columns (default \code{"mfcc"}).}
 
+\item{strict}{Logical; if \code{TRUE}, stop on the first row that cannot
+be processed. If \code{FALSE} (default), leave that row's MFCC values as
+\code{NA}.}
+
+\item{warn}{Logical; if \code{TRUE} (default), warn when one or more rows
+cannot be processed and \code{strict = FALSE}.}
+
 \item{...}{Additional arguments passed to \code{seewave::mfcc()}.}
 }
 \value{
@@ -46,4 +55,21 @@ contains audio file paths and (optionally) segment boundaries.
 This function uses \pkg{tuneR} to read WAV files and \pkg{seewave} to
 compute MFCCs. Both packages are optional; if not installed, an
 informative error is raised.
+}
+\examples{
+\dontrun{
+segments <- data.frame(
+  wav_path = c("speaker01_utt01.wav", "speaker01_utt02.wav"),
+  vowel_start = c(0.42, 1.15),
+  vowel_end = c(0.57, 1.31)
+)
+
+extract_mfcc(
+  data = segments,
+  file_col = "wav_path",
+  start_col = "vowel_start",
+  end_col = "vowel_end",
+  numcep = 13
+)
+}
 }

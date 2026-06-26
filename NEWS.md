@@ -1,5 +1,44 @@
 # phonJSD 0.5.1
 
+## Visualization
+
+- Added ggplot2-backed `plot_overlap_metrics()` and `plot_category_space()`
+  helpers for visualizing metric comparisons and one- or two-dimensional
+  phonological category spaces.
+- Added `plot_category_pca()` for two-dimensional PCA diagnostics of arbitrary
+  multidimensional feature spaces.
+
+## Metrics
+
+- Added `compare_overlap_metrics()` to compute Pillai trace, Bhattacharyya
+  distance and affinity, Jensen-Shannon divergence and distance, Mahalanobis
+  distance, and percent overlap in one global or grouped comparison table.
+- Added one-dimensional KDE support for JSD and percent-overlap estimates.
+- Aligned KDE bandwidth/evaluation controls across JSD and percent overlap.
+- Made grouped JSD bootstrap intervals respect `conf_level`.
+- Improved empty grouped outputs and small-sample diagnostics across metric
+  wrappers.
+- Made two-category metric checks ignore unused factor levels after filtering,
+  so filtered factor data such as PB52 `I/i` contrasts work without manually
+  calling `droplevels()`.
+- Clarified that percent-overlap outputs are 0--1 proportions, not 0--100
+  percentages.
+
+## Documentation
+
+- Added quick-start and multidimensional-workflow vignettes.
+- Added a README quick start that starts from a vowel token table and moves to
+  metric output.
+- Added metric-choice guidance and PB52 small-sample notes.
+- Added preferred-path and metric-direction guidance to the package manual.
+- Added runnable examples for the main metric comparison, JSD estimation,
+  direct KDE JSD, beta-regression preparation, MFCC extraction, and
+  hierarchical bootstrap modeling workflows.
+- Standardized JSD bootstrap outputs with `conf_level`, `ci_lower`, and
+  `ci_upper` columns while retaining `jsd_low` and `jsd_high` as aliases.
+- Added optional bootstrapping to `compare_overlap_metrics()` with progress
+  messages and metric-specific confidence intervals.
+
 ## Maintenance
 
 - Aligned DESCRIPTION metadata with the 0.5.1 README/DOI release.

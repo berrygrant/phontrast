@@ -1,5 +1,14 @@
 #' Estimate Jensen–Shannon divergence or distance between two categories
 #'
+#' Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon
+#' distance is the primary outcome. If you want to compare JSD with Pillai,
+#' Bhattacharyya, Mahalanobis, and percent-overlap metrics, start with
+#' \code{compare_overlap_metrics()} instead.
+#'
+#' JSD is bounded from 0 to 1 for two equally weighted distributions. Larger
+#' values indicate greater category separation. Jensen-Shannon distance is
+#' \code{sqrt(JSD)} and has the same direction of interpretation.
+#'
 #' @param data Data frame with at least `category_col` and `features`.
 #' @param features Character vector of feature column names (e.g., c("F1","F2")).
 #' @param category_col Name of the column giving the two-way category factor.
@@ -12,10 +21,50 @@
 #' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
 #'
 #' @return A tibble. Global: one row with columns
-#'   scope, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+#'   scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,
+#'   ci_lower, ci_upper, jsd_low, jsd_high.
 #'   Grouped: one row per group with columns
-#'   scope, group, n_tokens, n_boot, jsd_point, jsd_mean, jsd_sd, jsd_low, jsd_high.
+#'   scope, group, n_tokens, n_boot, conf_level, jsd_point, jsd_mean,
+#'   jsd_sd, ci_lower, ci_upper, jsd_low, jsd_high.
+#'   \code{ci_lower} and \code{ci_upper} are the preferred confidence interval
+#'   columns; \code{jsd_low} and \code{jsd_high} are retained as legacy aliases.
 #'
+#' @examples
+#' set.seed(2026)
+#' vowels <- data.frame(
+#'   speaker = rep(c("s01", "s02"), each = 60),
+#'   vowel = rep(rep(c("ih", "eh"), each = 30), 2),
+#'   f1 = c(
+#'     rnorm(30, 500, 55), rnorm(30, 560, 60),
+#'     rnorm(30, 510, 60), rnorm(30, 575, 65)
+#'   ),
+#'   f2 = c(
+#'     rnorm(30, 1980, 150), rnorm(30, 1880, 155),
+#'     rnorm(30, 1960, 160), rnorm(30, 1840, 165)
+#'   )
+#' )
+#'
+#' # Global JSD with a small bootstrap interval.
+#' # Increase n_boot for real analyses.
+#' estimate_jsd(
+#'   data = vowels,
+#'   features = c("f1", "f2"),
+#'   category_col = "vowel",
+#'   do_boot = TRUE,
+#'   n_boot = 5,
+#'   min_tokens = 20
+#' )
+#'
+#' # Grouped JSD by speaker, again with a small example bootstrap.
+#' estimate_jsd(
+#'   data = vowels,
+#'   features = c("f1", "f2"),
+#'   category_col = "vowel",
+#'   group_col = "speaker",
+#'   do_boot = TRUE,
+#'   n_boot = 5,
+#'   min_tokens = 20
+#' )
 #' @export
 #' @importFrom rlang .data
 estimate_jsd <- function(data,
@@ -28,9 +77,14 @@ estimate_jsd <- function(data,
                          est_distance = FALSE,
                          conf_level   = 0.95,
                          ...) {
-  
+
+  .check_conf_level(conf_level)
+  if (isTRUE(do_boot)) {
+    .check_positive_count(n_boot, "n_boot")
+  }
+  .check_positive_count(min_tokens, "min_tokens")
   .check_columns(data, c(category_col, features))
-  
+
   if (is.null(group_col)) {
     # ---- Global ----
     df <- .metric_data(data, c(category_col, features))
@@ -48,7 +102,8 @@ estimate_jsd <- function(data,
     jsd_div_point <- jsd_kde_nd(
       data     = df,
       features = features,
-      group    = category_col  # pass column name, not vector
+      group    = category_col,
+      ...
     )
     
     jsd_point <- if (est_distance) sqrt(jsd_div_point) else jsd_div_point
@@ -59,9 +114,12 @@ estimate_jsd <- function(data,
         scope     = "global",
         n_tokens  = n,
         n_boot    = 0L,
+        conf_level = conf_level,
         jsd_point = jsd_point,
         jsd_mean  = NA_real_,
         jsd_sd    = NA_real_,
+        ci_lower  = NA_real_,
+        ci_upper  = NA_real_,
         jsd_low   = NA_real_,
         jsd_high  = NA_real_
       ))
@@ -75,7 +133,7 @@ estimate_jsd <- function(data,
       df_boot <- df[idx, , drop = FALSE]
       
       # Guard: some bootstrap samples may lose one category
-      if (length(unique(df_boot[[category_col]])) < 2L) {
+      if (.observed_n_categories(df_boot[[category_col]]) != 2L) {
         return(NA_real_)
       }
       
@@ -83,7 +141,8 @@ estimate_jsd <- function(data,
         jsd_kde_nd(
           data     = df_boot,
           features = features,
-          group    = category_col
+          group    = category_col,
+          ...
         ),
         error = function(e) NA_real_
       )
@@ -112,9 +171,12 @@ estimate_jsd <- function(data,
       scope     = "global",
       n_tokens  = n,
       n_boot    = as.integer(length(boot_vals)),
+      conf_level = conf_level,
       jsd_point = jsd_point,
       jsd_mean  = jsd_mean,
       jsd_sd    = jsd_sd,
+      ci_lower  = qs[1],
+      ci_upper  = qs[2],
       jsd_low   = qs[1],
       jsd_high  = qs[2]
     ))
@@ -144,12 +206,16 @@ estimate_jsd <- function(data,
     out <- pt
     out$scope <- "group"
     out$n_boot <- 0L
+    out$conf_level <- conf_level
     out$jsd_mean <- NA_real_
     out$jsd_sd   <- NA_real_
+    out$ci_lower <- NA_real_
+    out$ci_upper <- NA_real_
     out$jsd_low  <- NA_real_
     out$jsd_high <- NA_real_
     out <- out[, c("scope", "group", "n_tokens", "n_boot",
-                   "jsd_point", "jsd_mean", "jsd_sd", "jsd_low", "jsd_high")]
+                   "conf_level", "jsd_point", "jsd_mean", "jsd_sd",
+                   "ci_lower", "ci_upper", "jsd_low", "jsd_high")]
     return(out)
   }
   
@@ -161,12 +227,14 @@ estimate_jsd <- function(data,
     n_boot       = n_boot,
     min_tokens   = min_tokens,
     est_distance = est_distance,
+    conf_level   = conf_level,
     ...
   )
   
   out <- dplyr::left_join(pt, bt, by = c("group", "n_tokens"))
   out$scope <- "group"
   out <- out[, c("scope", "group", "n_tokens", "n_boot",
-                 "jsd_point", "jsd_mean", "jsd_sd", "jsd_low", "jsd_high")]
+                 "conf_level", "jsd_point", "jsd_mean", "jsd_sd",
+                 "ci_lower", "ci_upper", "jsd_low", "jsd_high")]
   out
 }

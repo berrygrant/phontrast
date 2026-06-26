@@ -25,15 +25,16 @@ speaker_jsd <- function(data,
                         min_tokens = 20,
                         ...) {
 
+  .check_positive_count(min_tokens, "min_tokens")
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
 
   out_list <- lapply(groups, function(df_g) {
     n_tok <- nrow(df_g)
     if (n_tok < min_tokens ||
-        length(unique(df_g[[category_col]])) != 2L) {
+        .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(NULL)
     }
 
@@ -67,10 +68,14 @@ speaker_jsd <- function(data,
 #' @param n_boot Number of bootstrap resamples per group.
 #' @param est_distance Logical; if TRUE, return Jensen–Shannon distance
 #'   (sqrt of divergence) instead of divergence.
+#' @param conf_level Confidence level for bootstrap intervals.
 #'
 #' @return A tibble with one row per group and columns:
-#'   \code{group}, \code{n_tokens}, \code{n_boot}, \code{jsd_mean},
-#'   \code{jsd_sd}, \code{jsd_low}, and \code{jsd_high}.
+#'   \code{group}, \code{n_tokens}, \code{n_boot}, \code{conf_level},
+#'   \code{jsd_mean}, \code{jsd_sd}, \code{ci_lower}, \code{ci_upper},
+#'   \code{jsd_low}, and \code{jsd_high}.
+#'   \code{jsd_low} and \code{jsd_high} are retained as legacy aliases for
+#'   \code{ci_lower} and \code{ci_upper}.
 #' @export
 #' @importFrom purrr map
 #' @importFrom dplyr bind_rows n_distinct
@@ -82,23 +87,31 @@ boot_jsd <- function(data,
                      n_boot     = 300,
                      min_tokens = 30,
                      est_distance = FALSE,
+                     conf_level = 0.95,
                      ...) {
 
+  .check_positive_count(n_boot, "n_boot")
+  .check_positive_count(min_tokens, "min_tokens")
+  .check_conf_level(conf_level)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
+  alpha <- 1 - conf_level
 
-  groups <- split(data, data[[group_col]])
+  groups <- .split_groups(data, group_col)
 
   res_list <- purrr::map(groups, function(df_g) {
 
     if (nrow(df_g) < min_tokens ||
-        dplyr::n_distinct(df_g[[category_col]]) < 2L) {
+        .observed_n_categories(df_g[[category_col]]) != 2L) {
       return(tibble::tibble(
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
         n_boot   = 0L,
+        conf_level = conf_level,
         jsd_mean = NA_real_,
         jsd_sd   = NA_real_,
+        ci_lower = NA_real_,
+        ci_upper = NA_real_,
         jsd_low  = NA_real_,
         jsd_high = NA_real_
       ))
@@ -108,7 +121,7 @@ boot_jsd <- function(data,
       seq_len(n_boot),
       function(i) {
         samp <- df_g[sample.int(nrow(df_g), size = nrow(df_g), replace = TRUE), ]
-        if (dplyr::n_distinct(samp[[category_col]]) < 2L) {
+        if (.observed_n_categories(samp[[category_col]]) != 2L) {
           return(NA_real_)
         }
         jsd_div <- tryCatch(
@@ -134,21 +147,33 @@ boot_jsd <- function(data,
         group    = df_g[[group_col]][1],
         n_tokens = nrow(df_g),
         n_boot   = 0L,
+        conf_level = conf_level,
         jsd_mean = NA_real_,
         jsd_sd   = NA_real_,
+        ci_lower = NA_real_,
+        ci_upper = NA_real_,
         jsd_low  = NA_real_,
         jsd_high = NA_real_
       ))
     }
 
+    qs <- stats::quantile(
+      jsd_vals,
+      probs = c(alpha / 2, 1 - alpha / 2),
+      names = FALSE
+    )
+
     tibble::tibble(
       group    = df_g[[group_col]][1],
       n_tokens = nrow(df_g),
       n_boot   = length(jsd_vals),
+      conf_level = conf_level,
       jsd_mean = mean(jsd_vals),
       jsd_sd   = stats::sd(jsd_vals),
-      jsd_low  = stats::quantile(jsd_vals, 0.025, names = FALSE),
-      jsd_high = stats::quantile(jsd_vals, 0.975, names = FALSE)
+      ci_lower = qs[1],
+      ci_upper = qs[2],
+      jsd_low  = qs[1],
+      jsd_high = qs[2]
     )
   })
 

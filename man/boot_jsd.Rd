@@ -12,6 +12,7 @@ boot_jsd(
   n_boot = 300,
   min_tokens = 30,
   est_distance = FALSE,
+  conf_level = 0.95,
   ...
 )
 }
@@ -34,12 +35,17 @@ JSD. Groups with fewer tokens are dropped.}
 \item{est_distance}{Logical; if TRUE, return Jensen–Shannon distance
 (sqrt of divergence) instead of divergence.}
 
+\item{conf_level}{Confidence level for bootstrap intervals.}
+
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
 A tibble with one row per group and columns:
-\code{group}, \code{n_tokens}, \code{n_boot}, \code{jsd_mean},
-\code{jsd_sd}, \code{jsd_low}, and \code{jsd_high}.
+\code{group}, \code{n_tokens}, \code{n_boot}, \code{conf_level},
+\code{jsd_mean}, \code{jsd_sd}, \code{ci_lower}, \code{ci_upper},
+\code{jsd_low}, and \code{jsd_high}.
+\code{jsd_low} and \code{jsd_high} are retained as legacy aliases for
+\code{ci_lower} and \code{ci_upper}.
 }
 \description{
 Computes bootstrap mean, SD, and confidence interval for JSD within each

@@ -10,6 +10,8 @@ global_boot_jsd(
   category_col,
   n_boot = 300,
   min_tokens = 20,
+  est_distance = FALSE,
+  conf_level = 0.95,
   ...
 )
 }
@@ -27,6 +29,11 @@ to compare (e.g., "vowel"). Must have exactly two unique values.}
 
 \item{min_tokens}{Minimum total number of non-missing tokens required.}
 
+\item{est_distance}{Logical; if TRUE, return Jensen-Shannon distance
+(sqrt of divergence) instead of divergence.}
+
+\item{conf_level}{Confidence level for bootstrap intervals.}
+
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
@@ -34,10 +41,13 @@ A one-row data frame with columns:
 \itemize{
 \item \code{n_tokens} – total number of tokens used
 \item \code{n_boot} – number of successful bootstrap samples
+\item \code{conf_level} – confidence level used for the interval
 \item \code{jsd_point} – JSD on the full dataset
 \item \code{jsd_mean} – mean JSD across bootstrap samples
 \item \code{jsd_sd} – standard deviation of bootstrap JSD
-\item \code{jsd_low}, \code{jsd_high} – 95\% bootstrap CI (2.5\%, 97.5\%)
+\item \code{ci_lower}, \code{ci_upper} – bootstrap confidence interval
+\item \code{jsd_low}, \code{jsd_high} – legacy aliases for
+\code{ci_lower} and \code{ci_upper}
 }
 }
 \description{

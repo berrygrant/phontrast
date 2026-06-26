@@ -28,6 +28,34 @@
 #'     \item \code{term} – model term
 #'     \item \code{estimate} – estimate for that term in that replicate
 #'   }
+#'
+#' @examples
+#' \donttest{
+#' set.seed(2026)
+#' speakers <- paste0("s", 1:4)
+#' dat <- data.frame(
+#'   speaker = rep(speakers, each = 60),
+#'   age = rep(c(22, 35, 48, 61), each = 60),
+#'   vowel = rep(rep(c("ih", "eh"), each = 30), 4)
+#' )
+#' dat$f1 <- rnorm(
+#'   nrow(dat),
+#'   mean = ifelse(dat$vowel == "ih", 500, 560) + dat$age * 0.3,
+#'   sd = 55
+#' )
+#'
+#' hier_boot_jsd_model(
+#'   data = dat,
+#'   group_col = "speaker",
+#'   category_col = "vowel",
+#'   features = "f1",
+#'   formula = jsd_beta ~ age,
+#'   fit_fun = stats::lm,
+#'   n_outer = 3,
+#'   min_tokens = 20,
+#'   progress = FALSE
+#' )
+#' }
 #' @export
 #' @importFrom dplyr group_by ungroup summarize n first bind_rows left_join across all_of
 #' @importFrom purrr map
@@ -46,6 +74,13 @@ hier_boot_jsd_model <- function(data,
                                 progress  = TRUE,
                                 ...) {
 
+  .check_columns(data, c(group_col, category_col, features))
+  .check_positive_count(n_outer, "n_outer")
+  .check_positive_count(min_tokens, "min_tokens")
+  if (!inherits(formula, "formula")) {
+    stop("`formula` must be a model formula.", call. = FALSE)
+  }
+
   if (is.null(fit_fun)) {
     if (requireNamespace("mgcv", quietly = TRUE)) {
       fit_fun <- mgcv::gam
@@ -53,9 +88,46 @@ hier_boot_jsd_model <- function(data,
       fit_fun <- stats::lm
     }
   }
+  if (!is.function(fit_fun)) {
+    stop("`fit_fun` must be a function.", call. = FALSE)
+  }
 
+  metric_cols <- c(group_col, category_col, features)
+  data <- data[stats::complete.cases(data[, metric_cols, drop = FALSE]), , drop = FALSE]
+  .check_numeric_features(data, features)
+  finite_feature_rows <- Reduce(
+    `&`,
+    lapply(data[, features, drop = FALSE], is.finite)
+  )
+  data <- data[finite_feature_rows, , drop = FALSE]
   groups <- unique(data[[group_col]])
   n_groups <- length(groups)
+  if (!n_groups) {
+    return(tibble::tibble(
+      boot_id = integer(),
+      term = character(),
+      estimate = numeric()
+    ))
+  }
+
+  boot_group_col <- ".phonJSD_boot_group"
+  original_group_col <- ".phonJSD_original_group"
+  while (boot_group_col %in% names(data)) {
+    boot_group_col <- paste0(boot_group_col, "_")
+  }
+  while (original_group_col %in% names(data)) {
+    original_group_col <- paste0(original_group_col, "_")
+  }
+
+  preds <- data |>
+    dplyr::group_by(.data[[group_col]]) |>
+    dplyr::summarize(
+      dplyr::across(
+        .cols = !dplyr::all_of(c(category_col, features)),
+        .fns  = dplyr::first
+      ),
+      .groups = "drop"
+    )
 
   boot_results <- vector("list", n_outer)
 
@@ -67,15 +139,18 @@ hier_boot_jsd_model <- function(data,
     # Resample groups with replacement
     boot_group_ids <- sample(groups, size = n_groups, replace = TRUE)
 
-    boot_df_list <- lapply(boot_group_ids, function(g) {
+    boot_df_list <- Map(function(g, draw_id) {
       df_g <- data[data[[group_col]] == g, , drop = FALSE]
       if (nrow(df_g) < min_tokens ||
           dplyr::n_distinct(df_g[[category_col]]) < 2L) {
         return(NULL)
       }
       # Resample tokens within group
-      df_g[sample.int(nrow(df_g), size = nrow(df_g), replace = TRUE), ]
-    })
+      samp <- df_g[sample.int(nrow(df_g), size = nrow(df_g), replace = TRUE), ]
+      samp[[boot_group_col]] <- paste0("boot", b, "_draw", draw_id)
+      samp[[original_group_col]] <- g
+      samp
+    }, boot_group_ids, seq_along(boot_group_ids))
 
     boot_df <- dplyr::bind_rows(boot_df_list)
     if (nrow(boot_df) == 0L) {
@@ -85,26 +160,32 @@ hier_boot_jsd_model <- function(data,
     # Compute JSD per group for this bootstrap sample
     jsd_sum <- jsd_summary(
       data         = boot_df,
-      group_col    = group_col,
+      group_col    = boot_group_col,
       category_col = category_col,
       features     = features,
       do_boot      = FALSE,
       min_tokens   = min_tokens
     )
+    if (!nrow(jsd_sum)) {
+      next
+    }
 
-    # Merge in predictors for modeling (e.g., age, region)
-    preds <- data |>
-      dplyr::group_by(.data[[group_col]]) |>
+    group_map <- boot_df |>
+      dplyr::group_by(.data[[boot_group_col]]) |>
       dplyr::summarize(
-        dplyr::across(
-          .cols = !dplyr::all_of(c(category_col, features)),
-          .fns  = dplyr::first
-        ),
+        original_group = dplyr::first(.data[[original_group_col]]),
         .groups = "drop"
       )
+    names(group_map)[names(group_map) == boot_group_col] <- "group"
 
     model_df <- jsd_sum |>
-      dplyr::left_join(preds, by = c("group" = group_col))
+      dplyr::left_join(group_map, by = "group") |>
+      dplyr::left_join(preds, by = c("original_group" = group_col))
+    model_df[[group_col]] <- model_df$original_group
+    model_df <- model_df[is.finite(model_df$jsd_point), , drop = FALSE]
+    if (!nrow(model_df)) {
+      next
+    }
 
     # Prepare jsd_beta using point JSD
     model_df <- prepare_jsd_beta(
@@ -128,5 +209,14 @@ hier_boot_jsd_model <- function(data,
     )
   }
 
-  dplyr::bind_rows(boot_results)
+  out <- dplyr::bind_rows(boot_results)
+  if (nrow(out)) {
+    out
+  } else {
+    tibble::tibble(
+      boot_id = integer(),
+      term = character(),
+      estimate = numeric()
+    )
+  }
 }
