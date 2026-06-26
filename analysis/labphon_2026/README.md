@@ -63,7 +63,7 @@ poster numbers.
 
 ## Optional Faithful PB52 MMO Rerun
 
-The faithful PB52 MMO analysis is computationally heavier and requires `brms`
+The faithful PB52 MMO analysis ([Smith et al., 2024](https://arxiv.org/pdf/2406.16319)) is computationally heavier and requires `brms`
 and a working Stan backend. The committed outputs are:
 
 - `data/pb52_E_I_mmo_ba_summary.csv`
