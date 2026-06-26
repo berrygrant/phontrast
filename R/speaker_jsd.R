@@ -25,6 +25,7 @@ speaker_jsd <- function(data,
                         min_tokens = 20,
                         ...) {
 
+  .check_positive_count(min_tokens, "min_tokens")
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
@@ -67,6 +68,7 @@ speaker_jsd <- function(data,
 #' @param n_boot Number of bootstrap resamples per group.
 #' @param est_distance Logical; if TRUE, return Jensen–Shannon distance
 #'   (sqrt of divergence) instead of divergence.
+#' @param conf_level Confidence level for bootstrap intervals.
 #'
 #' @return A tibble with one row per group and columns:
 #'   \code{group}, \code{n_tokens}, \code{n_boot}, \code{jsd_mean},
@@ -82,10 +84,15 @@ boot_jsd <- function(data,
                      n_boot     = 300,
                      min_tokens = 30,
                      est_distance = FALSE,
+                     conf_level = 0.95,
                      ...) {
 
+  .check_positive_count(n_boot, "n_boot")
+  .check_positive_count(min_tokens, "min_tokens")
+  .check_conf_level(conf_level)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
+  alpha <- 1 - conf_level
 
   groups <- split(data, data[[group_col]])
 
@@ -147,8 +154,8 @@ boot_jsd <- function(data,
       n_boot   = length(jsd_vals),
       jsd_mean = mean(jsd_vals),
       jsd_sd   = stats::sd(jsd_vals),
-      jsd_low  = stats::quantile(jsd_vals, 0.025, names = FALSE),
-      jsd_high = stats::quantile(jsd_vals, 0.975, names = FALSE)
+      jsd_low  = stats::quantile(jsd_vals, alpha / 2, names = FALSE),
+      jsd_high = stats::quantile(jsd_vals, 1 - alpha / 2, names = FALSE)
     )
   })
 

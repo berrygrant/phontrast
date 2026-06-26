@@ -23,7 +23,10 @@ dimensions (e.g., MFCC1..MFCC13, F1/F2/duration).}
 
 \item{bw}{Bandwidth selection method. One of \code{"Hpi"},
 \code{"Hscv"}, or \code{"Hpi.diag"}. Passed to \code{ks::Hpi()},
-\code{ks::Hscv()}, or \code{ks::Hpi.diag()}.}
+\code{ks::Hscv()}, or \code{ks::Hpi.diag()} for multivariate inputs.
+For one-dimensional inputs, these map to \code{stats::bw.SJ()},
+\code{stats::bw.ucv()}, and \code{stats::bw.nrd0()}, respectively,
+with a robust fallback for constant samples.}
 
 \item{eval_on}{Where to evaluate the KDEs. "pooled" (default) evaluates
 on all observations from both categories; "group1" or "group2"

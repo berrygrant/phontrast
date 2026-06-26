@@ -7,6 +7,7 @@
 #' @param do_boot Logical; if TRUE (default), perform bootstrap via \code{boot_jsd()}.
 #' @param n_boot Integer; number of bootstrap resamples per group if
 #'   \code{do_boot = TRUE}.
+#' @param conf_level Confidence level for bootstrap intervals.
 #'
 #' @return A tibble with one row per group and columns:
 #'   \itemize{
@@ -26,7 +27,14 @@ jsd_summary <- function(data,
                         do_boot     = TRUE,
                         n_boot      = 300,
                         min_tokens  = 30,
+                        conf_level  = 0.95,
                         ...) {
+
+  .check_conf_level(conf_level)
+  if (isTRUE(do_boot)) {
+    .check_positive_count(n_boot, "n_boot")
+  }
+  .check_positive_count(min_tokens, "min_tokens")
 
   # Point estimates
   pt <- speaker_jsd(
@@ -51,6 +59,7 @@ jsd_summary <- function(data,
     features     = features,
     n_boot       = n_boot,
     min_tokens   = min_tokens,
+    conf_level   = conf_level,
     ...
   )
 

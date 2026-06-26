@@ -9,7 +9,10 @@ estimate_overlap(
   features,
   category_col,
   group_col = NULL,
-  min_tokens = 20
+  min_tokens = 20,
+  bw = c("Hpi", "Hscv", "Hpi.diag"),
+  eval_on = c("pooled", "group1", "group2"),
+  ...
 )
 }
 \arguments{
@@ -22,6 +25,8 @@ estimate_overlap(
 \item{group_col}{Optional grouping column. If provided, returns per-group JSD.}
 
 \item{min_tokens}{Minimum total tokens required (globally or per group).}
+
+\item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
 A data frame (global = one row; grouped = one per group).

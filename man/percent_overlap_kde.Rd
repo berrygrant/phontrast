@@ -4,7 +4,14 @@
 \alias{percent_overlap_kde}
 \title{Percent overlap between two distributions via KDE}
 \usage{
-percent_overlap_kde(data, features, category_col, ...)
+percent_overlap_kde(
+  data,
+  features,
+  category_col,
+  bw = c("Hpi", "Hscv", "Hpi.diag"),
+  eval_on = c("pooled", "group1", "group2"),
+  ...
+)
 }
 \arguments{
 \item{data}{Data frame.}
@@ -13,7 +20,13 @@ percent_overlap_kde(data, features, category_col, ...)
 
 \item{category_col}{String; exactly two categories.}
 
-\item{...}{Additional arguments passed to KDE bandwidth selection.}
+\item{bw}{Bandwidth selection method. Uses the same options as
+\code{jsd_kde_nd()}: \code{"Hpi"}, \code{"Hscv"}, or \code{"Hpi.diag"}.}
+
+\item{eval_on}{Where to evaluate the KDEs. Uses the same options as
+\code{jsd_kde_nd()}: \code{"pooled"}, \code{"group1"}, or \code{"group2"}.}
+
+\item{...}{Reserved for future extensions; currently unused.}
 }
 \value{
 Numeric scalar in \code{[0, 1]}.

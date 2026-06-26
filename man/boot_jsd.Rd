@@ -12,6 +12,7 @@ boot_jsd(
   n_boot = 300,
   min_tokens = 30,
   est_distance = FALSE,
+  conf_level = 0.95,
   ...
 )
 }
@@ -33,6 +34,8 @@ JSD. Groups with fewer tokens are dropped.}
 
 \item{est_distance}{Logical; if TRUE, return Jensen–Shannon distance
 (sqrt of divergence) instead of divergence.}
+
+\item{conf_level}{Confidence level for bootstrap intervals.}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }

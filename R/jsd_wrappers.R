@@ -28,9 +28,14 @@ estimate_jsd <- function(data,
                          est_distance = FALSE,
                          conf_level   = 0.95,
                          ...) {
-  
+
+  .check_conf_level(conf_level)
+  if (isTRUE(do_boot)) {
+    .check_positive_count(n_boot, "n_boot")
+  }
+  .check_positive_count(min_tokens, "min_tokens")
   .check_columns(data, c(category_col, features))
-  
+
   if (is.null(group_col)) {
     # ---- Global ----
     df <- .metric_data(data, c(category_col, features))
@@ -48,7 +53,8 @@ estimate_jsd <- function(data,
     jsd_div_point <- jsd_kde_nd(
       data     = df,
       features = features,
-      group    = category_col  # pass column name, not vector
+      group    = category_col,
+      ...
     )
     
     jsd_point <- if (est_distance) sqrt(jsd_div_point) else jsd_div_point
@@ -83,7 +89,8 @@ estimate_jsd <- function(data,
         jsd_kde_nd(
           data     = df_boot,
           features = features,
-          group    = category_col
+          group    = category_col,
+          ...
         ),
         error = function(e) NA_real_
       )
@@ -161,6 +168,7 @@ estimate_jsd <- function(data,
     n_boot       = n_boot,
     min_tokens   = min_tokens,
     est_distance = est_distance,
+    conf_level   = conf_level,
     ...
   )
   

@@ -1,5 +1,16 @@
 # phonJSD 0.5.1
 
+## Metrics
+
+- Added `compare_overlap_metrics()` to compute Pillai trace, Bhattacharyya
+  distance and affinity, Jensen-Shannon divergence and distance, Mahalanobis
+  distance, and percent overlap in one global or grouped comparison table.
+- Added one-dimensional KDE support for JSD and percent-overlap estimates.
+- Aligned KDE bandwidth/evaluation controls across JSD and percent overlap.
+- Made grouped JSD bootstrap intervals respect `conf_level`.
+- Improved empty grouped outputs and small-sample diagnostics across metric
+  wrappers.
+
 ## Maintenance
 
 - Aligned DESCRIPTION metadata with the 0.5.1 README/DOI release.

@@ -12,6 +12,8 @@ extract_mfcc(
   fs = NULL,
   numcep = 13,
   prefix = "mfcc",
+  strict = FALSE,
+  warn = TRUE,
   ...
 )
 }
@@ -32,6 +34,13 @@ uses the file's sampling rate.}
 \item{numcep}{Integer; number of MFCC coefficients to return.}
 
 \item{prefix}{String; prefix for output columns (default \code{"mfcc"}).}
+
+\item{strict}{Logical; if \code{TRUE}, stop on the first row that cannot
+be processed. If \code{FALSE} (default), leave that row's MFCC values as
+\code{NA}.}
+
+\item{warn}{Logical; if \code{TRUE} (default), warn when one or more rows
+cannot be processed and \code{strict = FALSE}.}
 
 \item{...}{Additional arguments passed to \code{seewave::mfcc()}.}
 }

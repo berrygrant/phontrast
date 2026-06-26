@@ -7,39 +7,33 @@
 #' @param data Data frame.
 #' @param features Character vector of numeric feature columns.
 #' @param category_col String; exactly two categories.
-#' @param ... Additional arguments passed to KDE bandwidth selection.
+#' @param bw Bandwidth selection method. Uses the same options as
+#'   \code{jsd_kde_nd()}: \code{"Hpi"}, \code{"Hscv"}, or \code{"Hpi.diag"}.
+#' @param eval_on Where to evaluate the KDEs. Uses the same options as
+#'   \code{jsd_kde_nd()}: \code{"pooled"}, \code{"group1"}, or \code{"group2"}.
+#' @param ... Reserved for future extensions; currently unused.
 #'
 #' @return Numeric scalar in \code{[0, 1]}.
 #' @export
 percent_overlap_kde <- function(data,
                                 features,
                                 category_col,
+                                bw = c("Hpi", "Hscv", "Hpi.diag"),
+                                eval_on = c("pooled", "group1", "group2"),
                                 ...) {
 
-  .check_columns(data, c(category_col, features))
-  data <- .metric_data(data, c(category_col, features))
-
-  levs <- .two_levels(data[[category_col]], "category_col")
-
-  d1 <- data[data[[category_col]] == levs[1], features, drop = FALSE]
-  d2 <- data[data[[category_col]] == levs[2], features, drop = FALSE]
-
-  X1 <- as.matrix(d1)
-  X2 <- as.matrix(d2)
-  X_all <- rbind(X1, X2)
-
-  H1 <- ks::Hpi(X1)
-  H2 <- ks::Hpi(X2)
-
-  kde1 <- ks::kde(x = X1, H = H1, eval.points = X_all)
-  kde2 <- ks::kde(x = X2, H = H2, eval.points = X_all)
-
-  p <- as.numeric(kde1$estimate)
-  q <- as.numeric(kde2$estimate)
+  dens <- .kde_density_pair(
+    data = data,
+    features = features,
+    category_col = category_col,
+    bw = bw,
+    eval_on = eval_on,
+    metric = "percent_overlap_kde()"
+  )
 
   # Normalize to discrete probability masses on a shared grid
-  p <- p / sum(p)
-  q <- q / sum(q)
+  p <- dens$p / sum(dens$p)
+  q <- dens$q / sum(dens$q)
 
   # Percent overlap is the shared area on the grid: sum(min(p, q))
   overlap <- sum(pmin(p, q))
@@ -62,7 +56,14 @@ estimate_overlap <- function(data,
                              features,
                              category_col,
                              group_col  = NULL,
-                             min_tokens = 20) {
+                             min_tokens = 20,
+                             bw = c("Hpi", "Hscv", "Hpi.diag"),
+                             eval_on = c("pooled", "group1", "group2"),
+                             ...) {
+
+  bw <- match.arg(bw)
+  eval_on <- match.arg(eval_on)
+  .check_positive_count(min_tokens, "min_tokens")
 
   if (is.null(group_col)) {
     # ---- Global ----
@@ -76,7 +77,10 @@ estimate_overlap <- function(data,
     ov <- percent_overlap_kde(
       data         = df,
       features     = features,
-      category_col = category_col
+      category_col = category_col,
+      bw           = bw,
+      eval_on      = eval_on,
+      ...
     )
 
     return(data.frame(
@@ -102,7 +106,10 @@ estimate_overlap <- function(data,
     ov <- percent_overlap_kde(
       data         = df_g,
       features     = features,
-      category_col = category_col
+      category_col = category_col,
+      bw           = bw,
+      eval_on      = eval_on,
+      ...
     )
 
     data.frame(

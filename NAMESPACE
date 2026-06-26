@@ -2,6 +2,7 @@
 
 export(bhattacharyya_mvnorm)
 export(boot_jsd)
+export(compare_overlap_metrics)
 export(estimate_bhatt)
 export(estimate_jsd)
 export(estimate_overlap)

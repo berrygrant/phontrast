@@ -12,6 +12,7 @@ jsd_summary(
   do_boot = TRUE,
   n_boot = 300,
   min_tokens = 30,
+  conf_level = 0.95,
   ...
 )
 }
@@ -33,6 +34,8 @@ to compare (e.g., "vowel"). Each group must have exactly two categories.}
 
 \item{min_tokens}{Minimum number of tokens per group required to compute
 JSD. Groups with fewer tokens are dropped.}
+
+\item{conf_level}{Confidence level for bootstrap intervals.}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
