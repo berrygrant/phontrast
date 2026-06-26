@@ -380,6 +380,64 @@ test_that("compare_overlap_metrics returns wide and long comparisons", {
   ) %in% names(long)))
 })
 
+test_that("metric plotting accepts wide and long comparison output", {
+  testthat::skip_if_not_installed("ggplot2")
+  set.seed(201)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 60),
+    category = rep(rep(c("a", "b"), each = 30), 2),
+    f1 = c(rnorm(30, 0), rnorm(30, 1), rnorm(30, 0.2), rnorm(30, 1.2)),
+    f2 = c(rnorm(30, 0), rnorm(30, 1), rnorm(30, 0.2), rnorm(30, 1.2))
+  )
+
+  wide <- compare_overlap_metrics(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = "speaker",
+    min_tokens = 20,
+    output = "wide"
+  )
+  long <- compare_overlap_metrics(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = "speaker",
+    min_tokens = 20,
+    output = "long"
+  )
+
+  expect_s3_class(plot_overlap_metrics(wide), "ggplot")
+  expect_s3_class(plot_overlap_metrics(long, value = "estimate", facet = FALSE), "ggplot")
+})
+
+test_that("category space plotting supports one and two dimensions", {
+  testthat::skip_if_not_installed("ggplot2")
+  set.seed(202)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 80),
+    category = factor(rep(rep(c("a", "b"), each = 40), 2), levels = c("a", "b", "unused")),
+    f1 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2)),
+    f2 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2))
+  )
+
+  expect_s3_class(plot_category_space(data, "f1", "category"), "ggplot")
+  expect_s3_class(
+    plot_category_space(
+      data,
+      c("f1", "f2"),
+      "category",
+      group_col = "speaker",
+      ellipses = FALSE
+    ),
+    "ggplot"
+  )
+  expect_error(
+    plot_category_space(data, c("f1", "f2", "f3"), "category"),
+    "one or two column names"
+  )
+})
+
 test_that("compare_overlap_metrics diagnoses grouped contrasts with no estimable groups", {
   set.seed(21)
   data <- data.frame(

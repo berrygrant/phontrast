@@ -1,5 +1,11 @@
 # phonJSD 0.5.1
 
+## Visualization
+
+- Added ggplot2-backed `plot_overlap_metrics()` and `plot_category_space()`
+  helpers for visualizing metric comparisons and one- or two-dimensional
+  phonological category spaces.
+
 ## Metrics
 
 - Added `compare_overlap_metrics()` to compute Pillai trace, Bhattacharyya

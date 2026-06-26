@@ -30,6 +30,7 @@ Imports:
     rlang,
     stats
 Suggests:
+    ggplot2,
     mgcv,
     lme4,
     seewave,

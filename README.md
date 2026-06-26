@@ -81,6 +81,21 @@ metrics_long[, c("group", "metric", "estimate", "orientation",
                  "separation_value", "separation_rank")]
 ```
 
+If `ggplot2` is installed, the same workflow can be visualized directly:
+
+```r
+plot_category_space(
+  data = vowels,
+  features = c("f2", "f1"),
+  category_col = "vowel",
+  group_col = "speaker",
+  reverse_x = TRUE,
+  reverse_y = TRUE
+)
+
+plot_overlap_metrics(metrics_long)
+```
+
 If you only need the package's main information-theoretic estimate, use
 `estimate_jsd()`:
 
