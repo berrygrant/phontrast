@@ -42,7 +42,7 @@ be processed. If \code{FALSE} (default), leave that row's MFCC values as
 \item{warn}{Logical; if \code{TRUE} (default), warn when one or more rows
 cannot be processed and \code{strict = FALSE}.}
 
-\item{...}{Additional arguments passed to \code{seewave::mfcc()}.}
+\item{...}{Additional arguments passed to \code{tuneR::melfcc()}.}
 }
 \value{
 The input data frame with added MFCC columns.
@@ -52,9 +52,8 @@ Adds MFCC feature columns (e.g., mfcc1..mfcc13) to a data frame that
 contains audio file paths and (optionally) segment boundaries.
 }
 \details{
-This function uses \pkg{tuneR} to read WAV files and \pkg{seewave} to
-compute MFCCs. Both packages are optional; if not installed, an
-informative error is raised.
+This function uses \pkg{tuneR} to read WAV files and compute MFCCs. The
+package is optional; if it is not installed, an informative error is raised.
 }
 \examples{
 \dontrun{

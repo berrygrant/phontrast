@@ -8,11 +8,14 @@
 - Extended the same KDE controls across JSD, percent overlap, and
   `compare_overlap_metrics()` so separation and overlap estimates use aligned
   density-estimation settings.
+- Switched `extract_mfcc()` to `tuneR::melfcc()` and removed the stale
+  `seewave::mfcc()` reference.
 
 ## Documentation
 
 - Documented the high-dimensional fast KDE path in the README and generated
   function manuals.
+- Updated the GitHub Actions checkout step to a current Node runtime action.
 
 # phonJSD 1.0.0
 

@@ -3,9 +3,8 @@
 #' Adds MFCC feature columns (e.g., mfcc1..mfcc13) to a data frame that
 #' contains audio file paths and (optionally) segment boundaries.
 #'
-#' This function uses \pkg{tuneR} to read WAV files and \pkg{seewave} to
-#' compute MFCCs. Both packages are optional; if not installed, an
-#' informative error is raised.
+#' This function uses \pkg{tuneR} to read WAV files and compute MFCCs. The
+#' package is optional; if it is not installed, an informative error is raised.
 #'
 #' @param data Data frame containing audio paths and segment boundaries.
 #' @param file_col String; column name containing WAV file paths.
@@ -22,7 +21,7 @@
 #'   \code{NA}.
 #' @param warn Logical; if \code{TRUE} (default), warn when one or more rows
 #'   cannot be processed and \code{strict = FALSE}.
-#' @param ... Additional arguments passed to \code{seewave::mfcc()}.
+#' @param ... Additional arguments passed to \code{tuneR::melfcc()}.
 #'
 #' @return The input data frame with added MFCC columns.
 #'
@@ -87,9 +86,6 @@ extract_mfcc <- function(data,
   if (!requireNamespace("tuneR", quietly = TRUE)) {
     stop("extract_mfcc(): package 'tuneR' is required but not installed.")
   }
-  if (!requireNamespace("seewave", quietly = TRUE)) {
-    stop("extract_mfcc(): package 'seewave' is required but not installed.")
-  }
 
   n <- nrow(data)
   out <- matrix(NA_real_, nrow = n, ncol = numcep)
@@ -152,10 +148,9 @@ extract_mfcc <- function(data,
     }
 
     fs_use <- if (is.null(fs)) wave@samp.rate else fs
-    x <- wave@left
 
     mf <- tryCatch(
-      seewave::mfcc(x = x, f = fs_use, ...),
+      tuneR::melfcc(samples = wave, sr = fs_use, numcep = numcep, ...),
       error = function(e) {
         fail_row(i, paste0("MFCC computation failed: ", conditionMessage(e)))
         NULL
