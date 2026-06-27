@@ -135,6 +135,15 @@
 }
 
 .select_univariate_bandwidth <- function(x, bw) {
+  if (identical(bw, "scott.diag")) {
+    h <- stats::sd(x) * length(x) ^ (-1 / 5)
+    if (!is.finite(h) || h <= 0) {
+      spread <- max(stats::sd(x), diff(range(x)), 1, na.rm = TRUE)
+      h <- spread / 10
+    }
+    return(h)
+  }
+
   selector <- switch(
     bw,
     Hpi = stats::bw.SJ,
@@ -153,6 +162,21 @@
   h
 }
 
+.scott_diag_bandwidth <- function(x) {
+  d <- ncol(x)
+  n <- nrow(x)
+  sds <- apply(x, 2, stats::sd)
+  bad <- !is.finite(sds) | sds <= 0
+  if (any(bad)) {
+    spreads <- apply(x[, bad, drop = FALSE], 2, function(col) {
+      max(stats::sd(col), diff(range(col)), 1, na.rm = TRUE)
+    })
+    sds[bad] <- spreads
+  }
+  h <- n ^ (-1 / (d + 4))
+  diag((h * sds) ^ 2, nrow = d, ncol = d)
+}
+
 .kde_1d_values <- function(x, eval_points, h, chunk_size = 5000L) {
   out <- numeric(length(eval_points))
   starts <- seq.int(1L, length(eval_points), by = chunk_size)
@@ -164,13 +188,101 @@
   out
 }
 
+.logsumexp <- function(x) {
+  m <- max(x)
+  if (!is.finite(m)) {
+    return(m)
+  }
+  m + log(sum(exp(x - m)))
+}
+
+.kde_diag_gaussian_values <- function(x, eval_points, H, chunk_size = 1000L) {
+  if (!is.matrix(H) || nrow(H) != ncol(H) || nrow(H) != ncol(x)) {
+    stop("Diagonal KDE engine received an invalid bandwidth matrix.", call. = FALSE)
+  }
+  off_diag <- H
+  diag(off_diag) <- 0
+  if (any(abs(off_diag) > sqrt(.Machine$double.eps))) {
+    stop(
+      "`engine = \"fast_diag\"` requires a diagonal bandwidth matrix. ",
+      "Use `bw = \"scott.diag\"` or `bw = \"Hpi.diag\"`.",
+      call. = FALSE
+    )
+  }
+
+  variances <- diag(H)
+  if (any(!is.finite(variances)) || any(variances <= 0)) {
+    stop("KDE bandwidth matrix must have positive finite diagonal entries.", call. = FALSE)
+  }
+
+  x <- as.matrix(x)
+  eval_points <- as.matrix(eval_points)
+  log_density <- numeric(nrow(eval_points))
+  inv_variances <- 1 / variances
+  starts <- seq.int(1L, nrow(eval_points), by = chunk_size)
+
+  for (start in starts) {
+    stop <- min(start + chunk_size - 1L, nrow(eval_points))
+    eval_chunk <- eval_points[start:stop, , drop = FALSE]
+    log_kernel <- matrix(0, nrow = nrow(eval_chunk), ncol = nrow(x))
+    for (j in seq_len(ncol(x))) {
+      diff <- outer(eval_chunk[, j], x[, j], `-`)
+      log_kernel <- log_kernel - 0.5 * diff * diff * inv_variances[j]
+    }
+    log_density[start:stop] <- apply(log_kernel, 1, .logsumexp) - log(nrow(x))
+  }
+
+  scale <- max(log_density)
+  if (!is.finite(scale)) {
+    return(rep(0, length(log_density)))
+  }
+  exp(log_density - scale)
+}
+
+.sample_kde_eval_points <- function(eval_pts, eval_n = NULL, eval_seed = NULL) {
+  if (is.null(eval_n)) {
+    return(eval_pts)
+  }
+  .check_positive_count(eval_n, "eval_n")
+  eval_n <- as.integer(eval_n)
+  if (nrow(eval_pts) <= eval_n) {
+    return(eval_pts)
+  }
+
+  if (!is.null(eval_seed)) {
+    if (!is.numeric(eval_seed) || length(eval_seed) != 1L ||
+        !is.finite(eval_seed) || eval_seed != as.integer(eval_seed)) {
+      stop("`eval_seed` must be NULL or a single finite integer.", call. = FALSE)
+    }
+    old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    } else {
+      NULL
+    }
+    on.exit({
+      if (is.null(old_seed)) {
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          rm(".Random.seed", envir = .GlobalEnv)
+        }
+      } else {
+        assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+    set.seed(as.integer(eval_seed))
+  }
+
+  idx <- sample.int(nrow(eval_pts), eval_n)
+  eval_pts[idx, , drop = FALSE]
+}
+
 .select_multivariate_bandwidth <- function(x, bw, label) {
   tryCatch(
     switch(
       bw,
       Hpi = ks::Hpi(x),
       Hscv = ks::Hscv(x),
-      Hpi.diag = ks::Hpi.diag(x)
+      Hpi.diag = ks::Hpi.diag(x),
+      scott.diag = .scott_diag_bandwidth(x)
     ),
     error = function(e) {
       stop(
@@ -187,11 +299,23 @@
 .kde_density_pair <- function(data,
                               features,
                               category_col,
-                              bw = c("Hpi", "Hscv", "Hpi.diag"),
-                              eval_on = c("pooled", "group1", "group2"),
+                              bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                              eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                              eval_n = NULL,
+                              eval_seed = NULL,
+                              engine = c("ks", "fast_diag"),
+                              chunk_size = 1000L,
                               metric = "KDE") {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
+  engine <- match.arg(engine)
+  if (!is.null(eval_n)) {
+    .check_positive_count(eval_n, "eval_n")
+  }
+  if (identical(eval_on, "pooled_sample") && is.null(eval_n)) {
+    stop("`eval_n` must be supplied when `eval_on = \"pooled_sample\"`.", call. = FALSE)
+  }
+  .check_positive_count(chunk_size, "chunk_size")
 
   .check_columns(data, c(category_col, features))
   data <- .metric_data(data, c(category_col, features))
@@ -213,12 +337,14 @@
   X2 <- as.matrix(d2[, features, drop = FALSE])
   X_all <- as.matrix(data[, features, drop = FALSE])
 
+  eval_source <- if (identical(eval_on, "pooled_sample")) "pooled" else eval_on
   eval_pts <- switch(
-    eval_on,
+    eval_source,
     pooled = X_all,
     group1 = X1,
     group2 = X2
   )
+  eval_pts <- .sample_kde_eval_points(eval_pts, eval_n = eval_n, eval_seed = eval_seed)
 
   if (n_features == 1L) {
     x1 <- as.numeric(X1[, 1])
@@ -229,31 +355,45 @@
     p <- .kde_1d_values(x1, eval_vec, h1)
     q <- .kde_1d_values(x2, eval_vec, h2)
   } else {
+    if (identical(engine, "fast_diag") &&
+        !bw %in% c("Hpi.diag", "scott.diag")) {
+      stop(
+        "`engine = \"fast_diag\"` requires `bw = \"scott.diag\"` or ",
+        "`bw = \"Hpi.diag\"` for multivariate KDE.",
+        call. = FALSE
+      )
+    }
+
     H1 <- .select_multivariate_bandwidth(X1, bw, levs[1])
     H2 <- .select_multivariate_bandwidth(X2, bw, levs[2])
 
-    kde1 <- tryCatch(
-      ks::kde(x = X1, H = H1, eval.points = eval_pts),
-      error = function(e) {
-        stop(
-          "KDE estimation failed for category `", levs[1], "`. Original error: ",
-          conditionMessage(e),
-          call. = FALSE
-        )
-      }
-    )
-    kde2 <- tryCatch(
-      ks::kde(x = X2, H = H2, eval.points = eval_pts),
-      error = function(e) {
-        stop(
-          "KDE estimation failed for category `", levs[2], "`. Original error: ",
-          conditionMessage(e),
-          call. = FALSE
-        )
-      }
-    )
-    p <- as.numeric(kde1$estimate)
-    q <- as.numeric(kde2$estimate)
+    if (identical(engine, "fast_diag")) {
+      p <- .kde_diag_gaussian_values(X1, eval_pts, H1, chunk_size = chunk_size)
+      q <- .kde_diag_gaussian_values(X2, eval_pts, H2, chunk_size = chunk_size)
+    } else {
+      kde1 <- tryCatch(
+        ks::kde(x = X1, H = H1, eval.points = eval_pts),
+        error = function(e) {
+          stop(
+            "KDE estimation failed for category `", levs[1], "`. Original error: ",
+            conditionMessage(e),
+            call. = FALSE
+          )
+        }
+      )
+      kde2 <- tryCatch(
+        ks::kde(x = X2, H = H2, eval.points = eval_pts),
+        error = function(e) {
+          stop(
+            "KDE estimation failed for category `", levs[2], "`. Original error: ",
+            conditionMessage(e),
+            call. = FALSE
+          )
+        }
+      )
+      p <- as.numeric(kde1$estimate)
+      q <- as.numeric(kde2$estimate)
+    }
   }
 
   if (any(!is.finite(p)) || any(!is.finite(q)) || sum(p) <= 0 || sum(q) <= 0) {

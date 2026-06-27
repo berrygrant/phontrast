@@ -3,7 +3,7 @@
 **phonJSD** is an R package for measuring phonological category separation using **Jensen–Shannon Divergence (JSD)**.  
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
-Version **1.0.0** is the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures.
+Version **1.0.0** was the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures. Version **1.1.0** adds opt-in high-dimensional KDE speed controls.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20932518.svg)](https://doi.org/10.5281/zenodo.20932518)
 
@@ -27,6 +27,8 @@ This approach is especially useful when:
 - Jensen–Shannon Divergence for phonological category comparison  
 - Kernel density–based estimation of acoustic distributions  
 - Support for **1D and n-dimensional acoustic features**
+- Optional high-dimensional KDE speed controls, including diagonal Scott
+  bandwidths, sampled evaluation points, and a fast diagonal-Gaussian engine
 - Global and group-level bootstrap summaries
 - Comparison metrics including Pillai-Bartlett trace, Bhattacharyya distance/affinity, Mahalanobis distance, and percent overlap
 - ggplot2-backed visualizations for metric tables, category spaces, and PCA projections
@@ -120,6 +122,30 @@ plot_category_pca(
 `plot_category_pca()` helps visualize high-dimensional structure, but it does
 not change the estimand: the metric table above is still estimated in all 13
 dimensions.
+
+For larger high-dimensional datasets, the default KDE path is conservative:
+it uses `ks::Hpi()` and evaluates on all pooled observations. You can opt into
+a faster nonparametric KDE path by using a diagonal Scott bandwidth, a sampled
+set of evaluation points, and the chunked diagonal evaluator:
+
+```r
+metrics_13d_fast <- compare_overlap_metrics(
+  data = vowel_tokens,
+  features = paste0("mfcc", 1:13),
+  category_col = "vowel",
+  bw = "scott.diag",
+  eval_on = "pooled_sample",
+  eval_n = 200,
+  eval_seed = 2026,
+  engine = "fast_diag",
+  output = "long"
+)
+```
+
+This remains KDE: one kernel is still centered on each observed token. The
+speedup comes from a cheaper diagonal bandwidth rule, evaluating densities on a
+bounded sampled support, and using a vectorized diagonal-Gaussian evaluator.
+The package default is unchanged for backward compatibility.
 
 If you only need the package's main information-theoretic estimate, use
 `estimate_jsd()`:

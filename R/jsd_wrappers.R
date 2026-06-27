@@ -18,7 +18,9 @@
 #' @param min_tokens Minimum total tokens required (globally or per group).
 #' @param est_distance Logical; if TRUE, return Jensen–Shannon *distance* (sqrt of divergence).
 #' @param conf_level Confidence level for bootstrap interval.
-#' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
+#' @param ... Additional arguments passed to \code{jsd_kde_nd()}, including
+#'   KDE controls such as \code{bw}, \code{eval_on}, \code{eval_n},
+#'   \code{eval_seed}, \code{engine}, and \code{chunk_size}.
 #'
 #' @return A tibble. Global: one row with columns
 #'   scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,

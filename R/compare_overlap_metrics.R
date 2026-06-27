@@ -36,6 +36,12 @@
 #'   \code{percent_overlap_kde()}.
 #' @param eval_on KDE evaluation points passed to \code{jsd_kde_nd()} and
 #'   \code{percent_overlap_kde()}.
+#' @param eval_n Optional maximum number of KDE evaluation points passed to
+#'   \code{jsd_kde_nd()} and \code{percent_overlap_kde()}.
+#' @param eval_seed Optional integer seed for KDE evaluation-point subsampling.
+#' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()} and
+#'   \code{percent_overlap_kde()}.
+#' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param eps Small ridge constant for covariance-based metrics.
 #' @param output Output format: \code{"wide"} returns one row per global/group
 #'   comparison; \code{"long"} returns one row per metric per comparison.
@@ -109,8 +115,12 @@ compare_overlap_metrics <- function(data,
                                     category_col,
                                     group_col = NULL,
                                     min_tokens = 20,
-                                    bw = c("Hpi", "Hscv", "Hpi.diag"),
-                                    eval_on = c("pooled", "group1", "group2"),
+                                    bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                                    eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                                    eval_n = NULL,
+                                    eval_seed = NULL,
+                                    engine = c("ks", "fast_diag"),
+                                    chunk_size = 1000L,
                                     eps = 1e-6,
                                     output = c("wide", "long"),
                                     do_boot = FALSE,
@@ -120,6 +130,7 @@ compare_overlap_metrics <- function(data,
   output <- match.arg(output)
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
+  engine <- match.arg(engine)
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
   if (!is.logical(do_boot) || length(do_boot) != 1L || is.na(do_boot)) {
@@ -141,6 +152,10 @@ compare_overlap_metrics <- function(data,
     min_tokens = min_tokens,
     bw = bw,
     eval_on = eval_on,
+    eval_n = eval_n,
+    eval_seed = eval_seed,
+    engine = engine,
+    chunk_size = chunk_size,
     eps = eps
   )
   if (!nrow(wide)) {
@@ -163,6 +178,10 @@ compare_overlap_metrics <- function(data,
       min_tokens = min_tokens,
       bw = bw,
       eval_on = eval_on,
+      eval_n = eval_n,
+      eval_seed = eval_seed,
+      engine = engine,
+      chunk_size = chunk_size,
       eps = eps,
       n_boot = n_boot,
       conf_level = conf_level,
@@ -189,11 +208,16 @@ compare_overlap_metrics <- function(data,
                                            category_col,
                                            group_col = NULL,
                                            min_tokens = 20,
-                                           bw = c("Hpi", "Hscv", "Hpi.diag"),
-                                           eval_on = c("pooled", "group1", "group2"),
+                                           bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                                           eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                                           eval_n = NULL,
+                                           eval_seed = NULL,
+                                           engine = c("ks", "fast_diag"),
+                                           chunk_size = 1000L,
                                            eps = 1e-6) {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
+  engine <- match.arg(engine)
 
   jsd_out <- estimate_jsd(
     data = data,
@@ -203,7 +227,11 @@ compare_overlap_metrics <- function(data,
     do_boot = FALSE,
     min_tokens = min_tokens,
     bw = bw,
-    eval_on = eval_on
+    eval_on = eval_on,
+    eval_n = eval_n,
+    eval_seed = eval_seed,
+    engine = engine,
+    chunk_size = chunk_size
   )
   jsd_wide <- jsd_out[, intersect(c("scope", "group", "n_tokens"), names(jsd_out)), drop = FALSE]
   jsd_wide$jsd <- jsd_out$jsd_point
@@ -248,7 +276,11 @@ compare_overlap_metrics <- function(data,
     group_col = group_col,
     min_tokens = min_tokens,
     bw = bw,
-    eval_on = eval_on
+    eval_on = eval_on,
+    eval_n = eval_n,
+    eval_seed = eval_seed,
+    engine = engine,
+    chunk_size = chunk_size
   )
   overlap_wide <- overlap_out[, intersect(c("scope", "group", "n_tokens"), names(overlap_out)), drop = FALSE]
   overlap_wide$percent_overlap <- overlap_out$overlap
@@ -354,8 +386,12 @@ compare_overlap_metrics <- function(data,
                                                category_col,
                                                group_col = NULL,
                                                min_tokens = 20,
-                                               bw = c("Hpi", "Hscv", "Hpi.diag"),
-                                               eval_on = c("pooled", "group1", "group2"),
+                                               bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                                               eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                                               eval_n = NULL,
+                                               eval_seed = NULL,
+                                               engine = c("ks", "fast_diag"),
+                                               chunk_size = 1000L,
                                                eps = 1e-6,
                                                n_boot = 300,
                                                conf_level = 0.95,
@@ -372,6 +408,10 @@ compare_overlap_metrics <- function(data,
       min_tokens = min_tokens,
       bw = bw,
       eval_on = eval_on,
+      eval_n = eval_n,
+      eval_seed = eval_seed,
+      engine = engine,
+      chunk_size = chunk_size,
       eps = eps,
       n_boot = n_boot,
       conf_level = conf_level,
@@ -398,6 +438,10 @@ compare_overlap_metrics <- function(data,
       min_tokens = min_tokens,
       bw = bw,
       eval_on = eval_on,
+      eval_n = eval_n,
+      eval_seed = eval_seed,
+      engine = engine,
+      chunk_size = chunk_size,
       eps = eps,
       n_boot = n_boot,
       conf_level = conf_level,
@@ -414,8 +458,12 @@ compare_overlap_metrics <- function(data,
                                           features,
                                           category_col,
                                           min_tokens = 20,
-                                          bw = c("Hpi", "Hscv", "Hpi.diag"),
-                                          eval_on = c("pooled", "group1", "group2"),
+                                          bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                                          eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                                          eval_n = NULL,
+                                          eval_seed = NULL,
+                                          engine = c("ks", "fast_diag"),
+                                          chunk_size = 1000L,
                                           eps = 1e-6,
                                           n_boot = 300,
                                           conf_level = 0.95,
@@ -452,6 +500,10 @@ compare_overlap_metrics <- function(data,
         min_tokens = min_tokens,
         bw = bw,
         eval_on = eval_on,
+        eval_n = eval_n,
+        eval_seed = eval_seed,
+        engine = engine,
+        chunk_size = chunk_size,
         eps = eps
       ),
       error = function(e) NULL

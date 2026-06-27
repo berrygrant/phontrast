@@ -36,7 +36,9 @@ estimate_jsd(
 
 \item{conf_level}{Confidence level for bootstrap interval.}
 
-\item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
+\item{...}{Additional arguments passed to \code{jsd_kde_nd()}, including
+KDE controls such as \code{bw}, \code{eval_on}, \code{eval_n},
+\code{eval_seed}, \code{engine}, and \code{chunk_size}.}
 }
 \value{
 A tibble. Global: one row with columns

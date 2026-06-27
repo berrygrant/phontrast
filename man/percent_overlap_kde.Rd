@@ -8,8 +8,12 @@ percent_overlap_kde(
   data,
   features,
   category_col,
-  bw = c("Hpi", "Hscv", "Hpi.diag"),
-  eval_on = c("pooled", "group1", "group2"),
+  bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+  eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+  eval_n = NULL,
+  eval_seed = NULL,
+  engine = c("ks", "fast_diag"),
+  chunk_size = 1000L,
   ...
 )
 }
@@ -21,10 +25,24 @@ percent_overlap_kde(
 \item{category_col}{String; exactly two categories.}
 
 \item{bw}{Bandwidth selection method. Uses the same options as
-\code{jsd_kde_nd()}: \code{"Hpi"}, \code{"Hscv"}, or \code{"Hpi.diag"}.}
+\code{jsd_kde_nd()}: \code{"Hpi"}, \code{"Hscv"}, \code{"Hpi.diag"},
+or \code{"scott.diag"}.}
 
 \item{eval_on}{Where to evaluate the KDEs. Uses the same options as
-\code{jsd_kde_nd()}: \code{"pooled"}, \code{"group1"}, or \code{"group2"}.}
+\code{jsd_kde_nd()}: \code{"pooled"}, \code{"group1"},
+\code{"group2"}, or \code{"pooled_sample"}.}
+
+\item{eval_n}{Optional positive integer giving the maximum number of
+evaluation points to use.}
+
+\item{eval_seed}{Optional integer seed used only when \code{eval_n} causes
+evaluation-point subsampling.}
+
+\item{engine}{KDE evaluation engine. Uses the same options as
+\code{jsd_kde_nd()}: \code{"ks"} or \code{"fast_diag"}.}
+
+\item{chunk_size}{Positive integer controlling the number of evaluation
+points processed per chunk by \code{engine = "fast_diag"}.}
 
 \item{...}{Reserved for future extensions; currently unused.}
 }

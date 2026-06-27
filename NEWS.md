@@ -1,3 +1,19 @@
+# phonJSD 1.1.0
+
+## Metrics
+
+- Added opt-in high-dimensional KDE speed controls: `bw = "scott.diag"`,
+  evaluation-point subsampling via `eval_n`/`eval_seed`, and
+  `engine = "fast_diag"` for chunked diagonal-Gaussian KDE evaluation.
+- Extended the same KDE controls across JSD, percent overlap, and
+  `compare_overlap_metrics()` so separation and overlap estimates use aligned
+  density-estimation settings.
+
+## Documentation
+
+- Documented the high-dimensional fast KDE path in the README and generated
+  function manuals.
+
 # phonJSD 1.0.0
 
 ## Visualization

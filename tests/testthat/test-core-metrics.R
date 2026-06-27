@@ -112,6 +112,80 @@ test_that("one-dimensional KDE metrics are supported", {
   expect_true(overlap >= 0 && overlap <= 1)
 })
 
+test_that("fast KDE controls support diagonal Scott bandwidths", {
+  set.seed(401)
+  features <- paste0("x", 1:3)
+  data <- data.frame(
+    category = rep(c("a", "b"), each = 60),
+    x1 = c(rnorm(60, 0), rnorm(60, 0.8)),
+    x2 = c(rnorm(60, 0), rnorm(60, 0.5)),
+    x3 = c(rnorm(60, 0), rnorm(60, 0.3))
+  )
+
+  slow <- jsd_kde_nd(
+    data,
+    features,
+    "category",
+    bw = "scott.diag",
+    eval_n = 50,
+    eval_seed = 2026
+  )
+  fast <- jsd_kde_nd(
+    data,
+    features,
+    "category",
+    bw = "scott.diag",
+    eval_n = 50,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  repeat_fast <- jsd_kde_nd(
+    data,
+    features,
+    "category",
+    bw = "scott.diag",
+    eval_n = 50,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  overlap <- percent_overlap_kde(
+    data,
+    features,
+    "category",
+    bw = "scott.diag",
+    eval_on = "pooled_sample",
+    eval_n = 50,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  metrics <- compare_overlap_metrics(
+    data = data,
+    features = features,
+    category_col = "category",
+    bw = "scott.diag",
+    eval_n = 50,
+    eval_seed = 2026,
+    engine = "fast_diag",
+    min_tokens = 20
+  )
+
+  expect_equal(fast, slow, tolerance = 1e-6)
+  expect_equal(repeat_fast, fast)
+  expect_true(is.finite(overlap))
+  expect_true(overlap >= 0 && overlap <= 1)
+  expect_equal(nrow(metrics), 1)
+  expect_true(is.finite(metrics$jsd))
+  expect_true(is.finite(metrics$percent_overlap))
+  expect_error(
+    jsd_kde_nd(data, features, "category", bw = "Hpi", engine = "fast_diag"),
+    "requires `bw = \"scott.diag\"`"
+  )
+  expect_error(
+    jsd_kde_nd(data, features, "category", eval_on = "pooled_sample"),
+    "`eval_n` must be supplied"
+  )
+})
+
 test_that("KDE metrics ignore unused factor levels after filtering", {
   set.seed(41)
   data <- data.frame(
