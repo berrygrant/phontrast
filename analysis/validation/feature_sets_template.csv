@@ -1,0 +1,4 @@
+feature_set,features,note
+all_features,"feature_1; feature_2; feature_3","Replace with the full acoustic feature bundle for a domain."
+baseline,"feature_1","Replace with a minimal baseline, such as VOT-only or F0-static."
+trajectory,"feature_1; feature_2; feature_3","Replace with trajectory or cue-bundle features for ablation."
