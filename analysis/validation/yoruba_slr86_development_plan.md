@@ -104,13 +104,10 @@ Speaker IDs should use the recording prefix plus the middle file-ID field
 using it alone collapses distinct male and female speakers. The manifest keeps
 both `speaker` and `speaker_code` so downstream analyses can audit this choice.
 
-The female WAV directory is fully extracted. The male zip is complete, but the
-extracted `yo_ng_male` directory is currently partial on the mounted volume.
-The manifest therefore distinguishes `audio_location = extracted_wav` from
-`audio_location = zip_member`; all 3,583 recordings are available, but only
-1,991 are currently extracted as direct WAV files. Full alignment will need the
-remaining male WAVs extracted with overwrite, ideally by running the extraction
-on the NAS or a fast local connection rather than through the mounted path.
+The female and male WAV directories are now fully extracted in the current NAS
+copy. The manifest still distinguishes `audio_location = extracted_wav` from
+`audio_location = zip_member` for auditability, but the current parse reports all
+3,583 recordings as extracted WAV files with no missing audio.
 
 ## Quality checks
 

@@ -99,7 +99,34 @@ across these domains.
 - `prepare_aishell_mfa_pilot.py`: samples the AISHELL manifest and materializes
   an MFA-ready pilot corpus with matching WAV and transcript files.
 
+## Yoruba SLR86 tone parser
+
+For the full reproducibility log and paper-methods notes, see
+[yoruba_slr86_tone_workflow.md](yoruba_slr86_tone_workflow.md).
+
+Current stage: manifest construction and orthographic H/M/L tone-unit parsing.
+The generated Yoruba tone-unit table is marked `pending_alignment`; it contains
+labels and metadata, not acoustic features.
+
+Example:
+
+```sh
+python analysis/validation/prepare_yoruba_slr86_tone_tokens.py \
+  --root /volume1/Corpus_Studies/Corpora/Yoruba \
+  --skip-audio-headers
+```
+
+Observed parser output after full male/female extraction:
+
+- 3,583 manifest rows;
+- 3,583 recordings with extracted audio;
+- 36 speakers;
+- 51,412 orthographic tone-bearing units.
+
 ## AISHELL MFA pilot
+
+For the full reproducibility log and paper-methods notes, see
+[aishell_mandarin_tone_workflow.md](aishell_mandarin_tone_workflow.md).
 
 On the alignment machine, first make sure the AISHELL manifest exists. If it was
 created on another machine with a different path convention, rerun the manifest
