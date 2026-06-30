@@ -787,7 +787,6 @@ def write_feature_sets(path: Path) -> None:
         "z_f0_start_st_speaker_centered",
         "z_f0_mid_st_speaker_centered",
         "z_f0_end_st_speaker_centered",
-        "z_f0_delta_st",
         "z_f0_slope_st_per_s",
     ]
     energy_duration = [
