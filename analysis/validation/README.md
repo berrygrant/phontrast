@@ -190,7 +190,8 @@ python analysis/validation/extract_aishell_mandarin_tone_features.py \
   --tone-units analysis/validation/outputs/aishell_mandarin/aishell_mandarin_tone_units_pending_alignment.csv \
   --aligned-dir /tmp/phonjsd_aishell_mfa_pilot/aligned \
   --out-dir analysis/validation/outputs/aishell_mandarin_tone_features \
-  --pitch-method auto
+  --pitch-method auto \
+  --frame-ms 50
 ```
 
 Use `--pitch-method pyin` on the GPU host if you want to require

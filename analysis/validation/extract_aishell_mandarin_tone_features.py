@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-recommended-exclude", action="store_true")
     parser.add_argument("--min-token-ms", type=float, default=35.0)
     parser.add_argument("--min-voiced-frames", type=int, default=2)
-    parser.add_argument("--frame-ms", type=float, default=40.0)
+    parser.add_argument("--frame-ms", type=float, default=50.0)
     parser.add_argument("--hop-ms", type=float, default=10.0)
     parser.add_argument("--fmin-hz", type=float, default=50.0)
     parser.add_argument("--fmax-hz", type=float, default=500.0)
@@ -333,7 +333,12 @@ def compute_track_features(
     if librosa is None:
         return compute_track_features_autocorr(audio_path, frame_ms, hop_ms, fmin_hz, fmax_hz)
 
-    y, sr = librosa.load(str(audio_path), sr=None, mono=True)
+    try:
+        y, sr = librosa.load(str(audio_path), sr=None, mono=True)
+    except Exception:
+        if pitch_method in {"pyin", "yin"}:
+            raise
+        return compute_track_features_autocorr(audio_path, frame_ms, hop_ms, fmin_hz, fmax_hz)
     y = np.asarray(y, dtype=float)
     frame_length = max(64, int(round(frame_ms * sr / 1000.0)))
     hop_length = max(16, int(round(hop_ms * sr / 1000.0)))
