@@ -168,3 +168,55 @@ mfa align \
   --clean \
   --num_jobs 8
 ```
+
+For the scratch-directory pilot used on the GPU host, the corresponding command
+is:
+
+```sh
+mfa align \
+  /tmp/phonjsd_aishell_mfa_pilot/corpus \
+  <mandarin_dictionary_model> \
+  <mandarin_acoustic_model> \
+  /tmp/phonjsd_aishell_mfa_pilot/aligned \
+  --clean \
+  --num_jobs 8
+```
+
+Once alignment completes, extract the first-pass Mandarin tone features:
+
+```sh
+python analysis/validation/extract_aishell_mandarin_tone_features.py \
+  --pilot-manifest /tmp/phonjsd_aishell_mfa_pilot/aishell_mfa_pilot_manifest.csv \
+  --tone-units analysis/validation/outputs/aishell_mandarin/aishell_mandarin_tone_units_pending_alignment.csv \
+  --aligned-dir /tmp/phonjsd_aishell_mfa_pilot/aligned \
+  --out-dir analysis/validation/outputs/aishell_mandarin_tone_features \
+  --pitch-method auto
+```
+
+Use `--pitch-method pyin` on the GPU host if you want to require
+`librosa.pyin`; `--pitch-method auto` falls back to a lightweight
+autocorrelation tracker if librosa is unavailable. The extractor needs lexical
+tone labels. If the tone-unit CSV is not present, it can rebuild labels from the
+pilot manifest, but that fallback requires `pypinyin` in the active Python
+environment.
+
+This pilot extractor uses MFA word intervals and equal character windows inside
+each aligned word. That is sufficient for an initial JSD pass over F0 contour
+features; a later extractor should replace this with syllable or vowel-nucleus
+intervals from a phone-tier parse.
+
+Run the common validator on the extracted tone table:
+
+```sh
+Rscript analysis/validation/run_validation_metrics.R \
+  --input analysis/validation/outputs/aishell_mandarin_tone_features/aishell_mandarin_tone_features.csv \
+  --out-dir analysis/validation/outputs/aishell_mandarin_tone_validation \
+  --domain tone \
+  --feature-sets analysis/validation/outputs/aishell_mandarin_tone_features/aishell_mandarin_tone_feature_sets.csv \
+  --min-per-category 20 \
+  --bw scott.diag \
+  --eval-on pooled_sample \
+  --eval-n 300 \
+  --engine fast_diag \
+  --cv-folds 5
+```
