@@ -93,3 +93,78 @@ across these domains.
   and parses orthographic H/M/L tone-bearing units. Its current tone-unit CSV is
   intentionally marked `pending_alignment`; it does not contain segment timings
   or acoustic F0 features yet.
+- `prepare_aishell_mandarin_tone_tokens.py`: builds an AISHELL-1 manifest and
+  pypinyin-derived Mandarin tone-unit inventory. Its tone-unit CSV is also
+  marked `pending_alignment`.
+- `prepare_aishell_mfa_pilot.py`: samples the AISHELL manifest and materializes
+  an MFA-ready pilot corpus with matching WAV and transcript files.
+
+## AISHELL MFA pilot
+
+On the alignment machine, first make sure the AISHELL manifest exists. If it was
+created on another machine with a different path convention, rerun the manifest
+builder with the AISHELL root as seen by the alignment machine.
+
+Example for a NAS-mounted AISHELL root:
+
+```sh
+python analysis/validation/prepare_aishell_mandarin_tone_tokens.py \
+  --root /volume1/Corpus_Studies/Corpora/Mandarin/data_aishell \
+  --out-dir analysis/validation/outputs/aishell_mandarin \
+  --manifest-only
+```
+
+Then materialize a small dev-set corpus for MFA validation:
+
+```sh
+python analysis/validation/prepare_aishell_mfa_pilot.py \
+  --root /volume1/Corpus_Studies/Corpora/Mandarin/data_aishell \
+  --manifest analysis/validation/outputs/aishell_mandarin/aishell_manifest.csv \
+  --out-dir analysis/validation/outputs/aishell_mfa_pilot \
+  --splits dev \
+  --max-speakers 5 \
+  --max-utterances-per-speaker 20 \
+  --mode copy \
+  --overwrite
+```
+
+The MFA corpus is written to
+`analysis/validation/outputs/aishell_mfa_pilot/corpus`. Use `--mode symlink`
+when the NAS mount is fast and stable; use `--mode copy` when aligning from a
+local SSD or scratch directory.
+
+If MFA reports many Mandarin dictionary OOVs, rebuild the pilot with
+`--transcript-format chars-spaced` and re-run MFA validation. That produces one
+Chinese character token per transcript word position while preserving the same
+audio sample.
+
+After downloading the Mandarin MFA dictionary and acoustic models, confirm their
+local names. The language model is not required for this forced-alignment pilot.
+
+```sh
+mfa model list acoustic | grep -i mandarin
+mfa model list dictionary | grep -i mandarin
+```
+
+Then run validation before full alignment:
+
+```sh
+mfa validate \
+  analysis/validation/outputs/aishell_mfa_pilot/corpus \
+  <mandarin_dictionary_model> \
+  <mandarin_acoustic_model> \
+  --clean \
+  --num_jobs 8
+```
+
+If validation looks clean enough for a pilot, align the same subset:
+
+```sh
+mfa align \
+  analysis/validation/outputs/aishell_mfa_pilot/corpus \
+  <mandarin_dictionary_model> \
+  <mandarin_acoustic_model> \
+  analysis/validation/outputs/aishell_mfa_pilot/aligned \
+  --clean \
+  --num_jobs 8
+```
