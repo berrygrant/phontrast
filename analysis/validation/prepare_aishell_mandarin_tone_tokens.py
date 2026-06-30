@@ -29,6 +29,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--transcript", type=Path, default=None)
     parser.add_argument("--wav-root", type=Path, default=None)
+    parser.add_argument(
+        "--file-root-override",
+        type=Path,
+        default=None,
+        help=(
+            "Root to use when writing output file paths. Use this when parsing "
+            "locally but preparing CSVs for NAS-side audio extraction."
+        ),
+    )
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--manifest-out", type=Path, default=None)
     parser.add_argument("--tone-units-out", type=Path, default=None)
@@ -98,6 +107,7 @@ def audio_inventory(wav_root: Path, speaker_to_split: dict[str, str]) -> set[str
 def load_manifest_rows(
     transcript_path: Path,
     wav_root: Path,
+    file_wav_root: Path,
     speaker_to_split: dict[str, str],
     wav_ids: set[str] | None,
     max_recordings: int,
@@ -113,7 +123,7 @@ def load_manifest_rows(
             parsed = parse_recording_id(recording_id)
             speaker = parsed["speaker"]
             split = speaker_to_split.get(speaker, "")
-            expected_path = wav_root / split / speaker / f"{recording_id}.wav" if split else Path("")
+            expected_path = file_wav_root / split / speaker / f"{recording_id}.wav" if split else Path("")
             audio_exists = recording_id in wav_ids if wav_ids is not None else ""
             rows.append(
                 {
@@ -275,6 +285,7 @@ def main() -> None:
     root = args.root
     transcript_path = args.transcript or root / "transcript" / "aishell_transcript_v0.8.txt"
     wav_root = args.wav_root or root / "wav"
+    file_wav_root = (args.file_root_override / "wav") if args.file_root_override else wav_root
     out_dir = args.out_dir
     manifest_out = args.manifest_out or out_dir / "aishell_manifest.csv"
     tone_units_out = args.tone_units_out or out_dir / "aishell_mandarin_tone_units_pending_alignment.csv"
@@ -283,7 +294,14 @@ def main() -> None:
 
     speaker_to_split = split_speaker_dirs(wav_root)
     wav_ids = audio_inventory(wav_root, speaker_to_split) if args.scan_audio else None
-    manifest_rows = load_manifest_rows(transcript_path, wav_root, speaker_to_split, wav_ids, args.max_recordings)
+    manifest_rows = load_manifest_rows(
+        transcript_path,
+        wav_root,
+        file_wav_root,
+        speaker_to_split,
+        wav_ids,
+        args.max_recordings,
+    )
     tone_rows: list[dict[str, object]] = []
     pinyin_status = ""
     if not args.manifest_only:
