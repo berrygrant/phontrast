@@ -96,6 +96,14 @@ python analysis/validation/prepare_yoruba_slr86_tone_tokens.py \
   --skip-audio-headers
 ```
 
+On the GPU host where the NAS is mounted at `/mnt/LUV_LAB_NAS`, use:
+
+```sh
+python analysis/validation/prepare_yoruba_slr86_tone_tokens.py \
+  --root /mnt/LUV_LAB_NAS/Corpus_Studies/Corpora/Yoruba \
+  --skip-audio-headers
+```
+
 Use the Mac-mounted path if running locally:
 
 ```sh

@@ -154,9 +154,12 @@ Example:
 
 ```sh
 python analysis/validation/prepare_yoruba_slr86_tone_tokens.py \
-  --root /volume1/Corpus_Studies/Corpora/Yoruba \
+  --root /mnt/LUV_LAB_NAS/Corpus_Studies/Corpora/Yoruba \
   --skip-audio-headers
 ```
+
+Use `/volume1/Corpus_Studies/Corpora/Yoruba` only when running directly on the
+Synology shell. On the GPU host, use the `/mnt/LUV_LAB_NAS/...` mount path.
 
 Observed parser output after full male/female extraction:
 

@@ -148,6 +148,22 @@ def extracted_wav_inventory(audio_dir: Path) -> set[str]:
     return names
 
 
+def validate_required_inputs(root: Path, female_index: Path, male_index: Path) -> None:
+    missing = [path for path in (female_index, male_index) if not path.exists()]
+    if not missing:
+        return
+    checked = "\n".join(f"- {path}" for path in missing)
+    raise SystemExit(
+        "ERROR: Could not find required OpenSLR 86 Yoruba line-index file(s):\n"
+        f"{checked}\n\n"
+        f"--root was: {root}\n"
+        "Use the corpus root path as it is mounted on this machine. Known roots:\n"
+        "- Synology NAS shell: /volume1/Corpus_Studies/Corpora/Yoruba\n"
+        "- GPU host NAS mount: /mnt/LUV_LAB_NAS/Corpus_Studies/Corpora/Yoruba\n"
+        "- Mac mount: /Volumes/Corpus_Studies/Corpora/Yoruba"
+    )
+
+
 def mark_zip_fallback(
     info: dict[str, object],
     zip_path: Path | None,
@@ -541,6 +557,7 @@ def main() -> None:
     male_audio_dir = args.male_audio_dir or root / "yo_ng_male"
     female_zip = None if args.no_zip_fallback else (args.female_zip or root / "yo_ng_female.zip")
     male_zip = None if args.no_zip_fallback else (args.male_zip or root / "yo_ng_male.zip")
+    validate_required_inputs(root, female_index, male_index)
     female_extracted_ids = extracted_wav_inventory(female_audio_dir)
     male_extracted_ids = extracted_wav_inventory(male_audio_dir)
     female_zip_members = zip_inventory(female_zip)
