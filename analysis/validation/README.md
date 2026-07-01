@@ -127,6 +127,9 @@ across these domains.
 - `prepare_yoruba_mfa_pilot.py`: samples the Yoruba manifest, writes an
   MFA-ready corpus with cleaned tone-stripped transcripts, and creates a
   deterministic grapheme-style pronunciation dictionary for alignment pilots.
+- `extract_yoruba_slr86_tone_features.py`: joins Yoruba H/M/L tone-unit labels
+  to MFA `words`/`phones` TextGrids and extracts F0/prosodic features from
+  aligned vowel or syllabic-nasal phone intervals.
 - `prepare_aishell_mandarin_tone_tokens.py`: builds an AISHELL-1 manifest and
   pypinyin-derived Mandarin tone-unit inventory. Its tone-unit CSV is also
   marked `pending_alignment`.

@@ -336,8 +336,28 @@ viable.
 
 ## Step 4: Proposed Yoruba Tone Feature Extraction
 
-The eventual extractor should mirror the Mandarin tone feature contract, but
-with Yoruba-specific labels and controls.
+The extractor mirrors the Mandarin tone feature contract, but with
+Yoruba-specific labels and controls. It joins the parsed H/M/L tone-bearing
+units to MFA `words` and `phones` tiers. Within each word, parsed tone-bearing
+units are matched in sequence to aligned vowel or syllabic-nasal phone
+intervals.
+
+Run on the 10-speaker pilot:
+
+```sh
+/opt/miniconda3/envs/mfa/bin/python \
+  analysis/validation/extract_yoruba_slr86_tone_features.py \
+  --pilot-manifest /tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_manifest.csv \
+  --tone-units analysis/validation/outputs/yoruba_slr86/yoruba_slr86_tone_units_pending_alignment.csv \
+  --aligned-dir /tmp/phonjsd_yoruba_mfa_pilot_10/aligned \
+  --out-dir analysis/validation/outputs/yoruba_slr86_tone_features_pilot_10 \
+  --pitch-method pyin \
+  --frame-ms 50
+```
+
+If `librosa.pyin` is not available in the active environment, use
+`--pitch-method autocorr` as a dependency-light smoke test, then rerun with
+`pyin` before interpreting results.
 
 Recommended token-feature columns:
 
@@ -356,7 +376,7 @@ Recommended token-feature columns:
 - quality flags for low voicing, short intervals, annotation-bearing recordings,
   mismatched alignment, and nasal contexts.
 
-Suggested feature sets:
+Generated feature sets:
 
 | Feature set | Contents | Role |
 | --- | --- | --- |
