@@ -17,6 +17,7 @@ import random
 import re
 import shutil
 import unicodedata
+import wave
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -58,6 +59,11 @@ def parse_args() -> argparse.Namespace:
         "--include-recommended-exclude",
         action="store_true",
         help="Include annotation-flagged recordings. Default excludes them.",
+    )
+    parser.add_argument(
+        "--skip-audio-validation",
+        action="store_true",
+        help="Do not pre-check WAV headers before sampling.",
     )
     parser.add_argument(
         "--mode",
@@ -179,20 +185,42 @@ def source_path(row: dict[str, str], rewrite: tuple[str, str] | None) -> Path:
     return Path(raw_path)
 
 
-def eligible_rows(rows: list[dict[str, str]], include_recommended_exclude: bool) -> list[dict[str, str]]:
+def readable_wav_status(path: Path) -> str:
+    if not path.exists():
+        return "missing_source_audio"
+    if path.stat().st_size <= 0:
+        return "empty_source_audio"
+    try:
+        with wave.open(str(path), "rb") as handle:
+            if handle.getframerate() <= 0 or handle.getnframes() <= 0:
+                return "invalid_source_audio_header"
+    except Exception as exc:
+        return f"unreadable_source_audio:{type(exc).__name__}"
+    return "readable"
+
+
+def eligible_rows(
+    rows: list[dict[str, str]],
+    include_recommended_exclude: bool,
+) -> tuple[list[dict[str, str]], Counter[str]]:
     out: list[dict[str, str]] = []
+    skipped: Counter[str] = Counter()
     for row in rows:
         if not include_recommended_exclude and parse_bool(row.get("recommended_exclude", "")):
+            skipped["recommended_exclude"] += 1
             continue
         if not parse_bool(row.get("audio_available", "")):
+            skipped["manifest_audio_unavailable"] += 1
             continue
         transcript = normalize_mfa_text(row.get("transcript_clean") or row.get("transcript", ""))
         if not transcript:
+            skipped["empty_mfa_transcript"] += 1
             continue
         if not row.get("speaker", ""):
+            skipped["missing_speaker"] += 1
             continue
         out.append(row)
-    return out
+    return out, skipped
 
 
 def balanced_speakers(by_speaker: dict[str, list[dict[str, str]]], max_speakers: int, seed: int) -> list[str]:
@@ -223,7 +251,9 @@ def select_rows(
     max_utterances_per_speaker: int,
     seed: int,
     balance_sex: bool,
-) -> list[dict[str, str]]:
+    rewrite: tuple[str, str] | None,
+    validate_audio: bool,
+) -> tuple[list[dict[str, str]], Counter[str]]:
     by_speaker: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         by_speaker[row["speaker"]].append(row)
@@ -238,14 +268,23 @@ def select_rows(
             speakers = speakers[:max_speakers]
 
     selected: list[dict[str, str]] = []
+    skipped: Counter[str] = Counter()
     for speaker in speakers:
         speaker_rows = by_speaker[speaker][:]
         rng.shuffle(speaker_rows)
-        if max_utterances_per_speaker > 0:
-            speaker_rows = speaker_rows[:max_utterances_per_speaker]
-        selected.extend(speaker_rows)
+        speaker_selected = 0
+        for row in speaker_rows:
+            if max_utterances_per_speaker > 0 and speaker_selected >= max_utterances_per_speaker:
+                break
+            if validate_audio:
+                audio_status = readable_wav_status(source_path(row, rewrite))
+                if audio_status != "readable":
+                    skipped[audio_status] += 1
+                    continue
+            selected.append(row)
+            speaker_selected += 1
 
-    return sorted(selected, key=lambda row: (row.get("sex", ""), row["speaker"], row["recording_id"]))
+    return sorted(selected, key=lambda row: (row.get("sex", ""), row["speaker"], row["recording_id"])), skipped
 
 
 def ensure_clean_target(path: Path, overwrite: bool) -> None:
@@ -303,7 +342,11 @@ def write_dictionary(path: Path, words: set[str]) -> int:
     return n
 
 
-def summary_rows(rows: list[dict[str, object]], dictionary_words: int) -> list[dict[str, object]]:
+def summary_rows(
+    rows: list[dict[str, object]],
+    dictionary_words: int,
+    skipped_eligible: Counter[str],
+) -> list[dict[str, object]]:
     out: list[dict[str, object]] = []
 
     def add(metric: str, value: object) -> None:
@@ -318,6 +361,8 @@ def summary_rows(rows: list[dict[str, object]], dictionary_words: int) -> list[d
     for status, n in sorted(Counter(str(row["transcript_status"]) for row in rows).items()):
         add(f"transcript_{status}", n)
     add("recordings_missing_audio", sum(1 for row in rows if row["audio_status"] == "missing_source_audio"))
+    for status, n in sorted(skipped_eligible.items()):
+        add(f"recordings_skipped_{status}", n)
     add("dictionary_words", dictionary_words)
     return out
 
@@ -328,14 +373,20 @@ def main() -> None:
     if not args.transcript_extension.startswith("."):
         raise ValueError("--transcript-extension must include the leading dot")
 
-    rows = eligible_rows(read_manifest(args.manifest), args.include_recommended_exclude)
-    selected = select_rows(
+    rows, skipped_eligible = eligible_rows(
+        read_manifest(args.manifest),
+        args.include_recommended_exclude,
+    )
+    selected, skipped_selected = select_rows(
         rows,
         max_speakers=args.max_speakers,
         max_utterances_per_speaker=args.max_utterances_per_speaker,
         seed=args.seed,
         balance_sex=args.balance_sex,
+        rewrite=rewrite,
+        validate_audio=not args.skip_audio_validation,
     )
+    skipped_eligible.update(skipped_selected)
 
     corpus_dir = args.out_dir / "corpus"
     output_rows: list[dict[str, object]] = []
@@ -396,7 +447,7 @@ def main() -> None:
             "transcript_status",
         ],
     )
-    write_csv(summary_out, summary_rows(output_rows, dictionary_count), ["metric", "value"])
+    write_csv(summary_out, summary_rows(output_rows, dictionary_count, skipped_eligible), ["metric", "value"])
 
     print(f"Wrote {len(output_rows)} pilot rows to {manifest_out}")
     print(f"Wrote dictionary with {dictionary_count} words to {dictionary_out}")
