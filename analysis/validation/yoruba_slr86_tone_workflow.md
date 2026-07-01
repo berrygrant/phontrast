@@ -80,6 +80,9 @@ python analysis/validation/prepare_yoruba_slr86_tone_tokens.py --help
 Later acoustic extraction will require an audio/F0 environment comparable to the
 Mandarin extractor environment.
 
+The MFA pilot materializer also uses only the Python standard library. MFA
+itself is required only for the subsequent validation/alignment commands.
+
 ## Step 1: Parse The Corpus Manifest And Tone Units
 
 Run on the NAS or a machine with fast local access to the extracted audio:
@@ -239,7 +242,65 @@ columns include:
 Because `start` and `end` are blank and there are no acoustic feature columns,
 this table should not be passed to `run_validation_metrics.R` yet.
 
-## Step 2: Alignment Plan
+## Step 2: Materialize An MFA Pilot
+
+Create a small MFA-ready pilot corpus before attempting full alignment. The
+pilot materializer samples speakers from the manifest, excludes annotation-
+flagged recordings by default, writes cleaned tone-stripped `.lab` transcripts,
+and creates a deterministic grapheme-style dictionary. Tone marks are removed
+for alignment, while segmental Yoruba distinctions such as dot-below vowels are
+preserved.
+
+Example 10-speaker pilot on the Mac mount, rewriting NAS paths from the stored
+manifest:
+
+```sh
+python analysis/validation/prepare_yoruba_mfa_pilot.py \
+  --manifest analysis/validation/outputs/yoruba_slr86/yoruba_slr86_manifest.csv \
+  --out-dir /tmp/phonjsd_yoruba_mfa_pilot_10 \
+  --max-speakers 10 \
+  --max-utterances-per-speaker 20 \
+  --balance-sex \
+  --source-root-rewrite /volume1/Corpus_Studies/Corpora/Yoruba=/Volumes/Corpus_Studies/Corpora/Yoruba \
+  --mode copy \
+  --overwrite
+```
+
+On the GPU/NAS host, use the path convention visible there, for example:
+
+```sh
+python analysis/validation/prepare_yoruba_mfa_pilot.py \
+  --manifest analysis/validation/outputs/yoruba_slr86/yoruba_slr86_manifest.csv \
+  --out-dir /tmp/phonjsd_yoruba_mfa_pilot_10 \
+  --max-speakers 10 \
+  --max-utterances-per-speaker 20 \
+  --balance-sex \
+  --source-root-rewrite /volume1/Corpus_Studies/Corpora/Yoruba=/mnt/LUV_LAB_NAS/Corpus_Studies/Corpora/Yoruba \
+  --mode copy \
+  --overwrite
+```
+
+Observed local 10-speaker pilot summary:
+
+| Metric | Value |
+| --- | ---: |
+| recordings_selected | 200 |
+| speakers_selected | 10 |
+| recordings_female | 100 |
+| recordings_male | 100 |
+| audio_copied | 200 |
+| transcript_written | 200 |
+| recordings_missing_audio | 0 |
+| dictionary_words | 598 |
+
+The pilot outputs are:
+
+- `/tmp/phonjsd_yoruba_mfa_pilot_10/corpus`
+- `/tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_manifest.csv`
+- `/tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_summary.csv`
+- `/tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_dictionary.txt`
+
+## Step 3: Alignment Plan
 
 The next stage is to create aligned intervals for tone-bearing units or vowel
 nuclei. No final alignment method has been committed yet.
@@ -257,7 +318,23 @@ If a robust Yoruba acoustic model/dictionary is not available, a word-level
 pilot can be used only as a smoke test. Paper-quality validation should use
 syllable or vowel-nucleus intervals, not utterance-level or whole-word windows.
 
-## Step 3: Proposed Yoruba Tone Feature Extraction
+Validate the pilot corpus once an acoustic model choice is available:
+
+```sh
+mfa validate \
+  /tmp/phonjsd_yoruba_mfa_pilot_10/corpus \
+  /tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_dictionary.txt \
+  <yoruba_or_trainable_acoustic_model> \
+  --clean \
+  --num_jobs 8
+```
+
+If no usable pretrained Yoruba acoustic model is available, use the generated
+dictionary to train a corpus-specific MFA model before extracting phone or vowel
+intervals. The 10-speaker pilot is the smoke test for whether that path is
+viable.
+
+## Step 4: Proposed Yoruba Tone Feature Extraction
 
 The eventual extractor should mirror the Mandarin tone feature contract, but
 with Yoruba-specific labels and controls.
@@ -288,7 +365,7 @@ Suggested feature sets:
 | `energy_duration` | interval duration, position, RMS level/change/slope | Non-F0 prosodic controls |
 | `tone_prosody` | combined F0, energy, and duration features | Full cue bundle |
 
-## Step 4: Proposed Validation Commands
+## Step 5: Proposed Validation Commands
 
 Once a Yoruba acoustic token-feature table exists, run pooled and matched
 validation separately.

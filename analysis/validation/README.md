@@ -124,6 +124,9 @@ across these domains.
   and parses orthographic H/M/L tone-bearing units. Its current tone-unit CSV is
   intentionally marked `pending_alignment`; it does not contain segment timings
   or acoustic F0 features yet.
+- `prepare_yoruba_mfa_pilot.py`: samples the Yoruba manifest, writes an
+  MFA-ready corpus with cleaned tone-stripped transcripts, and creates a
+  deterministic grapheme-style pronunciation dictionary for alignment pilots.
 - `prepare_aishell_mandarin_tone_tokens.py`: builds an AISHELL-1 manifest and
   pypinyin-derived Mandarin tone-unit inventory. Its tone-unit CSV is also
   marked `pending_alignment`.
