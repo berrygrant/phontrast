@@ -389,6 +389,8 @@ def main() -> None:
     skipped_eligible.update(skipped_selected)
 
     corpus_dir = args.out_dir / "corpus"
+    if args.overwrite and not args.dry_run and corpus_dir.exists():
+        shutil.rmtree(corpus_dir)
     output_rows: list[dict[str, object]] = []
     dictionary_words: set[str] = set()
     for row in selected:
