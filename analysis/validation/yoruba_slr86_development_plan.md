@@ -97,7 +97,16 @@ orthographic tone-unit inventory from the local corpus root:
 The current parse produced 3,583 manifest rows and 51,412 orthographic
 tone-bearing units. Tone labels come only from the transcript diacritics: high
 from acute marks, low from grave marks, and mid from unmarked vowel-bearing
-units. No segment timings or acoustic values have been inferred.
+units. The parser-stage tone-unit table intentionally contains no segment
+timings or acoustic values.
+
+A 10-speaker MFA pilot has now been run with a corpus-specific grapheme-style
+dictionary because no pretrained Yoruba MFA acoustic model was available. The
+pilot produced 200 TextGrids and 2,622 aligned tone-token feature rows. Pooled
+and vowel-quality matched validation both completed without fallback rows; in
+the vowel-matched run, `f0_contour` gave median classifier AUC 0.764 and median
+JSD 0.132. The next paper-oriented step is the full clean corpus run followed by
+the deterministic alignment/token audit.
 
 Speaker IDs should use the recording prefix plus the middle file-ID field
 (`yof_06136`, `yom_06136`, etc.). The raw middle field overlaps across sex, so
@@ -117,7 +126,8 @@ copy. The manifest still distinguishes `audio_location = extracted_wav` from
   their impact.
 - Verify that tone labels are not being inferred after Unicode decomposition
   has stripped diacritics.
-- Audit a small sample of aligned tokens before running the full corpus.
+- Audit a small sample of aligned tokens before treating the full clean run as
+  paper-final.
 
 ## Source
 

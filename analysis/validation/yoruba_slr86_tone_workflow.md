@@ -1,9 +1,10 @@
 # Yoruba OpenSLR 86 Tone Workflow
 
 This document records the reproducible Yoruba OpenSLR 86 workflow for the
-phonJSD common-contrast validation. It covers the current completed stage:
-manifest construction and orthographic tone-unit parsing. Acoustic alignment and
-F0 extraction are the next development stage.
+phonJSD common-contrast validation. It covers manifest construction,
+orthographic tone-unit parsing, MFA corpus materialization, pilot alignment,
+F0/prosodic feature extraction, validation, and the audit steps needed before
+paper-scale reporting.
 
 ## Goal
 
@@ -17,9 +18,11 @@ The current workflow produces:
 - a recording-level manifest;
 - an orthographic tone-bearing-unit table marked `pending_alignment`;
 - parse summaries and count tables for audit;
-- a documented plan for alignment, F0 extraction, and validation.
-
-It does not yet produce acoustic tone features or JSD-ready token tables.
+- an MFA-ready Yoruba corpus sample or full-clean corpus;
+- a generated grapheme-style dictionary for MFA;
+- aligned phone-level tone-token acoustic features after MFA;
+- pooled and vowel-quality matched validation outputs;
+- a deterministic hand-audit sample for alignment/token quality control.
 
 ## Data And Paths
 
@@ -302,6 +305,29 @@ The pilot outputs are:
 - `/tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_summary.csv`
 - `/tmp/phonjsd_yoruba_mfa_pilot_10/yoruba_mfa_pilot_dictionary.txt`
 
+For the next paper-oriented run, materialize the full clean corpus: all
+recordings with available audio and no bracketed annotation flags. OpenSLR 86
+has only 36 speakers, so a full clean run is preferable to an arbitrary larger
+speaker sample.
+
+```sh
+python analysis/validation/prepare_yoruba_mfa_pilot.py \
+  --manifest analysis/validation/outputs/yoruba_slr86/yoruba_slr86_manifest.csv \
+  --out-dir /tmp/phonjsd_yoruba_mfa_full_clean \
+  --max-speakers 0 \
+  --max-utterances-per-speaker 0 \
+  --balance-sex \
+  --source-root-rewrite /volume1/Corpus_Studies/Corpora/Yoruba=/mnt/LUV_LAB_NAS/Corpus_Studies/Corpora/Yoruba \
+  --mode copy \
+  --overwrite
+```
+
+Check the materialized sample before alignment:
+
+```sh
+cat /tmp/phonjsd_yoruba_mfa_full_clean/yoruba_mfa_pilot_summary.csv
+```
+
 ## Step 3: Alignment
 
 No pretrained Yoruba MFA acoustic model was available, so the pilot used MFA
@@ -330,7 +356,20 @@ The pilot is therefore sufficient for phone-level tone-token F0 extraction. A
 larger or full-corpus run should reuse this training path, then audit a sample
 of word/phone alignments before final paper analyses.
 
-## Step 4: Proposed Yoruba Tone Feature Extraction
+Full clean alignment:
+
+```sh
+mfa train \
+  /tmp/phonjsd_yoruba_mfa_full_clean/corpus \
+  /tmp/phonjsd_yoruba_mfa_full_clean/yoruba_mfa_pilot_dictionary.txt \
+  /tmp/phonjsd_yoruba_mfa_full_clean/yoruba_mfa_full_clean_acoustic_model.zip \
+  --output_directory /tmp/phonjsd_yoruba_mfa_full_clean/aligned \
+  --clean \
+  --overwrite \
+  --num_jobs 16
+```
+
+## Step 4: Yoruba Tone Feature Extraction
 
 The extractor mirrors the Mandarin tone feature contract, but with
 Yoruba-specific labels and controls. It joins the parsed H/M/L tone-bearing
@@ -370,6 +409,19 @@ Observed 10-speaker extraction:
 | tokens_L | 687 |
 | tokens_M | 951 |
 
+Full clean extraction:
+
+```sh
+/opt/miniconda3/envs/mfa/bin/python \
+  analysis/validation/extract_yoruba_slr86_tone_features.py \
+  --pilot-manifest /tmp/phonjsd_yoruba_mfa_full_clean/yoruba_mfa_pilot_manifest.csv \
+  --tone-units analysis/validation/outputs/yoruba_slr86/yoruba_slr86_tone_units_pending_alignment.csv \
+  --aligned-dir /tmp/phonjsd_yoruba_mfa_full_clean/aligned \
+  --out-dir analysis/validation/outputs/yoruba_slr86_tone_features_full_clean \
+  --pitch-method pyin \
+  --frame-ms 50
+```
+
 Recommended token-feature columns:
 
 - existing tone-unit metadata from
@@ -396,7 +448,7 @@ Generated feature sets:
 | `energy_duration` | interval duration, position, RMS level/change/slope | Non-F0 prosodic controls |
 | `tone_prosody` | combined F0, energy, and duration features | Full cue bundle |
 
-## Step 5: Proposed Validation Commands
+## Step 5: Validation Commands
 
 Once a Yoruba acoustic token-feature table exists, run pooled and matched
 validation separately. For the 10-speaker pilot, the input path is
@@ -439,6 +491,49 @@ The matched run uses the default `control_group` column, currently vowel
 quality. We may later refine `control_group` to include vowel quality plus
 position or local context if counts support it.
 
+Full clean pooled validation:
+
+```sh
+mamba run -n phonjsd-r Rscript analysis/validation/run_validation_metrics.R \
+  --input analysis/validation/outputs/yoruba_slr86_tone_features_full_clean/yoruba_slr86_tone_features.csv \
+  --out-dir analysis/validation/outputs/yoruba_slr86_tone_validation_full_clean_pooled \
+  --domain tone \
+  --control-col pooled_tone \
+  --feature-sets analysis/validation/outputs/yoruba_slr86_tone_features_full_clean/yoruba_slr86_tone_feature_sets.csv \
+  --min-per-category 20 \
+  --bw scott.diag \
+  --eval-on pooled_sample \
+  --eval-n 300 \
+  --engine fast_diag \
+  --cv-folds 5
+```
+
+Full clean vowel-quality matched validation:
+
+```sh
+mamba run -n phonjsd-r Rscript analysis/validation/run_validation_metrics.R \
+  --input analysis/validation/outputs/yoruba_slr86_tone_features_full_clean/yoruba_slr86_tone_features.csv \
+  --out-dir analysis/validation/outputs/yoruba_slr86_tone_validation_full_clean_vowel_matched \
+  --domain tone \
+  --feature-sets analysis/validation/outputs/yoruba_slr86_tone_features_full_clean/yoruba_slr86_tone_feature_sets.csv \
+  --min-per-category 20 \
+  --bw scott.diag \
+  --eval-on pooled_sample \
+  --eval-n 300 \
+  --engine fast_diag \
+  --cv-folds 5
+```
+
+Summarize each validation run:
+
+```sh
+mamba run -n phonjsd-r Rscript analysis/validation/summarize_validation_metrics.R \
+  --validation-dir analysis/validation/outputs/yoruba_slr86_tone_validation_full_clean_pooled
+
+mamba run -n phonjsd-r Rscript analysis/validation/summarize_validation_metrics.R \
+  --validation-dir analysis/validation/outputs/yoruba_slr86_tone_validation_full_clean_vowel_matched
+```
+
 ## Observed 10-Speaker Pilot Pattern
 
 The 10-speaker pilot produced a usable phone-level tone validation. All pooled
@@ -477,6 +572,45 @@ Interpretation:
   phonological-tone specification.
 - `energy_duration` is weaker by classifier AUC and should be treated as a
   control/sensitivity feature set rather than a primary tone cue.
+
+## Step 6: Alignment And Token Audit
+
+Before treating a larger Yoruba run as paper-final, generate a deterministic
+audit bundle from the extracted feature table:
+
+```sh
+/opt/miniconda3/envs/mfa/bin/python \
+  analysis/validation/audit_yoruba_tone_alignment.py \
+  --features analysis/validation/outputs/yoruba_slr86_tone_features_full_clean/yoruba_slr86_tone_features.csv \
+  --out-dir analysis/validation/outputs/yoruba_slr86_tone_alignment_audit_full_clean \
+  --sample-size 120 \
+  --max-per-category 40 \
+  --max-per-category-control 6
+```
+
+The audit script writes:
+
+- `yoruba_tone_alignment_audit_summary.csv`: corpus-wide counts, flag counts,
+  and feature-quality medians;
+- `yoruba_tone_alignment_audit_by_category.csv`: category-level duration,
+  voicing, and F0 summaries;
+- `yoruba_tone_alignment_audit_by_category_control.csv`: same summaries within
+  tone-by-vowel-quality cells;
+- `yoruba_tone_alignment_audit_flag_counts.csv`: extracted quality flags and
+  derived audit flags;
+- `yoruba_tone_alignment_audit_sample.csv`: stratified hand-audit sample with
+  source WAV and TextGrid paths;
+- `yoruba_tone_alignment_audit_issues.csv`: deterministic sample of rows with
+  audit flags such as word-label mismatch, phone-label mismatch, low voiced
+  proportion, or unexpectedly short duration.
+
+For the hand audit, inspect the sampled `file` and `textgrid` pairs and verify:
+
+- the TextGrid word interval corresponds to the token's orthographic word;
+- the phone interval label matches `vowel_quality` or syllabic `n`;
+- the interval is a plausible vowel or syllabic-nasal nucleus;
+- voiced-frame coverage is adequate for F0 interpretation;
+- any `word_label_mismatch` rows are rare and explainable.
 
 ## Paper-Methods Notes
 
@@ -521,11 +655,13 @@ Completed:
 - 10-speaker MFA corpus materialization;
 - corpus-specific MFA pilot training;
 - phone-level F0 extraction;
-- pooled and vowel-matched pilot JSD validation.
+- pooled and vowel-matched pilot JSD validation;
+- full-clean scale-up command sequence;
+- deterministic alignment/token audit script and output contract.
 
 Not completed:
 
-- full-corpus Yoruba alignment and extraction;
+- full-clean Yoruba alignment and extraction execution;
 - hand-audited alignment/token sample for paper quality control;
 - final paper-scale JSD validation on Yoruba acoustic features.
 
@@ -535,8 +671,8 @@ Needed refinements:
 - manually inspect a sample of parsed tone labels after Unicode normalization;
 - audit a sample of generated dictionary entries and TextGrid phone alignments;
 - decide whether nasal/oral status can be robustly derived from orthography;
-- scale from the 10-speaker pilot to a larger or full-corpus run;
-- add a hand-audited alignment/token sample for paper quality control.
+- run the full-clean corpus sequence on the GPU/NAS host;
+- complete and archive the hand-audited alignment/token sample.
 
 ## Output Bundle To Archive
 
@@ -557,6 +693,7 @@ For acoustic validation stages, also archive:
 - aligned token-feature table;
 - feature-set CSV;
 - validation metrics/skips/summary CSVs;
+- alignment/token audit summary and sample CSVs;
 - alignment model and dictionary provenance;
 - audio/F0 extraction package versions.
 

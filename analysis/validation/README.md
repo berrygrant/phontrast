@@ -130,6 +130,9 @@ across these domains.
 - `extract_yoruba_slr86_tone_features.py`: joins Yoruba H/M/L tone-unit labels
   to MFA `words`/`phones` TextGrids and extracts F0/prosodic features from
   aligned vowel or syllabic-nasal phone intervals.
+- `audit_yoruba_tone_alignment.py`: summarizes aligned Yoruba tone-token
+  feature tables and writes a deterministic hand-audit sample with WAV/TextGrid
+  pointers.
 - `prepare_aishell_mandarin_tone_tokens.py`: builds an AISHELL-1 manifest and
   pypinyin-derived Mandarin tone-unit inventory. Its tone-unit CSV is also
   marked `pending_alignment`.
@@ -141,9 +144,11 @@ across these domains.
 For the full reproducibility log and paper-methods notes, see
 [yoruba_slr86_tone_workflow.md](yoruba_slr86_tone_workflow.md).
 
-Current stage: manifest construction and orthographic H/M/L tone-unit parsing.
-The generated Yoruba tone-unit table is marked `pending_alignment`; it contains
-labels and metadata, not acoustic features.
+Current stage: manifest construction, orthographic H/M/L tone-unit parsing,
+10-speaker MFA pilot alignment, F0/prosodic extraction, pooled validation, and
+vowel-quality matched validation. The generated parser-stage tone-unit table is
+still marked `pending_alignment`; aligned acoustic features are written by
+`extract_yoruba_slr86_tone_features.py` after MFA.
 
 Example:
 
@@ -159,6 +164,13 @@ Observed parser output after full male/female extraction:
 - 3,583 recordings with extracted audio;
 - 36 speakers;
 - 51,412 orthographic tone-bearing units.
+
+Observed 10-speaker aligned pilot:
+
+- 200 recordings across 10 speakers;
+- 2,622 aligned tone-token feature rows;
+- all pooled and vowel-quality matched validation rows used full metric mode;
+- vowel-matched `f0_contour` median classifier AUC was 0.764.
 
 ## AISHELL MFA pilot
 
