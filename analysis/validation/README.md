@@ -72,6 +72,33 @@ Outputs:
   estimable, with a reason.
 - `validation_run_summary.csv`: compact run counts and configuration.
 
+## Metric summaries
+
+Use the base-R summarizer after a validation run to make paper-facing summary
+tables and to check whether any rows used JSD/overlap fallback mode.
+
+```sh
+Rscript analysis/validation/summarize_validation_metrics.R \
+  --validation-dir analysis/validation/outputs/aishell_mandarin_tone_validation
+```
+
+For the 2,500-recording AISHELL scaled run on the GPU host:
+
+```sh
+mamba run -n phonjsd-r Rscript analysis/validation/summarize_validation_metrics.R \
+  --validation-dir analysis/validation/outputs/aishell_mandarin_tone_validation
+```
+
+Outputs:
+
+- `validation_summary_by_feature_set.csv`: median, mean, and interquartile
+  summaries for JSD, overlap, classifier metrics, and classical metrics by
+  feature set.
+- `validation_summary_by_category_pair.csv`: the same summaries by category
+  pair and feature set.
+- `validation_metric_mode_counts.csv`: counts of `all_metrics` versus
+  `jsd_overlap_fallback` rows by feature set.
+
 ## Scope
 
 This scaffold does not extract acoustic features or perform forced alignment.

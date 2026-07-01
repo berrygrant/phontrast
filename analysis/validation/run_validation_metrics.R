@@ -309,6 +309,40 @@ empty_skipped <- function() {
   )
 }
 
+empty_metrics <- function() {
+  data.frame(
+    domain = character(),
+    language = character(),
+    source_corpus = character(),
+    control_group = character(),
+    cat1 = character(),
+    cat2 = character(),
+    feature_set = character(),
+    feature_count = integer(),
+    features = character(),
+    n_cat1 = integer(),
+    n_cat2 = integer(),
+    scope = character(),
+    n_tokens = integer(),
+    pillai = numeric(),
+    pillai_p_value = numeric(),
+    bhatt_dist = numeric(),
+    bhatt_affinity = numeric(),
+    jsd = numeric(),
+    js_distance = numeric(),
+    mahalanobis_dist = numeric(),
+    percent_overlap = numeric(),
+    metric_mode = character(),
+    classifier_auc = numeric(),
+    classifier_balanced_accuracy = numeric(),
+    classifier_accuracy = numeric(),
+    classifier_n_folds = integer(),
+    classifier_model = character(),
+    warning_note = character(),
+    stringsAsFactors = FALSE
+  )
+}
+
 make_skip <- function(meta, feature_set, n_tokens, n_cat1, n_cat2, note) {
   data.frame(
     domain = meta$domain,
@@ -603,7 +637,7 @@ write_outputs <- function(metrics, skipped, out_dir, summary) {
   summary_path <- file.path(out_dir, "validation_run_summary.csv")
 
   if (is.null(metrics) || !nrow(metrics)) {
-    metrics <- data.frame()
+    metrics <- empty_metrics()
   }
   if (is.null(skipped) || !nrow(skipped)) {
     skipped <- empty_skipped()
