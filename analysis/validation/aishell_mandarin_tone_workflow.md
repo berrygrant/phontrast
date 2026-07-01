@@ -201,6 +201,17 @@ Check the materialized sample:
 cat /tmp/phonjsd_aishell_mfa_scaled/aishell_mfa_pilot_summary.csv
 ```
 
+Observed scaled sample summary:
+
+| Metric | Value |
+| --- | ---: |
+| recordings_selected | 2500 |
+| speakers_selected | 50 |
+| recordings_train | 2500 |
+| audio_copied | 2500 |
+| transcript_written | 2500 |
+| recordings_missing_audio | 0 |
+
 ## Step 3: Validate And Align With MFA
 
 Run MFA validation first:
@@ -293,6 +304,23 @@ Observed 100-utterance pilot extraction:
 | tokens_T3 | 241 |
 | tokens_T4 | 495 |
 
+Observed 2,500-recording scaled extraction:
+
+| Metric | Value |
+| --- | ---: |
+| pilot_recordings | 2500 |
+| textgrids_found | 2500 |
+| tone_source | built_from_pilot_manifest_with_pypinyin |
+| tone_units_loaded | 34412 |
+| tokens_written | 32850 |
+| tokens_skipped_no_word_interval | 2 |
+| tokens_skipped_short_token_interval | 89 |
+| tokens_skipped_too_few_voiced_frames | 1471 |
+| tokens_T1 | 7564 |
+| tokens_T2 | 7240 |
+| tokens_T3 | 5814 |
+| tokens_T4 | 12232 |
+
 ## Step 5: Run Validation
 
 ### Pooled Sanity Check
@@ -361,6 +389,35 @@ head -30 analysis/validation/outputs/aishell_mandarin_tone_validation_scaled_mat
 head -30 analysis/validation/outputs/aishell_mandarin_tone_validation_scaled_matched/validation_skipped_contrasts.csv
 ```
 
+Summarize the successful rows:
+
+```sh
+mamba run -n phonjsd-r Rscript analysis/validation/summarize_validation_metrics.R \
+  --validation-dir analysis/validation/outputs/aishell_mandarin_tone_validation_scaled_matched
+```
+
+Observed 2,500-recording matched validation summary:
+
+| Metric | Value |
+| --- | ---: |
+| n_input_rows | 32850 |
+| n_feature_sets | 4 |
+| n_contrasts | 861 |
+| n_attempted | 3444 |
+| n_successful | 750 |
+| n_skipped | 2694 |
+| bw | scott.diag |
+| eval_on | pooled_sample |
+| eval_n | 300 |
+| engine | fast_diag |
+| min_per_category | 20 |
+| min_tokens | 40 |
+| cv_folds | 5 |
+
+Most skipped rows are expected under strict same-pinyin-base matching: many
+syllable bases do not have at least 20 complete tokens in both tone categories
+after filtering.
+
 ## Feature Sets
 
 The Mandarin extractor writes four feature sets:
@@ -401,6 +458,38 @@ Interpretation:
 - T2-T3 is the weakest pair, plausibly because both are contour tones and are
   harder to separate acoustically in short, word-derived windows.
 
+## Observed Scaled Matched Pattern
+
+The 2,500-recording same-base matched run produced 750 successful metric rows
+from 32,850 extracted tone tokens. Only 3 of 750 rows used
+`jsd_overlap_fallback`; the remaining rows retained the full classical metric
+bundle.
+
+| Feature set | Rows | Contrasts | Control groups | All metrics | Fallback | Median JSD | Median overlap | Median AUC | Median balanced accuracy |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `energy_duration` | 199 | 199 | 102 | 198 | 1 | 0.221 | 0.568 | 0.689 | 0.601 |
+| `f0_contour` | 176 | 176 | 89 | 176 | 0 | 0.139 | 0.648 | 0.786 | 0.674 |
+| `f0_static` | 199 | 199 | 102 | 199 | 0 | 0.087 | 0.739 | 0.680 | 0.567 |
+| `tone_prosody` | 176 | 176 | 89 | 174 | 2 | 0.748 | 0.134 | 0.793 | 0.732 |
+
+Interpretation:
+
+- The matched run preserves the central validation result: phonJSD is strongly
+  sensitive to feature parameterization.
+- `f0_contour` provides the clearest F0-only classifier reference, with median
+  AUC around 0.79.
+- `f0_static` is weaker than contour features, as expected for Mandarin tones.
+- `energy_duration` alone carries nontrivial information, but the lower balanced
+  accuracy suggests it should be treated as a secondary prosodic cue rather than
+  the primary tone contrast.
+- `tone_prosody` yields much larger median JSD and lower overlap than the
+  narrower feature sets, while classifier AUC improves only modestly over
+  `f0_contour`. This is useful evidence that JSD is capturing distributional
+  separation in the chosen feature space, not simply reproducing classifier
+  separability.
+- The low fallback count means rank-deficient classical tests are no longer a
+  major blocker for the Mandarin matched analysis.
+
 ## Paper-Methods Notes
 
 Report the following explicitly:
@@ -422,7 +511,7 @@ Suggested wording:
 
 > Mandarin tone validation used AISHELL-1 recordings aligned with Montreal
 > Forced Aligner. Lexical tone labels were assigned from transcript characters
-> using pypinyin tone-number output. In the pilot extraction, each MFA-aligned
+> using pypinyin tone-number output. In the current extraction, each MFA-aligned
 > word interval was divided evenly across its constituent transcript
 > characters, and F0 trajectories were extracted with librosa.pyin. F0 features
 > were speaker-centered prior to validation. Pooled tone contrasts were used as
@@ -439,8 +528,8 @@ Needed refinements:
 - Replace equal character windows with syllable or vowel-nucleus intervals from
   an MFA phone-tier parse.
 - Audit word-label mismatches and OOV-aligned intervals.
-- Scale sample size until same-pinyin-base contrasts are estimable with stable
-  token counts.
+- Consider a larger or full-corpus matched run after nucleus-level extraction,
+  if the paper needs tighter confidence around per-base tone-pair summaries.
 - Consider per-speaker or mixed/grouped validation summaries after the matched
   analysis is stable.
 - Archive exact MFA model names, package versions, command history, summary
