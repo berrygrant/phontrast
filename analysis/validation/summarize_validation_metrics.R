@@ -57,7 +57,10 @@ read_nonblank_csv <- function(path) {
   if (!file.exists(path)) {
     stop("Metrics file does not exist: ", path, call. = FALSE)
   }
-  lines <- readLines(path, warn = FALSE)
+  lines <- readLines(path, warn = FALSE, skipNul = TRUE)
+  lines <- enc2utf8(lines)
+  lines <- sub("^\ufeff", "", lines)
+  lines <- gsub("\r$", "", lines)
   nonblank <- lines[nzchar(trimws(lines))]
   if (!length(nonblank)) {
     stop(
@@ -66,12 +69,58 @@ read_nonblank_csv <- function(path) {
       call. = FALSE
     )
   }
+
+  header_idx <- which(
+    grepl("(^|,)\"?feature_set\"?(,|$)", nonblank) &
+      grepl("(^|,)\"?jsd\"?(,|$)", nonblank)
+  )
+  if (!length(header_idx)) {
+    preview <- paste(
+      sprintf(
+        "%s: %s",
+        seq_len(min(length(lines), 8L)),
+        encodeString(utils::head(lines, 8L), quote = '"')
+      ),
+      collapse = "\n"
+    )
+    stop(
+      "Metrics file does not contain the expected validation_metrics.csv header: ", path, "\n",
+      "Expected columns include `feature_set` and `jsd`.\n",
+      "First physical lines:\n",
+      preview,
+      call. = FALSE
+    )
+  }
+  if (header_idx[[1L]] > 1L) {
+    nonblank <- nonblank[seq(from = header_idx[[1L]], to = length(nonblank))]
+  }
+
+  csv_text <- paste(nonblank, collapse = "\n")
   out <- tryCatch(
-    read.csv(text = paste(nonblank, collapse = "\n"), stringsAsFactors = FALSE, check.names = FALSE),
+    read.csv(
+      text = csv_text,
+      stringsAsFactors = FALSE,
+      check.names = FALSE,
+      blank.lines.skip = TRUE,
+      comment.char = ""
+    ),
     error = function(e) e
   )
   if (inherits(out, "error")) {
-    stop("Could not read metrics CSV: ", conditionMessage(out), call. = FALSE)
+    preview <- paste(
+      sprintf(
+        "%s: %s",
+        seq_len(min(length(nonblank), 8L)),
+        encodeString(utils::head(nonblank, 8L), quote = '"')
+      ),
+      collapse = "\n"
+    )
+    stop(
+      "Could not read metrics CSV: ", conditionMessage(out), "\n",
+      "First nonblank/header-aligned lines:\n",
+      preview,
+      call. = FALSE
+    )
   }
   if (!nrow(out)) {
     stop(

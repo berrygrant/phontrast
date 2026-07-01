@@ -86,8 +86,12 @@ For the 2,500-recording AISHELL scaled run on the GPU host:
 
 ```sh
 mamba run -n phonjsd-r Rscript analysis/validation/summarize_validation_metrics.R \
-  --validation-dir analysis/validation/outputs/aishell_mandarin_tone_validation
+  --validation-dir analysis/validation/outputs/aishell_mandarin_tone_validation_scaled_matched
 ```
+
+Use the exact directory passed to `--out-dir` in `run_validation_metrics.R`.
+Earlier failed or all-skipped runs may leave sibling directories with blank or
+header-only metrics files.
 
 Outputs:
 
