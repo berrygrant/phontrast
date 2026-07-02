@@ -191,6 +191,14 @@ Observed full-clean vowel-matched validation:
 - `f0_static` median JSD = 0.115 and median classifier AUC = 0.761;
 - `tone_prosody` median JSD = 0.282 and median classifier AUC = 0.812.
 
+Observed full-clean alignment audit:
+
+- no word-label mismatches;
+- no phone-label mismatches;
+- 502 low voiced-proportion flags, about 1.6% of retained tokens;
+- median token duration = 100 ms;
+- median voiced-frame proportion = 1.0.
+
 ## AISHELL MFA pilot
 
 For the full reproducibility log and paper-methods notes, see

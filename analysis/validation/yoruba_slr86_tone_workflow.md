@@ -670,6 +670,36 @@ For the hand audit, inspect the sampled `file` and `textgrid` pairs and verify:
 - voiced-frame coverage is adequate for F0 interpretation;
 - any `word_label_mismatch` rows are rare and explainable.
 
+Observed full-clean audit summary:
+
+| Metric | Value |
+| --- | ---: |
+| tokens_total | 31343 |
+| speakers_total | 36 |
+| recordings_total | 2422 |
+| control_groups_total | 8 |
+| tokens_with_audit_flags | 502 |
+| tokens_flagged_low_voiced_prop | 502 |
+| word_label_mismatch | 0 |
+| phone_label_mismatch | 0 |
+| median_duration_ms | 100 |
+| median_f0_voiced_prop | 1.0 |
+| median_abs_f0_delta_st | 0.55 |
+
+Observed full-clean audit by tone:
+
+| Category | Tokens | Speakers | Recordings | Control groups | Low voiced-prop flags | Median duration ms | Median voiced prop | Median F0 mean ST |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| H | 12051 | 36 | 2411 | 8 | 81 | 100 | 1.0 | 90.14 |
+| L | 8266 | 36 | 2236 | 8 | 344 | 100 | 1.0 | 87.46 |
+| M | 11026 | 36 | 2384 | 7 | 77 | 90 | 1.0 | 88.48 |
+
+The audit found no word-label or phone-label mismatches. The only derived audit
+flag was low voiced-frame proportion in 502 tokens, or about 1.6% of retained
+tokens. Because the extractor already skipped tokens with too few voiced frames,
+these are lower-confidence retained tokens rather than alignment failures. The
+issue sample should still be inspected before final paper submission.
+
 ## Paper-Methods Notes
 
 Report the following explicitly:
@@ -718,11 +748,12 @@ Completed:
 - full-clean scale-up command sequence;
 - full-clean Yoruba alignment and feature extraction;
 - full-clean vowel-matched JSD validation;
-- deterministic alignment/token audit script and output contract.
+- deterministic alignment/token audit script and output contract;
+- full-clean alignment/token audit summary.
 
 Not completed:
 
-- hand-audited alignment/token sample for paper quality control;
+- manual inspection of the generated alignment/token audit sample;
 - optional full-clean pooled validation summary, if wanted for supplement.
 
 Needed refinements:
@@ -731,7 +762,7 @@ Needed refinements:
 - manually inspect a sample of parsed tone labels after Unicode normalization;
 - audit a sample of generated dictionary entries and TextGrid phone alignments;
 - decide whether nasal/oral status can be robustly derived from orthography;
-- complete and archive the hand-audited alignment/token sample.
+- complete and archive manual decisions for the generated audit sample.
 
 ## Output Bundle To Archive
 
