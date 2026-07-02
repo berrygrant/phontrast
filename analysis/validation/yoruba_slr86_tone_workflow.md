@@ -597,6 +597,40 @@ Interpretation:
 - `energy_duration` is weaker by classifier AUC and should be treated as a
   control/sensitivity feature set rather than a primary tone cue.
 
+## Observed Full-Clean Vowel-Matched Pattern
+
+The full-clean Yoruba run confirms the pilot result on 2,422 recordings and
+31,343 aligned tone tokens. The vowel-quality matched validation produced 88
+metric rows: 22 contrasts for each of four feature sets across eight control
+groups. Every row used `metric_mode = all_metrics`; no fallback rows were
+needed.
+
+Vowel-quality matched full-clean validation:
+
+| Feature set | Rows | Contrasts | Control groups | All metrics | Median JSD | Median overlap | Median AUC | Median balanced accuracy |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `energy_duration` | 22 | 22 | 8 | 22 | 0.083 | 0.726 | 0.667 | 0.606 |
+| `f0_contour` | 22 | 22 | 8 | 22 | 0.140 | 0.644 | 0.761 | 0.691 |
+| `f0_static` | 22 | 22 | 8 | 22 | 0.115 | 0.675 | 0.761 | 0.676 |
+| `tone_prosody` | 22 | 22 | 8 | 22 | 0.282 | 0.512 | 0.812 | 0.733 |
+
+Interpretation:
+
+- The full-clean run supports the claim that phonJSD distinguishes Yoruba
+  lexical tone when the feature space encodes F0.
+- The result is robust to vowel-quality matching and is not driven by fallback
+  metric mode.
+- `f0_contour` and `f0_static` perform similarly by classifier AUC in the
+  full-clean run. This is expected for a register-tone language where F0 level
+  is a central cue; `f0_contour` remains the most portable primary tone
+  specification across Mandarin and Yoruba.
+- `tone_prosody` is the strongest cue bundle by JSD and classifier reference,
+  but it combines F0, duration, and energy. It should be reported as a
+  sensitivity/full-cue result rather than the primary phonological-tone
+  parameterization.
+- `energy_duration` remains weaker than F0-bearing feature sets and functions
+  as a useful non-F0 control.
+
 ## Step 6: Alignment And Token Audit
 
 Before treating a larger Yoruba run as paper-final, generate a deterministic
@@ -651,8 +685,8 @@ Report the following explicitly:
   should be described as a corpus-internal speaker identifier.
 - The parser-stage table is `pending_alignment` and contains no acoustic
   features; acoustic features are written only after MFA alignment.
-- Paper-quality final validation should use a larger aligned sample,
-  speaker-normalized F0 features, and a hand-audited alignment/token subset.
+- Paper-quality reporting should pair the full-clean aligned validation with a
+  hand-audited alignment/token subset.
 
 Suggested wording:
 
@@ -660,10 +694,11 @@ Suggested wording:
 > Unicode normalization. Acute-marked tone-bearing units were labeled high,
 > grave-marked units low, and unmarked vowel-bearing units mid; syllabic nasal
 > tone-bearing units were parsed separately. Bracketed recording annotations
-> were retained as quality flags. In the pilot analysis, a corpus-specific MFA
-> acoustic model was trained from a grapheme-style dictionary, and orthographic
-> tone labels were joined to aligned vowel or syllabic-nasal phone intervals
-> before extracting speaker-normalized F0 trajectories.
+> were retained as quality flags. A corpus-specific MFA acoustic model was
+> trained from a grapheme-style dictionary, and orthographic tone labels were
+> joined to aligned vowel or syllabic-nasal phone intervals before extracting
+> speaker-normalized F0 trajectories. Vowel-quality matched validation was run
+> on the full clean aligned subset, excluding annotation-flagged recordings.
 
 ## Limitations And Next Refinements
 
@@ -681,13 +716,14 @@ Completed:
 - phone-level F0 extraction;
 - pooled and vowel-matched pilot JSD validation;
 - full-clean scale-up command sequence;
+- full-clean Yoruba alignment and feature extraction;
+- full-clean vowel-matched JSD validation;
 - deterministic alignment/token audit script and output contract.
 
 Not completed:
 
-- full-clean Yoruba alignment and extraction execution;
 - hand-audited alignment/token sample for paper quality control;
-- final paper-scale JSD validation on Yoruba acoustic features.
+- optional full-clean pooled validation summary, if wanted for supplement.
 
 Needed refinements:
 
@@ -695,7 +731,6 @@ Needed refinements:
 - manually inspect a sample of parsed tone labels after Unicode normalization;
 - audit a sample of generated dictionary entries and TextGrid phone alignments;
 - decide whether nasal/oral status can be robustly derived from orthography;
-- run the full-clean corpus sequence on the GPU/NAS host;
 - complete and archive the hand-audited alignment/token sample.
 
 ## Output Bundle To Archive

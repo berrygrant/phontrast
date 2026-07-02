@@ -182,6 +182,15 @@ Observed full-clean aligned extraction:
 - 31,343 aligned tone-token feature rows;
 - tone counts: H = 12,051, L = 8,266, M = 11,026.
 
+Observed full-clean vowel-matched validation:
+
+- 88 metric rows: 22 contrasts for each of four feature sets;
+- 8 vowel-quality control groups;
+- all rows used `metric_mode = all_metrics`;
+- `f0_contour` median JSD = 0.140 and median classifier AUC = 0.761;
+- `f0_static` median JSD = 0.115 and median classifier AUC = 0.761;
+- `tone_prosody` median JSD = 0.282 and median classifier AUC = 0.812.
+
 ## AISHELL MFA pilot
 
 For the full reproducibility log and paper-methods notes, see
