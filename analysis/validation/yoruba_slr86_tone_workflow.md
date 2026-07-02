@@ -700,6 +700,37 @@ tokens. Because the extractor already skipped tokens with too few voiced frames,
 these are lower-confidence retained tokens rather than alignment failures. The
 issue sample should still be inspected before final paper submission.
 
+## Step 7: Manual Audit Packet
+
+Generate a manual review packet from the balanced sample and issue sample:
+
+```sh
+/opt/miniconda3/envs/mfa/bin/python \
+  analysis/validation/prepare_yoruba_tone_manual_audit.py \
+  --audit-dir analysis/validation/outputs/yoruba_slr86_tone_alignment_audit_full_clean \
+  --out-dir analysis/validation/outputs/yoruba_slr86_tone_manual_audit_full_clean \
+  --media-mode symlink
+```
+
+This writes:
+
+- `yoruba_tone_manual_audit_items.csv`: one row per sampled token, with blank
+  manual decision columns;
+- `yoruba_tone_manual_audit_summary.csv`: counts by source, priority, tone, and
+  speaker/recording coverage;
+- `README.md`: coding instructions;
+- optional `audio/` and `textgrid/` symlinks when `--media-mode symlink` is
+  used.
+
+Manual decisions should prioritize `review_priority = issue`, then inspect the
+balanced sample rows. Fill:
+
+- `manual_word_alignment_ok`: `yes`, `no`, or `unclear`;
+- `manual_phone_alignment_ok`: `yes`, `no`, or `unclear`;
+- `manual_interval_quality`: `good`, `minor_issue`, `bad`, or `unclear`;
+- `manual_f0_usable`: `yes`, `no`, or `unclear`;
+- `manual_decision`: `accept`, `exclude`, or `unclear`.
+
 ## Paper-Methods Notes
 
 Report the following explicitly:
@@ -749,7 +780,8 @@ Completed:
 - full-clean Yoruba alignment and feature extraction;
 - full-clean vowel-matched JSD validation;
 - deterministic alignment/token audit script and output contract;
-- full-clean alignment/token audit summary.
+- full-clean alignment/token audit summary;
+- manual audit packet generation.
 
 Not completed:
 

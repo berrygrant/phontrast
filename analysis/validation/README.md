@@ -133,6 +133,9 @@ across these domains.
 - `audit_yoruba_tone_alignment.py`: summarizes aligned Yoruba tone-token
   feature tables and writes a deterministic hand-audit sample with WAV/TextGrid
   pointers.
+- `prepare_yoruba_tone_manual_audit.py`: combines the Yoruba balanced audit
+  sample and issue sample into a manual review packet with decision columns and
+  optional media symlinks/copies.
 - `prepare_aishell_mandarin_tone_tokens.py`: builds an AISHELL-1 manifest and
   pypinyin-derived Mandarin tone-unit inventory. Its tone-unit CSV is also
   marked `pending_alignment`.
