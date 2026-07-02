@@ -427,8 +427,24 @@ Full clean extraction:
   --aligned-dir /tmp/phonjsd_yoruba_mfa_full_clean/aligned \
   --out-dir analysis/validation/outputs/yoruba_slr86_tone_features_full_clean \
   --pitch-method pyin \
-  --frame-ms 50
+  --frame-ms 50 \
+  --progress-every 100
 ```
+
+Observed full-clean extraction:
+
+| Metric | Value |
+| --- | ---: |
+| pilot_recordings | 2422 |
+| textgrids_found | 2422 |
+| tone_source | loaded_yoruba_tone_units_csv |
+| tone_units_loaded | 33976 |
+| tokens_written | 31343 |
+| tokens_skipped_short_token_interval | 2090 |
+| tokens_skipped_too_few_voiced_frames | 543 |
+| tokens_H | 12051 |
+| tokens_L | 8266 |
+| tokens_M | 11026 |
 
 Recommended token-feature columns:
 

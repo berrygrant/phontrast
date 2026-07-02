@@ -15,6 +15,8 @@ import csv
 import math
 import os
 import re
+import sys
+import time
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -66,6 +68,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hop-ms", type=float, default=10.0)
     parser.add_argument("--fmin-hz", type=float, default=50.0)
     parser.add_argument("--fmax-hz", type=float, default=500.0)
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=100,
+        help="Print extraction progress every N recordings. Use 0 to disable.",
+    )
     parser.add_argument(
         "--pitch-method",
         choices=("auto", "pyin", "yin", "autocorr"),
@@ -640,132 +648,155 @@ def extract_features(args: argparse.Namespace) -> tuple[list[dict[str, object]],
     skipped = Counter()
     librosa = load_librosa()
     _ = librosa
+    start_time = time.monotonic()
+    recording_items = sorted(pilot_rows.items())
 
-    for recording_id, manifest in sorted(pilot_rows.items()):
-        tg_path = tg_by_id.get(recording_id)
-        if tg_path is None:
-            skipped["no_textgrid"] += len(tone_by_recording.get(recording_id, []))
-            continue
-        audio_path = audio_path_for_recording(manifest)
-        if not audio_path.exists():
-            skipped["missing_audio"] += len(tone_by_recording.get(recording_id, []))
-            continue
-        try:
-            tiers = parse_textgrid(tg_path)
-            word_intervals = speech_intervals(choose_word_tier(tiers))
-            phone_intervals = speech_intervals(choose_phone_tier(tiers))
-        except Exception:
-            skipped["missing_textgrid_tier"] += len(tone_by_recording.get(recording_id, []))
-            continue
-        track = compute_track_features(
-            audio_path,
-            frame_ms=args.frame_ms,
-            hop_ms=args.hop_ms,
-            fmin_hz=args.fmin_hz,
-            fmax_hz=args.fmax_hz,
-            pitch_method=args.pitch_method,
+    def report_progress(processed: int) -> None:
+        if args.progress_every <= 0:
+            return
+        if processed != 1 and processed % args.progress_every != 0 and processed != len(recording_items):
+            return
+        top_skips = ", ".join(f"{reason}={n}" for reason, n in skipped.most_common(5)) or "none"
+        elapsed_s = time.monotonic() - start_time
+        print(
+            "[yoruba-extract] "
+            f"processed_recordings={processed}/{len(recording_items)} "
+            f"tokens_written={len(out_rows)} "
+            f"tokens_skipped={sum(skipped.values())} "
+            f"top_skips={top_skips} "
+            f"elapsed_s={elapsed_s:.1f}",
+            file=sys.stderr,
+            flush=True,
         )
-        rows_by_word: dict[int, list[dict[str, object]]] = defaultdict(list)
-        for row in tone_by_recording.get(recording_id, []):
-            rows_by_word[parse_int(row.get("word_index"))].append(row)
 
-        token_phone_intervals: dict[str, Interval] = {}
-        word_interval_by_index: dict[int, Interval] = {}
-        for word_index, word_rows in sorted(rows_by_word.items()):
-            if word_index <= 0 or word_index > len(word_intervals):
-                skipped["no_word_interval"] += len(word_rows)
+    for processed, (recording_id, manifest) in enumerate(recording_items, start=1):
+        try:
+            tg_path = tg_by_id.get(recording_id)
+            if tg_path is None:
+                skipped["no_textgrid"] += len(tone_by_recording.get(recording_id, []))
                 continue
-            word_interval = word_intervals[word_index - 1]
-            word_interval_by_index[word_index] = word_interval
-            word_phones = phone_intervals_for_word(phone_intervals, word_interval)
-            if not word_phones:
-                skipped["no_phone_intervals_in_word"] += len(word_rows)
+            audio_path = audio_path_for_recording(manifest)
+            if not audio_path.exists():
+                skipped["missing_audio"] += len(tone_by_recording.get(recording_id, []))
                 continue
-            aligned, phone_skips = align_tone_units_to_phones(word_rows, word_phones)
-            token_phone_intervals.update(aligned)
-            skipped.update(phone_skips)
+            try:
+                tiers = parse_textgrid(tg_path)
+                word_intervals = speech_intervals(choose_word_tier(tiers))
+                phone_intervals = speech_intervals(choose_phone_tier(tiers))
+            except Exception:
+                skipped["missing_textgrid_tier"] += len(tone_by_recording.get(recording_id, []))
+                continue
+            track = compute_track_features(
+                audio_path,
+                frame_ms=args.frame_ms,
+                hop_ms=args.hop_ms,
+                fmin_hz=args.fmin_hz,
+                fmax_hz=args.fmax_hz,
+                pitch_method=args.pitch_method,
+            )
+            rows_by_word: dict[int, list[dict[str, object]]] = defaultdict(list)
+            for row in tone_by_recording.get(recording_id, []):
+                rows_by_word[parse_int(row.get("word_index"))].append(row)
 
-        for tone_row in tone_by_recording.get(recording_id, []):
-            word_index = parse_int(tone_row.get("word_index"))
-            word_unit_index = parse_int(tone_row.get("word_unit_index"))
-            word_interval = word_interval_by_index.get(word_index)
-            phone_interval = token_phone_intervals.get(str(tone_row.get("token_id", "")))
-            if word_interval is None:
-                continue
-            if phone_interval is None:
-                continue
-            unit_count = word_unit_count(tone_row)
-            if word_unit_index <= 0 or word_unit_index > unit_count:
-                skipped["bad_word_unit_index"] += 1
-                continue
-            unit_start = phone_interval.xmin
-            unit_end = phone_interval.xmax
-            duration_ms = (unit_end - unit_start) * 1000.0
-            quality_flags = ["mfa_phone_interval"]
-            expected_word = normalize_mfa_text(str(tone_row.get("word", "")))
-            if normalize_label(word_interval.text) != normalize_label(expected_word):
-                quality_flags.append("word_label_mismatch")
-            if parse_bool(tone_row.get("recommended_exclude", "")):
-                quality_flags.append("recommended_exclude")
-            if duration_ms < args.min_token_ms:
-                skipped["short_token_interval"] += 1
-                continue
+            token_phone_intervals: dict[str, Interval] = {}
+            word_interval_by_index: dict[int, Interval] = {}
+            for word_index, word_rows in sorted(rows_by_word.items()):
+                if word_index <= 0 or word_index > len(word_intervals):
+                    skipped["no_word_interval"] += len(word_rows)
+                    continue
+                word_interval = word_intervals[word_index - 1]
+                word_interval_by_index[word_index] = word_interval
+                word_phones = phone_intervals_for_word(phone_intervals, word_interval)
+                if not word_phones:
+                    skipped["no_phone_intervals_in_word"] += len(word_rows)
+                    continue
+                aligned, phone_skips = align_tone_units_to_phones(word_rows, word_phones)
+                token_phone_intervals.update(aligned)
+                skipped.update(phone_skips)
 
-            features, skip_reason = token_features(track, unit_start, unit_end, args.min_voiced_frames)
-            if skip_reason:
-                skipped[skip_reason] += 1
-                continue
+            for tone_row in tone_by_recording.get(recording_id, []):
+                word_index = parse_int(tone_row.get("word_index"))
+                word_unit_index = parse_int(tone_row.get("word_unit_index"))
+                word_interval = word_interval_by_index.get(word_index)
+                phone_interval = token_phone_intervals.get(str(tone_row.get("token_id", "")))
+                if word_interval is None:
+                    continue
+                if phone_interval is None:
+                    continue
+                unit_count = word_unit_count(tone_row)
+                if word_unit_index <= 0 or word_unit_index > unit_count:
+                    skipped["bad_word_unit_index"] += 1
+                    continue
+                unit_start = phone_interval.xmin
+                unit_end = phone_interval.xmax
+                duration_ms = (unit_end - unit_start) * 1000.0
+                quality_flags = ["mfa_phone_interval"]
+                expected_word = normalize_mfa_text(str(tone_row.get("word", "")))
+                if normalize_label(word_interval.text) != normalize_label(expected_word):
+                    quality_flags.append("word_label_mismatch")
+                if parse_bool(tone_row.get("recommended_exclude", "")):
+                    quality_flags.append("recommended_exclude")
+                if duration_ms < args.min_token_ms:
+                    skipped["short_token_interval"] += 1
+                    continue
 
-            out = {
-                "token_id": tone_row.get("token_id", ""),
-                "domain": "tone",
-                "language": "Yoruba",
-                "source_corpus": "OpenSLR86",
-                "speaker": manifest.get("speaker", tone_row.get("speaker", "")),
-                "speaker_code": tone_row.get("speaker_code", ""),
-                "speaker_source": tone_row.get("speaker_source", ""),
-                "sex": manifest.get("sex", tone_row.get("sex", "")),
-                "recording_id": recording_id,
-                "file": str(audio_path),
-                "textgrid": str(tg_path),
-                "word": tone_row.get("word", ""),
-                "word_index": word_index,
-                "orthographic_unit": tone_row.get("orthographic_unit", ""),
-                "orthographic_base": tone_row.get("orthographic_base", ""),
-                "vowel_quality": tone_row.get("vowel_quality", ""),
-                "tbu_type": tone_row.get("tbu_type", ""),
-                "word_unit_index": word_unit_index,
-                "category": tone_row.get("category", ""),
-                "control_group": tone_row.get("control_group", tone_row.get("vowel_quality", "")),
-                "tone_unit_position": tone_row.get("tone_unit_position", ""),
-                "vowel_quality_control": tone_row.get("vowel_quality", ""),
-                "nasal_oral_status": tone_row.get("nasal_oral_status", ""),
-                "preceding_letter": tone_row.get("preceding_letter", ""),
-                "following_letter": tone_row.get("following_letter", ""),
-                "following_n_letter": tone_row.get("following_n_letter", ""),
-                "recording_unit_index": parse_int(tone_row.get("recording_unit_index")),
-                "word_tone_unit_count": unit_count,
-                "word_interval_label": word_interval.text,
-                "phone_interval_label": phone_interval.text,
-                "start": unit_start,
-                "end": unit_end,
-                "word_start": word_interval.xmin,
-                "word_end": word_interval.xmax,
-                "phone_start": phone_interval.xmin,
-                "phone_end": phone_interval.xmax,
-                "duration_ms": duration_ms,
-                "word_duration_ms": word_interval.duration * 1000.0,
-                "tone_unit_relative_position": (word_unit_index - 0.5) / unit_count,
-                "sample_rate_hz": track["sample_rate_hz"],
-                "frame_ms": track["frame_ms"],
-                "hop_ms": track["hop_ms"],
-                "pitch_method": track["pitch_method"],
-                "measurement_method": "mfa_phone_interval_yoruba_tone_unit_librosa_f0",
-                "quality_flag": ";".join(quality_flags),
-                "recommended_exclude": parse_bool(tone_row.get("recommended_exclude", "")),
-            }
-            out.update(features)
-            out_rows.append(out)
+                features, skip_reason = token_features(track, unit_start, unit_end, args.min_voiced_frames)
+                if skip_reason:
+                    skipped[skip_reason] += 1
+                    continue
+
+                out = {
+                    "token_id": tone_row.get("token_id", ""),
+                    "domain": "tone",
+                    "language": "Yoruba",
+                    "source_corpus": "OpenSLR86",
+                    "speaker": manifest.get("speaker", tone_row.get("speaker", "")),
+                    "speaker_code": tone_row.get("speaker_code", ""),
+                    "speaker_source": tone_row.get("speaker_source", ""),
+                    "sex": manifest.get("sex", tone_row.get("sex", "")),
+                    "recording_id": recording_id,
+                    "file": str(audio_path),
+                    "textgrid": str(tg_path),
+                    "word": tone_row.get("word", ""),
+                    "word_index": word_index,
+                    "orthographic_unit": tone_row.get("orthographic_unit", ""),
+                    "orthographic_base": tone_row.get("orthographic_base", ""),
+                    "vowel_quality": tone_row.get("vowel_quality", ""),
+                    "tbu_type": tone_row.get("tbu_type", ""),
+                    "word_unit_index": word_unit_index,
+                    "category": tone_row.get("category", ""),
+                    "control_group": tone_row.get("control_group", tone_row.get("vowel_quality", "")),
+                    "tone_unit_position": tone_row.get("tone_unit_position", ""),
+                    "vowel_quality_control": tone_row.get("vowel_quality", ""),
+                    "nasal_oral_status": tone_row.get("nasal_oral_status", ""),
+                    "preceding_letter": tone_row.get("preceding_letter", ""),
+                    "following_letter": tone_row.get("following_letter", ""),
+                    "following_n_letter": tone_row.get("following_n_letter", ""),
+                    "recording_unit_index": parse_int(tone_row.get("recording_unit_index")),
+                    "word_tone_unit_count": unit_count,
+                    "word_interval_label": word_interval.text,
+                    "phone_interval_label": phone_interval.text,
+                    "start": unit_start,
+                    "end": unit_end,
+                    "word_start": word_interval.xmin,
+                    "word_end": word_interval.xmax,
+                    "phone_start": phone_interval.xmin,
+                    "phone_end": phone_interval.xmax,
+                    "duration_ms": duration_ms,
+                    "word_duration_ms": word_interval.duration * 1000.0,
+                    "tone_unit_relative_position": (word_unit_index - 0.5) / unit_count,
+                    "sample_rate_hz": track["sample_rate_hz"],
+                    "frame_ms": track["frame_ms"],
+                    "hop_ms": track["hop_ms"],
+                    "pitch_method": track["pitch_method"],
+                    "measurement_method": "mfa_phone_interval_yoruba_tone_unit_librosa_f0",
+                    "quality_flag": ";".join(quality_flags),
+                    "recommended_exclude": parse_bool(tone_row.get("recommended_exclude", "")),
+                }
+                out.update(features)
+                out_rows.append(out)
+        finally:
+            report_progress(processed)
 
     summary = [
         {"metric": "pilot_recordings", "value": len(pilot_rows)},

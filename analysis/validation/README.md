@@ -175,6 +175,13 @@ Observed 10-speaker aligned pilot:
 - all pooled and vowel-quality matched validation rows used full metric mode;
 - vowel-matched `f0_contour` median classifier AUC was 0.764.
 
+Observed full-clean aligned extraction:
+
+- 2,422 recordings across 36 speakers;
+- 2,422 TextGrids found;
+- 31,343 aligned tone-token feature rows;
+- tone counts: H = 12,051, L = 8,266, M = 11,026.
+
 ## AISHELL MFA pilot
 
 For the full reproducibility log and paper-methods notes, see
