@@ -80,7 +80,8 @@ pillai_overlap <- function(data, features, category_col) {
 #' Computes Pillai scores and associated p-values per group (e.g., per speaker).
 #'
 #' @param data Data frame.
-#' @param group_col String; grouping column (e.g., "speaker").
+#' @param group_col Character vector of one or more grouping columns
+#'   (e.g., \code{"speaker"} or \code{c("Sex", "Style")}).
 #' @param category_col String; category column (e.g., "vowel").
 #' @param features Character vector of numeric feature columns.
 #' @param min_tokens Minimum tokens per group.
@@ -96,6 +97,7 @@ speaker_pillai <- function(data,
                            min_tokens = 20) {
 
   .check_positive_count(min_tokens, "min_tokens")
+  group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
@@ -113,7 +115,7 @@ speaker_pillai <- function(data,
       return(NULL)
     }
     tibble::tibble(
-      group = df_g[[group_col]][1],
+      group = .group_label(df_g, group_col),
       n_tokens = n_tok,
       pillai = po$pillai,
       p_value = po$p_value
@@ -178,8 +180,8 @@ global_pillai <- function(data,
 #' @param data Data frame.
 #' @param features Character vector of numeric feature columns.
 #' @param category_col String; category column name.
-#' @param group_col Optional string; grouping column name. If \code{NULL},
-#'   a global Pillai value is returned.
+#' @param group_col Optional character vector of one or more grouping columns.
+#'   If \code{NULL}, a global Pillai value is returned.
 #' @param min_tokens Minimum tokens (globally or per group).
 #'
 #' @return A data frame with either one global row or one row per group.
@@ -302,7 +304,8 @@ bhattacharyya_mvnorm <- function(data, features, category_col, eps = 1e-6) {
 #' a multivariate normal approximation.
 #'
 #' @param data Data frame.
-#' @param group_col String; grouping column (e.g., "speaker").
+#' @param group_col Character vector of one or more grouping columns
+#'   (e.g., \code{"speaker"} or \code{c("Sex", "Style")}).
 #' @param category_col String; category column with exactly two levels per group.
 #' @param features Character vector of numeric feature columns.
 #' @param min_tokens Minimum tokens per group.
@@ -319,6 +322,7 @@ speaker_bhatt <- function(data,
 
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
+  group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
@@ -341,7 +345,7 @@ speaker_bhatt <- function(data,
       return(NULL)
     }
     data.frame(
-      group         = df_g[[group_col]][1],
+      group         = .group_label(df_g, group_col),
       n_tokens      = n_tok,
       bhatt_dist    = bh$distance,
       bhatt_affinity = bh$affinity,
@@ -363,8 +367,8 @@ speaker_bhatt <- function(data,
 #' @param data Data frame.
 #' @param features Character vector of numeric feature columns.
 #' @param category_col String; category column name (exactly two levels globally).
-#' @param group_col Optional string; grouping column name. If \code{NULL},
-#'   a single global Bhattacharyya distance is returned.
+#' @param group_col Optional character vector of one or more grouping columns.
+#'   If \code{NULL}, a single global Bhattacharyya distance is returned.
 #' @param min_tokens Minimum tokens (globally or per group).
 #' @param eps Small ridge constant passed to \code{bhattacharyya_mvnorm()}.
 #'

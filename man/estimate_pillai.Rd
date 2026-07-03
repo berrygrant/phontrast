@@ -19,8 +19,8 @@ estimate_pillai(
 
 \item{category_col}{String; category column name.}
 
-\item{group_col}{Optional string; grouping column name. If \code{NULL},
-a global Pillai value is returned.}
+\item{group_col}{Optional character vector of one or more grouping columns.
+If \code{NULL}, a global Pillai value is returned.}
 
 \item{min_tokens}{Minimum tokens (globally or per group).}
 }

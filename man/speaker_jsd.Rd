@@ -4,13 +4,26 @@
 \alias{speaker_jsd}
 \title{Group-level JSD point estimates}
 \usage{
-speaker_jsd(data, group_col, category_col, features, min_tokens = 20, ...)
+speaker_jsd(
+  data,
+  group_col,
+  category_col,
+  features,
+  min_tokens = 20,
+  bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+  eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+  eval_n = NULL,
+  eval_seed = NULL,
+  engine = c("ks", "fast_diag", "fast_diagonal"),
+  chunk_size = 1000L,
+  ...
+)
 }
 \arguments{
 \item{data}{Data frame containing acoustic measurements.}
 
-\item{group_col}{String: name of column giving the grouping unit
-(e.g., "speaker").}
+\item{group_col}{Character vector giving one or more grouping columns
+(e.g., \code{"speaker"} or \code{c("Sex", "Style")}).}
 
 \item{category_col}{String: name of column giving the category
 to compare (e.g., "vowel"). Each group must have exactly two categories.}
@@ -19,6 +32,19 @@ to compare (e.g., "vowel"). Each group must have exactly two categories.}
 
 \item{min_tokens}{Minimum number of tokens per group required to compute
 JSD. Groups with fewer tokens are dropped.}
+
+\item{bw}{Bandwidth selection method passed to \code{jsd_kde_nd()}.}
+
+\item{eval_on}{KDE evaluation points passed to \code{jsd_kde_nd()}.}
+
+\item{eval_n}{Optional maximum number of KDE evaluation points.}
+
+\item{eval_seed}{Optional integer seed for KDE evaluation-point subsampling.}
+
+\item{engine}{KDE evaluation engine passed to \code{jsd_kde_nd()}.
+\code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
+
+\item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }

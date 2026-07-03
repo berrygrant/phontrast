@@ -168,9 +168,29 @@ test_that("fast KDE controls support diagonal Scott bandwidths", {
     engine = "fast_diag",
     min_tokens = 20
   )
+  wrapped_fast <- estimate_jsd(
+    data = data,
+    features = features,
+    category_col = "category",
+    bw = "scott.diag",
+    eval_n = 50,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  wrapped_alias <- estimate_jsd(
+    data = data,
+    features = features,
+    category_col = "category",
+    bw = "scott.diag",
+    eval_n = 50,
+    eval_seed = 2026,
+    engine = "fast_diagonal"
+  )
 
   expect_equal(fast, slow, tolerance = 1e-6)
   expect_equal(repeat_fast, fast)
+  expect_equal(wrapped_fast$jsd_point, fast)
+  expect_equal(wrapped_alias$jsd_point, fast)
   expect_true(is.finite(overlap))
   expect_true(overlap >= 0 && overlap <= 1)
   expect_equal(nrow(metrics), 1)
@@ -184,6 +204,102 @@ test_that("fast KDE controls support diagonal Scott bandwidths", {
     jsd_kde_nd(data, features, "category", eval_on = "pooled_sample"),
     "`eval_n` must be supplied"
   )
+})
+
+test_that("metric wrappers accept multiple grouping columns", {
+  set.seed(402)
+  data <- expand.grid(
+    sex = c("F", "M"),
+    style = c("casual", "read"),
+    category = c("a", "b"),
+    rep = seq_len(30),
+    KEEP.OUT.ATTRS = FALSE,
+    stringsAsFactors = FALSE
+  )
+  category_shift <- ifelse(data$category == "b", 1, 0)
+  sex_shift <- ifelse(data$sex == "M", 0.2, 0)
+  style_shift <- ifelse(data$style == "read", -0.2, 0)
+  data$f1 <- rnorm(nrow(data), mean = category_shift + sex_shift)
+  data$f2 <- rnorm(nrow(data), mean = category_shift + style_shift)
+  group_cols <- c("sex", "style")
+
+  jsd_out <- estimate_jsd(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = group_cols,
+    min_tokens = 20,
+    bw = "scott.diag",
+    eval_n = 30,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  summary_out <- jsd_summary(
+    data = data,
+    group_col = group_cols,
+    category_col = "category",
+    features = c("f1", "f2"),
+    do_boot = FALSE,
+    min_tokens = 20,
+    bw = "scott.diag",
+    eval_n = 30,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  overlap_out <- estimate_overlap(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = group_cols,
+    min_tokens = 20,
+    bw = "scott.diag",
+    eval_n = 30,
+    eval_seed = 2026,
+    engine = "fast_diag"
+  )
+  pillai_out <- estimate_pillai(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = group_cols,
+    min_tokens = 20
+  )
+  bhatt_out <- estimate_bhatt(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = group_cols,
+    min_tokens = 20
+  )
+  metrics <- compare_overlap_metrics(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    group_col = group_cols,
+    min_tokens = 20,
+    bw = "scott.diag",
+    eval_n = 30,
+    eval_seed = 2026,
+    engine = "fast_diagonal"
+  )
+
+  expected_groups <- c(
+    "sex=F | style=casual",
+    "sex=M | style=casual",
+    "sex=F | style=read",
+    "sex=M | style=read"
+  )
+  expect_equal(nrow(jsd_out), 4)
+  expect_setequal(jsd_out$group, expected_groups)
+  expect_setequal(summary_out$group, expected_groups)
+  expect_setequal(overlap_out$group, expected_groups)
+  expect_setequal(pillai_out$group, expected_groups)
+  expect_setequal(bhatt_out$group, expected_groups)
+  expect_setequal(metrics$group, expected_groups)
+  expect_true(all(is.finite(jsd_out$jsd_point)))
+  expect_true(all(is.finite(overlap_out$overlap)))
+  expect_true(all(is.finite(metrics$jsd)))
+  expect_true(all(is.finite(metrics$percent_overlap)))
 })
 
 test_that("KDE metrics ignore unused factor levels after filtering", {

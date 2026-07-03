@@ -75,6 +75,40 @@
   }
 }
 
+.check_group_cols <- function(group_col, arg = "group_col") {
+  if (is.null(group_col)) {
+    return(NULL)
+  }
+  if (!is.character(group_col) || !length(group_col) ||
+      anyNA(group_col) || any(!nzchar(group_col))) {
+    stop("`", arg, "` must be a character vector of one or more column names.", call. = FALSE)
+  }
+  if (anyDuplicated(group_col)) {
+    stop("`", arg, "` must not contain duplicate column names.", call. = FALSE)
+  }
+  group_col
+}
+
+.group_label <- function(data, group_col) {
+  group_col <- .check_group_cols(group_col)
+  if (length(group_col) == 1L) {
+    return(data[[group_col]][1])
+  }
+
+  vals <- vapply(group_col, function(col) {
+    as.character(data[[col]][1])
+  }, character(1))
+  paste(paste0(group_col, "=", vals), collapse = " | ")
+}
+
+.match_kde_engine <- function(engine) {
+  engine <- match.arg(engine, c("ks", "fast_diag", "fast_diagonal"))
+  if (identical(engine, "fast_diagonal")) {
+    return("fast_diag")
+  }
+  engine
+}
+
 .check_ridge_eps <- function(eps, arg = "eps") {
   if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
     stop("`", arg, "` must be a single positive finite number.", call. = FALSE)
@@ -131,7 +165,15 @@
 }
 
 .split_groups <- function(data, group_col) {
-  split(data, data[[group_col]], drop = TRUE)
+  group_col <- .check_group_cols(group_col)
+  if (length(group_col) == 1L) {
+    return(split(data, data[[group_col]], drop = TRUE))
+  }
+
+  group_key <- interaction(data[, group_col, drop = FALSE], drop = TRUE, sep = "\r")
+  groups <- split(data, group_key, drop = TRUE)
+  names(groups) <- vapply(groups, .group_label, character(1), group_col = group_col)
+  groups
 }
 
 .select_univariate_bandwidth <- function(x, bw) {
@@ -303,12 +345,12 @@
                               eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                               eval_n = NULL,
                               eval_seed = NULL,
-                              engine = c("ks", "fast_diag"),
+                              engine = c("ks", "fast_diag", "fast_diagonal"),
                               chunk_size = 1000L,
                               metric = "KDE") {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
-  engine <- match.arg(engine)
+  engine <- .match_kde_engine(engine)
   if (!is.null(eval_n)) {
     .check_positive_count(eval_n, "eval_n")
   }

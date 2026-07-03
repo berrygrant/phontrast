@@ -12,15 +12,22 @@
 #' @param data Data frame with at least `category_col` and `features`.
 #' @param features Character vector of feature column names (e.g., c("F1","F2")).
 #' @param category_col Name of the column giving the two-way category factor.
-#' @param group_col Optional grouping column. If provided, returns per-group JSD.
+#' @param group_col Optional character vector of one or more grouping columns.
+#'   If provided, returns per-group JSD. Multiple grouping columns are combined
+#'   into a labeled \code{group} value such as \code{"Sex=F | Style=read"}.
 #' @param do_boot Logical; if TRUE, run nonparametric bootstrap.
 #' @param n_boot Number of bootstrap resamples.
 #' @param min_tokens Minimum total tokens required (globally or per group).
 #' @param est_distance Logical; if TRUE, return Jensen–Shannon *distance* (sqrt of divergence).
 #' @param conf_level Confidence level for bootstrap interval.
-#' @param ... Additional arguments passed to \code{jsd_kde_nd()}, including
-#'   KDE controls such as \code{bw}, \code{eval_on}, \code{eval_n},
-#'   \code{eval_seed}, \code{engine}, and \code{chunk_size}.
+#' @param bw Bandwidth selection method passed to \code{jsd_kde_nd()}.
+#' @param eval_on KDE evaluation points passed to \code{jsd_kde_nd()}.
+#' @param eval_n Optional maximum number of KDE evaluation points.
+#' @param eval_seed Optional integer seed for KDE evaluation-point subsampling.
+#' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()}.
+#'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
+#' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
+#' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
 #'
 #' @return A tibble. Global: one row with columns
 #'   scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,
@@ -78,8 +85,17 @@ estimate_jsd <- function(data,
                          min_tokens   = 5,
                          est_distance = FALSE,
                          conf_level   = 0.95,
+                         bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                         eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                         eval_n = NULL,
+                         eval_seed = NULL,
+                         engine = c("ks", "fast_diag", "fast_diagonal"),
+                         chunk_size = 1000L,
                          ...) {
 
+  bw <- match.arg(bw)
+  eval_on <- match.arg(eval_on)
+  engine <- .match_kde_engine(engine)
   .check_conf_level(conf_level)
   if (isTRUE(do_boot)) {
     .check_positive_count(n_boot, "n_boot")
@@ -105,6 +121,12 @@ estimate_jsd <- function(data,
       data     = df,
       features = features,
       group    = category_col,
+      bw        = bw,
+      eval_on   = eval_on,
+      eval_n    = eval_n,
+      eval_seed = eval_seed,
+      engine    = engine,
+      chunk_size = chunk_size,
       ...
     )
     
@@ -144,6 +166,12 @@ estimate_jsd <- function(data,
           data     = df_boot,
           features = features,
           group    = category_col,
+          bw        = bw,
+          eval_on   = eval_on,
+          eval_n    = eval_n,
+          eval_seed = eval_seed,
+          engine    = engine,
+          chunk_size = chunk_size,
           ...
         ),
         error = function(e) NA_real_
@@ -185,6 +213,7 @@ estimate_jsd <- function(data,
   }
   
   # ---- Grouped ----
+  group_col <- .check_group_cols(group_col)
   .check_columns(data, group_col, "group_col")
 
   keep_cols <- c(group_col, category_col, features)
@@ -196,6 +225,12 @@ estimate_jsd <- function(data,
     category_col = category_col,
     features     = features,
     min_tokens   = min_tokens,
+    bw           = bw,
+    eval_on      = eval_on,
+    eval_n       = eval_n,
+    eval_seed    = eval_seed,
+    engine       = engine,
+    chunk_size   = chunk_size,
     ...
   ) |>
     dplyr::rename(jsd_point = "jsd")
@@ -230,6 +265,12 @@ estimate_jsd <- function(data,
     min_tokens   = min_tokens,
     est_distance = est_distance,
     conf_level   = conf_level,
+    bw           = bw,
+    eval_on      = eval_on,
+    eval_n       = eval_n,
+    eval_seed    = eval_seed,
+    engine       = engine,
+    chunk_size   = chunk_size,
     ...
   )
   

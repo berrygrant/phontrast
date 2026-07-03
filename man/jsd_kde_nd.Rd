@@ -12,7 +12,7 @@ jsd_kde_nd(
   eval_on = c("pooled", "group1", "group2", "pooled_sample"),
   eval_n = NULL,
   eval_seed = NULL,
-  engine = c("ks", "fast_diag"),
+  engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L
 )
 }
@@ -49,7 +49,8 @@ state is used.}
 
 \item{engine}{KDE evaluation engine. \code{"ks"} uses \code{ks::kde()}.
 \code{"fast_diag"} uses a chunked diagonal-Gaussian evaluator and requires
-\code{bw = "scott.diag"} or \code{bw = "Hpi.diag"} for multivariate KDE.}
+\code{bw = "scott.diag"} or \code{bw = "Hpi.diag"} for multivariate KDE.
+\code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
 
 \item{chunk_size}{Positive integer controlling the number of evaluation
 points processed per chunk by \code{engine = "fast_diag"}.}

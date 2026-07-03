@@ -9,7 +9,8 @@ speaker_pillai(data, group_col, category_col, features, min_tokens = 20)
 \arguments{
 \item{data}{Data frame.}
 
-\item{group_col}{String; grouping column (e.g., "speaker").}
+\item{group_col}{Character vector of one or more grouping columns
+(e.g., \code{"speaker"} or \code{c("Sex", "Style")}).}
 
 \item{category_col}{String; category column (e.g., "vowel").}
 

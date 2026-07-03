@@ -14,6 +14,12 @@ estimate_jsd(
   min_tokens = 5,
   est_distance = FALSE,
   conf_level = 0.95,
+  bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+  eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+  eval_n = NULL,
+  eval_seed = NULL,
+  engine = c("ks", "fast_diag", "fast_diagonal"),
+  chunk_size = 1000L,
   ...
 )
 }
@@ -24,7 +30,9 @@ estimate_jsd(
 
 \item{category_col}{Name of the column giving the two-way category factor.}
 
-\item{group_col}{Optional grouping column. If provided, returns per-group JSD.}
+\item{group_col}{Optional character vector of one or more grouping columns.
+If provided, returns per-group JSD. Multiple grouping columns are combined
+into a labeled \code{group} value such as \code{"Sex=F | Style=read"}.}
 
 \item{do_boot}{Logical; if TRUE, run nonparametric bootstrap.}
 
@@ -36,9 +44,20 @@ estimate_jsd(
 
 \item{conf_level}{Confidence level for bootstrap interval.}
 
-\item{...}{Additional arguments passed to \code{jsd_kde_nd()}, including
-KDE controls such as \code{bw}, \code{eval_on}, \code{eval_n},
-\code{eval_seed}, \code{engine}, and \code{chunk_size}.}
+\item{bw}{Bandwidth selection method passed to \code{jsd_kde_nd()}.}
+
+\item{eval_on}{KDE evaluation points passed to \code{jsd_kde_nd()}.}
+
+\item{eval_n}{Optional maximum number of KDE evaluation points.}
+
+\item{eval_seed}{Optional integer seed for KDE evaluation-point subsampling.}
+
+\item{engine}{KDE evaluation engine passed to \code{jsd_kde_nd()}.
+\code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
+
+\item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
+
+\item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }
 \value{
 A tibble. Global: one row with columns

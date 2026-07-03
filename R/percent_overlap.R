@@ -19,7 +19,8 @@
 #' @param eval_seed Optional integer seed used only when \code{eval_n} causes
 #'   evaluation-point subsampling.
 #' @param engine KDE evaluation engine. Uses the same options as
-#'   \code{jsd_kde_nd()}: \code{"ks"} or \code{"fast_diag"}.
+#'   \code{jsd_kde_nd()}: \code{"ks"}, \code{"fast_diag"}, or
+#'   \code{"fast_diagonal"}.
 #' @param chunk_size Positive integer controlling the number of evaluation
 #'   points processed per chunk by \code{engine = "fast_diag"}.
 #' @param ... Reserved for future extensions; currently unused.
@@ -33,7 +34,7 @@ percent_overlap_kde <- function(data,
                                 eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                                 eval_n = NULL,
                                 eval_seed = NULL,
-                                engine = c("ks", "fast_diag"),
+                                engine = c("ks", "fast_diag", "fast_diagonal"),
                                 chunk_size = 1000L,
                                 ...) {
 
@@ -70,11 +71,16 @@ percent_overlap_kde <- function(data,
 #' percentage.
 #'
 #' @inheritParams estimate_jsd
+#' @param group_col Optional character vector of one or more grouping columns.
+#'   If provided, returns per-group overlap. Multiple grouping columns are
+#'   combined into a labeled \code{group} value such as
+#'   \code{"Sex=F | Style=read"}.
 #' @param bw Bandwidth selection method passed to \code{percent_overlap_kde()}.
 #' @param eval_on KDE evaluation points passed to \code{percent_overlap_kde()}.
 #' @param eval_n Optional maximum number of KDE evaluation points.
 #' @param eval_seed Optional integer seed for KDE evaluation-point subsampling.
 #' @param engine KDE evaluation engine passed to \code{percent_overlap_kde()}.
+#'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param ... Additional arguments passed to \code{percent_overlap_kde()}.
 #'
@@ -90,13 +96,13 @@ estimate_overlap <- function(data,
                              eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                              eval_n = NULL,
                              eval_seed = NULL,
-                             engine = c("ks", "fast_diag"),
+                             engine = c("ks", "fast_diag", "fast_diagonal"),
                              chunk_size = 1000L,
                              ...) {
 
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
-  engine <- match.arg(engine)
+  engine <- .match_kde_engine(engine)
   .check_positive_count(min_tokens, "min_tokens")
 
   if (is.null(group_col)) {
@@ -130,6 +136,7 @@ estimate_overlap <- function(data,
   }
 
   # ---- Grouped ----
+  group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
 
@@ -159,7 +166,7 @@ estimate_overlap <- function(data,
 
     data.frame(
       scope    = "group",
-      group    = df_g[[group_col]][1],
+      group    = .group_label(df_g, group_col),
       n_tokens = n_tok,
       overlap  = ov,
       stringsAsFactors = FALSE

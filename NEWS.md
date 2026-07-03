@@ -5,9 +5,15 @@
 - Added opt-in high-dimensional KDE speed controls: `bw = "scott.diag"`,
   evaluation-point subsampling via `eval_n`/`eval_seed`, and
   `engine = "fast_diag"` for chunked diagonal-Gaussian KDE evaluation.
+- Added `engine = "fast_diagonal"` as an alias for `engine = "fast_diag"`.
 - Extended the same KDE controls across JSD, percent overlap, and
   `compare_overlap_metrics()` so separation and overlap estimates use aligned
   density-estimation settings.
+- Exposed the same KDE controls in lower-level JSD wrappers including
+  `speaker_jsd()`, `boot_jsd()`, `jsd_summary()`, and `global_boot_jsd()`.
+- Allowed grouped metric wrappers to use multiple grouping columns via
+  `group_col = c("Sex", "Style")`; grouped outputs retain a single labeled
+  `group` column.
 - Switched `extract_mfcc()` to `tuneR::melfcc()` and removed the stale
   `seewave::mfcc()` reference.
 

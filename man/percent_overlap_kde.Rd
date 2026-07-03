@@ -12,7 +12,7 @@ percent_overlap_kde(
   eval_on = c("pooled", "group1", "group2", "pooled_sample"),
   eval_n = NULL,
   eval_seed = NULL,
-  engine = c("ks", "fast_diag"),
+  engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
   ...
 )
@@ -39,7 +39,8 @@ evaluation points to use.}
 evaluation-point subsampling.}
 
 \item{engine}{KDE evaluation engine. Uses the same options as
-\code{jsd_kde_nd()}: \code{"ks"} or \code{"fast_diag"}.}
+\code{jsd_kde_nd()}: \code{"ks"}, \code{"fast_diag"}, or
+\code{"fast_diagonal"}.}
 
 \item{chunk_size}{Positive integer controlling the number of evaluation
 points processed per chunk by \code{engine = "fast_diag"}.}

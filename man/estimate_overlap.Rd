@@ -14,7 +14,7 @@ estimate_overlap(
   eval_on = c("pooled", "group1", "group2", "pooled_sample"),
   eval_n = NULL,
   eval_seed = NULL,
-  engine = c("ks", "fast_diag"),
+  engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
   ...
 )
@@ -26,7 +26,10 @@ estimate_overlap(
 
 \item{category_col}{Name of the column giving the two-way category factor.}
 
-\item{group_col}{Optional grouping column. If provided, returns per-group JSD.}
+\item{group_col}{Optional character vector of one or more grouping columns.
+If provided, returns per-group overlap. Multiple grouping columns are
+combined into a labeled \code{group} value such as
+\code{"Sex=F | Style=read"}.}
 
 \item{min_tokens}{Minimum total tokens required (globally or per group).}
 
@@ -38,7 +41,8 @@ estimate_overlap(
 
 \item{eval_seed}{Optional integer seed for KDE evaluation-point subsampling.}
 
-\item{engine}{KDE evaluation engine passed to \code{percent_overlap_kde()}.}
+\item{engine}{KDE evaluation engine passed to \code{percent_overlap_kde()}.
+\code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
 
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 

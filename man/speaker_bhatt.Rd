@@ -16,7 +16,8 @@ speaker_bhatt(
 \arguments{
 \item{data}{Data frame.}
 
-\item{group_col}{String; grouping column (e.g., "speaker").}
+\item{group_col}{Character vector of one or more grouping columns
+(e.g., \code{"speaker"} or \code{c("Sex", "Style")}).}
 
 \item{category_col}{String; category column with exactly two levels per group.}
 

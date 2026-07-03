@@ -14,7 +14,7 @@ compare_overlap_metrics(
   eval_on = c("pooled", "group1", "group2", "pooled_sample"),
   eval_n = NULL,
   eval_seed = NULL,
-  engine = c("ks", "fast_diag"),
+  engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
   eps = 1e-06,
   output = c("wide", "long"),
@@ -31,8 +31,10 @@ compare_overlap_metrics(
 
 \item{category_col}{String; column giving the two categories to compare.}
 
-\item{group_col}{Optional string; grouping column. If \code{NULL}, metrics
-are computed globally.}
+\item{group_col}{Optional character vector of one or more grouping columns.
+If \code{NULL}, metrics are computed globally. Multiple grouping columns
+are combined into a labeled \code{group} value such as
+\code{"Sex=F | Style=read"}.}
 
 \item{min_tokens}{Minimum tokens required globally or per group.}
 
@@ -48,7 +50,8 @@ are computed globally.}
 \item{eval_seed}{Optional integer seed for KDE evaluation-point subsampling.}
 
 \item{engine}{KDE evaluation engine passed to \code{jsd_kde_nd()} and
-\code{percent_overlap_kde()}.}
+\code{percent_overlap_kde()}. \code{"fast_diagonal"} is accepted as an
+alias for \code{"fast_diag"}.}
 
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 

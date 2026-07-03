@@ -8,6 +8,13 @@
 #' @param n_boot Integer; number of bootstrap resamples per group if
 #'   \code{do_boot = TRUE}.
 #' @param conf_level Confidence level for bootstrap intervals.
+#' @param bw Bandwidth selection method passed to \code{jsd_kde_nd()}.
+#' @param eval_on KDE evaluation points passed to \code{jsd_kde_nd()}.
+#' @param eval_n Optional maximum number of KDE evaluation points.
+#' @param eval_seed Optional integer seed for KDE evaluation-point subsampling.
+#' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()}.
+#'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
+#' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #'
 #' @return A tibble with one row per group and columns:
 #'   \itemize{
@@ -31,8 +38,17 @@ jsd_summary <- function(data,
                         n_boot      = 300,
                         min_tokens  = 30,
                         conf_level  = 0.95,
+                        bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                        eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                        eval_n = NULL,
+                        eval_seed = NULL,
+                        engine = c("ks", "fast_diag", "fast_diagonal"),
+                        chunk_size = 1000L,
                         ...) {
 
+  bw <- match.arg(bw)
+  eval_on <- match.arg(eval_on)
+  engine <- .match_kde_engine(engine)
   .check_conf_level(conf_level)
   if (isTRUE(do_boot)) {
     .check_positive_count(n_boot, "n_boot")
@@ -46,6 +62,12 @@ jsd_summary <- function(data,
     category_col = category_col,
     features     = features,
     min_tokens   = min_tokens,
+    bw           = bw,
+    eval_on      = eval_on,
+    eval_n       = eval_n,
+    eval_seed    = eval_seed,
+    engine       = engine,
+    chunk_size   = chunk_size,
     ...
   ) |>
     dplyr::rename(jsd_point = "jsd")
@@ -71,6 +93,12 @@ jsd_summary <- function(data,
     n_boot       = n_boot,
     min_tokens   = min_tokens,
     conf_level   = conf_level,
+    bw           = bw,
+    eval_on      = eval_on,
+    eval_n       = eval_n,
+    eval_seed    = eval_seed,
+    engine       = engine,
+    chunk_size   = chunk_size,
     ...
   )
 

@@ -12,6 +12,12 @@ global_boot_jsd(
   min_tokens = 20,
   est_distance = FALSE,
   conf_level = 0.95,
+  bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+  eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+  eval_n = NULL,
+  eval_seed = NULL,
+  engine = c("ks", "fast_diag", "fast_diagonal"),
+  chunk_size = 1000L,
   ...
 )
 }
@@ -33,6 +39,19 @@ to compare (e.g., "vowel"). Must have exactly two unique values.}
 (sqrt of divergence) instead of divergence.}
 
 \item{conf_level}{Confidence level for bootstrap intervals.}
+
+\item{bw}{Bandwidth selection method passed to \code{jsd_kde_nd()}.}
+
+\item{eval_on}{KDE evaluation points passed to \code{jsd_kde_nd()}.}
+
+\item{eval_n}{Optional maximum number of KDE evaluation points.}
+
+\item{eval_seed}{Optional integer seed for KDE evaluation-point subsampling.}
+
+\item{engine}{KDE evaluation engine passed to \code{jsd_kde_nd()}.
+\code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
+
+\item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }

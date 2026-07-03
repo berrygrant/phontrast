@@ -29,8 +29,10 @@
 #' @param data Data frame containing category labels and acoustic features.
 #' @param features Character vector of numeric feature columns.
 #' @param category_col String; column giving the two categories to compare.
-#' @param group_col Optional string; grouping column. If \code{NULL}, metrics
-#'   are computed globally.
+#' @param group_col Optional character vector of one or more grouping columns.
+#'   If \code{NULL}, metrics are computed globally. Multiple grouping columns
+#'   are combined into a labeled \code{group} value such as
+#'   \code{"Sex=F | Style=read"}.
 #' @param min_tokens Minimum tokens required globally or per group.
 #' @param bw Bandwidth selection method passed to \code{jsd_kde_nd()} and
 #'   \code{percent_overlap_kde()}.
@@ -40,7 +42,8 @@
 #'   \code{jsd_kde_nd()} and \code{percent_overlap_kde()}.
 #' @param eval_seed Optional integer seed for KDE evaluation-point subsampling.
 #' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()} and
-#'   \code{percent_overlap_kde()}.
+#'   \code{percent_overlap_kde()}. \code{"fast_diagonal"} is accepted as an
+#'   alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param eps Small ridge constant for covariance-based metrics.
 #' @param output Output format: \code{"wide"} returns one row per global/group
@@ -119,7 +122,7 @@ compare_overlap_metrics <- function(data,
                                     eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                                     eval_n = NULL,
                                     eval_seed = NULL,
-                                    engine = c("ks", "fast_diag"),
+                                    engine = c("ks", "fast_diag", "fast_diagonal"),
                                     chunk_size = 1000L,
                                     eps = 1e-6,
                                     output = c("wide", "long"),
@@ -130,7 +133,7 @@ compare_overlap_metrics <- function(data,
   output <- match.arg(output)
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
-  engine <- match.arg(engine)
+  engine <- .match_kde_engine(engine)
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
   if (!is.logical(do_boot) || length(do_boot) != 1L || is.na(do_boot)) {
@@ -212,12 +215,12 @@ compare_overlap_metrics <- function(data,
                                            eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                                            eval_n = NULL,
                                            eval_seed = NULL,
-                                           engine = c("ks", "fast_diag"),
+                                           engine = c("ks", "fast_diag", "fast_diagonal"),
                                            chunk_size = 1000L,
                                            eps = 1e-6) {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
-  engine <- match.arg(engine)
+  engine <- .match_kde_engine(engine)
 
   jsd_out <- estimate_jsd(
     data = data,
@@ -390,7 +393,7 @@ compare_overlap_metrics <- function(data,
                                                eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                                                eval_n = NULL,
                                                eval_seed = NULL,
-                                               engine = c("ks", "fast_diag"),
+                                               engine = c("ks", "fast_diag", "fast_diagonal"),
                                                chunk_size = 1000L,
                                                eps = 1e-6,
                                                n_boot = 300,
@@ -462,7 +465,7 @@ compare_overlap_metrics <- function(data,
                                           eval_on = c("pooled", "group1", "group2", "pooled_sample"),
                                           eval_n = NULL,
                                           eval_seed = NULL,
-                                          engine = c("ks", "fast_diag"),
+                                          engine = c("ks", "fast_diag", "fast_diagonal"),
                                           chunk_size = 1000L,
                                           eps = 1e-6,
                                           n_boot = 300,
@@ -611,6 +614,7 @@ compare_overlap_metrics <- function(data,
     ))
   }
 
+  group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   df <- .metric_data(data, c(group_col, category_col, features))
   out <- lapply(.split_groups(df, group_col), function(df_g) {
@@ -624,7 +628,7 @@ compare_overlap_metrics <- function(data,
     )
     data.frame(
       scope = "group",
-      group = df_g[[group_col]][1],
+      group = .group_label(df_g, group_col),
       n_tokens = n_tok,
       mahalanobis_dist = dist,
       stringsAsFactors = FALSE
