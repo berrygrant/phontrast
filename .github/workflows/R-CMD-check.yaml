@@ -2,9 +2,9 @@ name: R-CMD-check
 
 on:
   push:
-    branches: [main, dev_v1]
+    branches: [main]
   pull_request:
-    branches: [main, dev_v1]
+    branches: [main]
 
 permissions:
   contents: read

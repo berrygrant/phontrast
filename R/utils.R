@@ -89,6 +89,47 @@
   group_col
 }
 
+.validate_metric_inputs <- function(data, features, category_col, group_col = NULL) {
+  if (!is.data.frame(data)) {
+    stop("`data` must be a data frame.", call. = FALSE)
+  }
+  if (!is.character(category_col) || length(category_col) != 1L ||
+      is.na(category_col) || !nzchar(category_col)) {
+    stop("`category_col` must be a single column name.", call. = FALSE)
+  }
+  if (!is.character(features) || !length(features) || anyNA(features) ||
+      any(!nzchar(features))) {
+    stop("`features` must be a non-empty character vector of column names.", call. = FALSE)
+  }
+  group_col <- .check_group_cols(group_col)
+  clash <- intersect(features, c(category_col, group_col))
+  if (length(clash)) {
+    stop(
+      "`features` must not overlap with `category_col`/`group_col`: ",
+      paste(clash, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (!is.null(group_col) && category_col %in% group_col) {
+    stop("`category_col` must not also appear in `group_col`.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.warn_failed_groups <- function(out, value_col, fn) {
+  if (nrow(out) > 0L && value_col %in% names(out)) {
+    failed <- sum(is.na(out[[value_col]]))
+    if (failed) {
+      warning(
+        fn, ": ", failed, " of ", nrow(out),
+        " group(s) could not be estimated and were returned as NA.",
+        call. = FALSE
+      )
+    }
+  }
+  out
+}
+
 .group_label <- function(data, group_col) {
   group_col <- .check_group_cols(group_col)
   if (length(group_col) == 1L) {

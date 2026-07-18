@@ -23,6 +23,34 @@
   function manuals.
 - Updated the GitHub Actions checkout step to a current Node runtime action.
 
+## Bug fixes
+
+- Clamped `jsd()` output to the mathematical range `[0, 1]`, so floating-point
+  rounding on near-identical categories can no longer yield `NaN`
+  Jensen-Shannon distances (`est_distance = TRUE`) or abort
+  `hier_boot_jsd_model()` through `prepare_jsd_beta()`.
+- Fixed a latent `sample()` edge case in `hier_boot_jsd_model()` that could
+  misdraw a single numeric group identifier.
+
+## Robustness
+
+- Grouped metric wrappers now keep a group as `NA` when its metric cannot be
+  computed and emit a single summarizing warning, instead of the previous
+  inconsistent behavior where `speaker_pillai()`/`speaker_bhatt()` silently
+  dropped failed groups (so `estimate_pillai()` and `estimate_jsd()` could
+  return different rows for the same data) while other metrics returned a silent
+  `NA`.
+- Added input validation at the main entry points: `data` must be a data frame,
+  `category_col` a single column name, `features` a non-empty character vector,
+  and `features` may not overlap with `category_col`/`group_col`.
+
+## Package quality
+
+- Removed the unused `LazyData` field (no `data/` directory), the unused `lme4`
+  suggestion, and dead `dplyr` imports (`filter`, `n`, `ungroup`); added `URL`
+  and `BugReports`; standardized the author name to "Grant M. Berry"; and scoped
+  the CI workflow to the existing `main` branch.
+
 # phonJSD 1.0.0
 
 ## Visualization

@@ -809,3 +809,89 @@ test_that("extract_mfcc validates arguments before optional audio dependencies",
     "numeric column"
   )
 })
+
+test_that("metric entry points validate their inputs", {
+  data <- data.frame(
+    category = rep(c("a", "b"), each = 20),
+    f1 = rnorm(40),
+    f2 = rnorm(40)
+  )
+
+  expect_error(
+    estimate_jsd(as.matrix(data[, c("f1", "f2")]), features = "f1",
+                 category_col = "category"),
+    "must be a data frame"
+  )
+  expect_error(
+    estimate_jsd(data, features = c("f1", "f2"),
+                 category_col = c("category", "f1")),
+    "single column name"
+  )
+  expect_error(
+    compare_overlap_metrics(data, features = c("f1", "category"),
+                            category_col = "category"),
+    "must not overlap"
+  )
+})
+
+test_that("Jensen-Shannon distance stays finite and non-negative near zero", {
+  set.seed(778)
+  data <- data.frame(
+    category = rep(c("a", "b"), each = 30),
+    f1 = c(rnorm(30, 0), rnorm(30, 0.05)),
+    f2 = c(rnorm(30, 0), rnorm(30, 0.05))
+  )
+
+  out <- estimate_jsd(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    est_distance = TRUE,
+    min_tokens = 20
+  )
+
+  expect_true(is.finite(out$jsd_point))
+  expect_true(out$jsd_point >= 0)
+})
+
+test_that("grouped metrics keep failed groups as NA and warn consistently", {
+  set.seed(777)
+  # The "bad" speaker passes the min_tokens/two-category filter (4 tokens, both
+  # categories present) but has too few tokens in category "b" for KDE/covariance
+  # estimation, so the per-group metric computation fails.
+  data <- data.frame(
+    speaker = c(rep("good", 40), rep("bad", 4)),
+    category = c(rep(c("a", "b"), each = 20), "a", "a", "a", "b"),
+    f1 = rnorm(44),
+    f2 = rnorm(44)
+  )
+
+  expect_warning(
+    bhatt <- estimate_bhatt(
+      data = data,
+      features = c("f1", "f2"),
+      category_col = "category",
+      group_col = "speaker",
+      min_tokens = 4
+    ),
+    "could not be estimated"
+  )
+  expect_warning(
+    jsd <- estimate_jsd(
+      data = data,
+      features = c("f1", "f2"),
+      category_col = "category",
+      group_col = "speaker",
+      min_tokens = 4
+    ),
+    "could not be estimated"
+  )
+
+  # Both wrappers keep the same set of groups (the failed one is retained as NA,
+  # not silently dropped), so row counts agree across metrics.
+  expect_setequal(bhatt$group, c("good", "bad"))
+  expect_setequal(jsd$group, bhatt$group)
+  expect_true(is.na(bhatt$bhatt_dist[bhatt$group == "bad"]))
+  expect_true(is.finite(bhatt$bhatt_dist[bhatt$group == "good"]))
+  expect_true(is.na(jsd$jsd_point[jsd$group == "bad"]))
+})

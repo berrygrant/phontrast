@@ -38,6 +38,8 @@ percent_overlap_kde <- function(data,
                                 chunk_size = 1000L,
                                 ...) {
 
+  .validate_metric_inputs(data, features, category_col)
+
   dens <- .kde_density_pair(
     data = data,
     features = features,
@@ -104,6 +106,7 @@ estimate_overlap <- function(data,
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
   .check_positive_count(min_tokens, "min_tokens")
+  .validate_metric_inputs(data, features, category_col, group_col)
 
   if (is.null(group_col)) {
     # ---- Global ----
@@ -184,5 +187,5 @@ estimate_overlap <- function(data,
     )
   }
   rownames(out) <- NULL
-  out
+  .warn_failed_groups(out, "overlap", "estimate_overlap()")
 }

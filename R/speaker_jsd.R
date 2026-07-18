@@ -42,6 +42,7 @@ speaker_jsd <- function(data,
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
   .check_positive_count(min_tokens, "min_tokens")
+  .validate_metric_inputs(data, features, category_col, group_col)
   group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
@@ -79,7 +80,10 @@ speaker_jsd <- function(data,
   })
 
   out <- dplyr::bind_rows(out_list)
-  if (nrow(out)) out else .empty_group_jsd()
+  if (!nrow(out)) {
+    return(.empty_group_jsd())
+  }
+  .warn_failed_groups(out, "jsd", "speaker_jsd()")
 }
 
 #' Bootstrap JSD for each group
@@ -125,6 +129,7 @@ boot_jsd <- function(data,
   .check_positive_count(n_boot, "n_boot")
   .check_positive_count(min_tokens, "min_tokens")
   .check_conf_level(conf_level)
+  .validate_metric_inputs(data, features, category_col, group_col)
   group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))

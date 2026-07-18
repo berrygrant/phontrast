@@ -46,5 +46,10 @@ jsd <- function(p, q) {
   p <- p / sum(p)
   q <- q / sum(q)
   m <- 0.5 * (p + q)
-  0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
+  val <- 0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
+  # Clamp to the mathematical range [0, 1]: floating-point rounding of the
+  # mixed-sign KL terms can push near-identical categories a few ULP below 0,
+  # which would otherwise yield NaN via sqrt() (Jensen-Shannon distance) or a
+  # hard error in prepare_jsd_beta().
+  min(max(val, 0), 1)
 }

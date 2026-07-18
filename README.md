@@ -3,7 +3,7 @@
 **phonJSD** is an R package for measuring phonological category separation using **Jensen–Shannon Divergence (JSD)**.  
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
-Version **1.0.0** was the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures. Version **1.1.0** adds opt-in high-dimensional KDE speed controls.
+Version **1.0.0** was the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures. Version **1.1.0** (in development) adds opt-in high-dimensional KDE speed controls; install from the default branch to use it before it is tagged.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20932518.svg)](https://doi.org/10.5281/zenodo.20932518)
 
@@ -231,14 +231,14 @@ which is too few for KDE-based two-dimensional overlap estimates.
 
 ## Installation
 
-This package is not yet on CRAN. Install the current GitHub release with:
+This package is not yet on CRAN. Install the latest tagged release (v1.0.0) with:
 
 ```r
 # install.packages("remotes")
 remotes::install_github("berrygrant/phonJSD@v1.0.0")
 ```
 
-For the latest development version, use:
+For the latest development version (1.1.0, not yet tagged), use:
 
 ```r
 remotes::install_github("berrygrant/phonJSD")
