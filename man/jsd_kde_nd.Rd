@@ -13,7 +13,9 @@ jsd_kde_nd(
   eval_n = NULL,
   eval_seed = NULL,
   engine = c("ks", "fast_diag", "fast_diagonal"),
-  chunk_size = 1000L
+  chunk_size = 1000L,
+  method = c("mc", "legacy"),
+  loo = TRUE
 )
 }
 \arguments{
@@ -34,10 +36,12 @@ For one-dimensional inputs, these map to \code{stats::bw.SJ()},
 \code{stats::bw.ucv()}, \code{stats::bw.nrd0()}, and Scott's rule,
 respectively, with a robust fallback for constant samples.}
 
-\item{eval_on}{Where to evaluate the KDEs. "pooled" (default) evaluates
-on all observations from both categories; "group1" or "group2"
-evaluate on the respective group only. \code{"pooled_sample"} evaluates
-on a sampled subset of pooled observations and requires \code{eval_n}.}
+\item{eval_on}{Where to evaluate the KDEs (\code{method = "legacy"} only).
+"pooled" (default) evaluates on all observations from both categories;
+"group1" or "group2" evaluate on the respective group only.
+\code{"pooled_sample"} evaluates on a sampled subset of pooled observations
+and requires \code{eval_n}. Ignored when \code{method = "mc"} (which always
+evaluates each category at its own observations).}
 
 \item{eval_n}{Optional positive integer giving the maximum number of
 evaluation points to use. If supplied, evaluation points are sampled from
@@ -54,15 +58,32 @@ state is used.}
 
 \item{chunk_size}{Positive integer controlling the number of evaluation
 points processed per chunk by \code{engine = "fast_diag"}.}
+
+\item{method}{Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
+estimate of the continuous JSD, or \code{"legacy"} for the pre-1.1.0
+self-normalized sample-point index.}
+
+\item{loo}{Logical; if \code{TRUE} (default) the Monte-Carlo estimator uses a
+leave-one-out correction on each category's self-density to reduce
+resubstitution bias. Ignored when \code{method = "legacy"}.}
 }
 \value{
-A single numeric JSD value in bits.
+A single numeric JSD value in bits, bounded in \code{[0, 1]}.
 }
 \description{
 Computes Jensen–Shannon divergence between two categories in an
 arbitrary n-dimensional acoustic space using multivariate KDE. The default
 engine uses the \pkg{ks} package; a faster diagonal-Gaussian engine is
 available for diagonal bandwidths.
+}
+\details{
+By default (\code{method = "mc"}) JSD is estimated with a Monte-Carlo plug-in:
+each category's KDE is evaluated at that category's own observations and the
+log density ratio against the mixture is averaged. This is a consistent
+estimator of the continuous JSD in any dimension. \code{method = "legacy"}
+reproduces the pre-1.1.0 self-normalized sample-point estimate (a bounded
+relative separation index rather than the continuous JSD); use it only to
+reproduce results from phonJSD 1.0.0.
 }
 \examples{
 set.seed(2026)

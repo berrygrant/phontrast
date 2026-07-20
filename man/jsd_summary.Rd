@@ -10,8 +10,8 @@ jsd_summary(
   category_col,
   features,
   do_boot = TRUE,
-  n_boot = 300,
-  min_tokens = 30,
+  n_boot = 1000,
+  min_tokens = 20,
   conf_level = 0.95,
   bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
   eval_on = c("pooled", "group1", "group2", "pooled_sample"),
@@ -19,6 +19,7 @@ jsd_summary(
   eval_seed = NULL,
   engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
+  method = c("mc", "legacy"),
   ...
 )
 }
@@ -55,6 +56,9 @@ JSD. Groups with fewer tokens are dropped.}
 \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
 
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
+
+\item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
+or \code{"legacy"} (pre-1.1.0 self-normalized estimate).}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }

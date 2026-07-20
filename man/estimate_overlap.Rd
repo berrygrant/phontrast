@@ -16,6 +16,7 @@ estimate_overlap(
   eval_seed = NULL,
   engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
+  method = c("mc", "legacy"),
   ...
 )
 }
@@ -46,10 +47,13 @@ combined into a labeled \code{group} value such as
 
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
+\item{method}{Estimator passed to \code{percent_overlap_kde()}: \code{"mc"}
+(default) or \code{"legacy"} (pre-1.1.0 self-normalized estimate).}
+
 \item{...}{Additional arguments passed to \code{percent_overlap_kde()}.}
 }
 \value{
-A data frame (global = one row; grouped = one per group) with
+A tibble (global = one row; grouped = one per group) with
 \code{overlap} as a 0--1 proportion.
 }
 \description{

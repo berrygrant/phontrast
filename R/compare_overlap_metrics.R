@@ -54,11 +54,17 @@
 #' @param conf_level Confidence level for bootstrap intervals.
 #' @param progress Logical; if \code{TRUE}, print progress messages while
 #'   bootstrap resamples are running.
+#' @param method KDE estimator for the JSD and percent-overlap columns, passed
+#'   to \code{jsd_kde_nd()}/\code{percent_overlap_kde()}: \code{"mc"} (default)
+#'   for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.1.0
+#'   self-normalized estimate.
 #'
-#' @return A data frame. Wide output contains one column per metric. Long output
+#' @return A data frame. Wide output contains one column per metric plus
+#'   \code{pillai_p_value} (the Pillai trace's MANOVA p-value). Long output
 #'   contains \code{metric}, \code{estimate}, \code{orientation},
-#'   \code{bounded_0_1}, \code{separation_value}, and
-#'   \code{separation_rank} columns. If \code{do_boot = TRUE}, wide output
+#'   \code{bounded_0_1}, \code{separation_value}, \code{separation_rank}, and
+#'   \code{p_value} (populated for the Pillai row, \code{NA} otherwise) columns.
+#'   If \code{do_boot = TRUE}, wide output
 #'   also includes metric-specific \code{*_mean}, \code{*_sd},
 #'   \code{*_ci_lower}, \code{*_ci_upper}, and \code{*_n_boot} columns, while
 #'   long output includes \code{boot_mean}, \code{boot_sd}, \code{ci_lower},
@@ -127,13 +133,15 @@ compare_overlap_metrics <- function(data,
                                     eps = 1e-6,
                                     output = c("wide", "long"),
                                     do_boot = FALSE,
-                                    n_boot = 300,
+                                    n_boot = 1000,
                                     conf_level = 0.95,
-                                    progress = TRUE) {
+                                    progress = TRUE,
+                                    method = c("mc", "legacy")) {
   output <- match.arg(output)
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
+  method <- match.arg(method)
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
   if (!is.logical(do_boot) || length(do_boot) != 1L || is.na(do_boot)) {
@@ -160,7 +168,8 @@ compare_overlap_metrics <- function(data,
     eval_seed = eval_seed,
     engine = engine,
     chunk_size = chunk_size,
-    eps = eps
+    eps = eps,
+    method = method
   )
   if (!nrow(wide)) {
     .warn_empty_overlap_comparison(
@@ -189,7 +198,8 @@ compare_overlap_metrics <- function(data,
       eps = eps,
       n_boot = n_boot,
       conf_level = conf_level,
-      progress = progress
+      progress = progress,
+      method = method
     )
     key_cols <- if (is.null(group_col)) c("scope", "n_tokens") else c("scope", "group", "n_tokens")
     wide <- dplyr::left_join(wide, boot, by = key_cols)
@@ -218,10 +228,12 @@ compare_overlap_metrics <- function(data,
                                            eval_seed = NULL,
                                            engine = c("ks", "fast_diag", "fast_diagonal"),
                                            chunk_size = 1000L,
-                                           eps = 1e-6) {
+                                           eps = 1e-6,
+                                           method = c("mc", "legacy")) {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
+  method <- match.arg(method)
 
   jsd_out <- estimate_jsd(
     data = data,
@@ -235,7 +247,8 @@ compare_overlap_metrics <- function(data,
     eval_n = eval_n,
     eval_seed = eval_seed,
     engine = engine,
-    chunk_size = chunk_size
+    chunk_size = chunk_size,
+    method = method
   )
   jsd_wide <- jsd_out[, intersect(c("scope", "group", "n_tokens"), names(jsd_out)), drop = FALSE]
   jsd_wide$jsd <- jsd_out$jsd_point
@@ -284,7 +297,8 @@ compare_overlap_metrics <- function(data,
     eval_n = eval_n,
     eval_seed = eval_seed,
     engine = engine,
-    chunk_size = chunk_size
+    chunk_size = chunk_size,
+    method = method
   )
   overlap_wide <- overlap_out[, intersect(c("scope", "group", "n_tokens"), names(overlap_out)), drop = FALSE]
   overlap_wide$percent_overlap <- overlap_out$overlap
@@ -399,7 +413,8 @@ compare_overlap_metrics <- function(data,
                                                eps = 1e-6,
                                                n_boot = 300,
                                                conf_level = 0.95,
-                                               progress = TRUE) {
+                                               progress = TRUE,
+                                               method = "mc") {
   key_cols <- if (is.null(group_col)) c("scope", "n_tokens") else c("scope", "group", "n_tokens")
 
   if (is.null(group_col)) {
@@ -419,7 +434,8 @@ compare_overlap_metrics <- function(data,
       eps = eps,
       n_boot = n_boot,
       conf_level = conf_level,
-      progress = progress
+      progress = progress,
+      method = method
     ))
     out <- cbind(point_wide[, key_cols, drop = FALSE], dplyr::bind_rows(boot_rows))
     rownames(out) <- NULL
@@ -449,7 +465,8 @@ compare_overlap_metrics <- function(data,
       eps = eps,
       n_boot = n_boot,
       conf_level = conf_level,
-      progress = progress
+      progress = progress,
+      method = method
     )
   })
   out <- cbind(point_wide[, key_cols, drop = FALSE], dplyr::bind_rows(boot_rows))
@@ -471,7 +488,8 @@ compare_overlap_metrics <- function(data,
                                           eps = 1e-6,
                                           n_boot = 300,
                                           conf_level = 0.95,
-                                          progress = TRUE) {
+                                          progress = TRUE,
+                                          method = "mc") {
   if (isTRUE(progress)) {
     message(
       "Bootstrapping overlap metrics for ", label, " (",
@@ -508,7 +526,8 @@ compare_overlap_metrics <- function(data,
         eval_seed = eval_seed,
         engine = engine,
         chunk_size = chunk_size,
-        eps = eps
+        eps = eps,
+        method = method
       ),
       error = function(e) NULL
     )

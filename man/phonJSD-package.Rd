@@ -61,6 +61,14 @@ Legacy JSD aliases \code{jsd_low} and \code{jsd_high} are retained for
 compatibility.
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/berrygrant/phonJSD}
+  \item Report bugs at \url{https://github.com/berrygrant/phonJSD/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Grant M. Berry \email{berry.grant@gmail.com}
 

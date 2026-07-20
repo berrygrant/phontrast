@@ -12,7 +12,7 @@ hier_boot_jsd_model(
   formula,
   fit_fun = NULL,
   n_outer = 200,
-  min_tokens = 30,
+  min_tokens = 20,
   eps = 1e-06,
   progress = TRUE,
   ...

@@ -3,7 +3,7 @@
 **phonJSD** is an R package for measuring phonological category separation using **Jensen–Shannon Divergence (JSD)**.  
 It is designed for researchers working in sociophonetics, laboratory phonology, bilingualism, and speech perception who need a principled, distributional metric of category overlap in acoustic space.
 
-Version **1.0.0** was the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures. Version **1.1.0** (in development) adds opt-in high-dimensional KDE speed controls; install from the default branch to use it before it is tagged.
+Version **1.0.0** was the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures. Version **1.1.0** replaces the KDE-based JSD and percent-overlap estimator with a consistent Monte-Carlo plug-in (now the default; results differ from 1.0.0, and `method = "legacy"` reproduces them) and adds opt-in high-dimensional KDE speed controls.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20932518.svg)](https://doi.org/10.5281/zenodo.20932518)
 
@@ -181,6 +181,14 @@ is not intrinsically tied to KDE. Manuscript sensitivity analyses show that the
 same substantive contrast pattern is recovered when JSD is computed from KDE,
 histogram-based, empirical-binned, and Gaussian-mixture distribution estimates.
 
+By default (`method = "mc"`) the divergence is estimated with a Monte-Carlo
+plug-in: each category's KDE is evaluated at that category's own tokens and the
+log density ratio against the mixture is averaged, giving a consistent estimate
+of the continuous JSD in any number of dimensions. The pre-1.1.0 self-normalized
+sample-point estimate — a bounded relative separation index rather than the JSD
+integral — remains available as `method = "legacy"` for reproducing 1.0.0
+results.
+
 JSD values:
 - **0** → complete overlap (no separation)
 - **Higher values** → greater distributional separation  
@@ -231,14 +239,14 @@ which is too few for KDE-based two-dimensional overlap estimates.
 
 ## Installation
 
-This package is not yet on CRAN. Install the latest tagged release (v1.0.0) with:
+This package is not yet on CRAN. Install the latest tagged release (v1.1.0) with:
 
 ```r
 # install.packages("remotes")
-remotes::install_github("berrygrant/phonJSD@v1.0.0")
+remotes::install_github("berrygrant/phonJSD@v1.1.0")
 ```
 
-For the latest development version (1.1.0, not yet tagged), use:
+For the current development version, use:
 
 ```r
 remotes::install_github("berrygrant/phonJSD")

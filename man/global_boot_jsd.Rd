@@ -8,7 +8,7 @@ global_boot_jsd(
   data,
   features,
   category_col,
-  n_boot = 300,
+  n_boot = 1000,
   min_tokens = 20,
   est_distance = FALSE,
   conf_level = 0.95,
@@ -18,6 +18,7 @@ global_boot_jsd(
   eval_seed = NULL,
   engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
+  method = c("mc", "legacy"),
   ...
 )
 }
@@ -52,6 +53,9 @@ to compare (e.g., "vowel"). Must have exactly two unique values.}
 \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.}
 
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
+
+\item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
+or \code{"legacy"} (pre-1.1.0 self-normalized estimate).}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }

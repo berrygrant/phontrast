@@ -1,5 +1,32 @@
 # phonJSD 1.1.0
 
+## Corrected KDE estimator (changes results)
+
+- **KDE-based JSD and percent overlap now use a consistent Monte-Carlo plug-in
+  estimator by default (`method = "mc"`).** Each category's KDE is evaluated at
+  that category's own observations and the true log density ratio against the
+  mixture is averaged (with a leave-one-out bias correction, `loo = TRUE`). This
+  estimates the continuous Jensen-Shannon divergence in any dimension, replacing
+  the previous self-normalized sample-point index, which was a bounded relative
+  separation measure rather than the JSD integral and depended on `eval_on`.
+- **This changes the numbers relative to phonJSD 1.0.0.** To reproduce 1.0.0
+  results exactly, pass `method = "legacy"` to `jsd_kde_nd()`,
+  `percent_overlap_kde()`, `estimate_jsd()`, `estimate_overlap()`,
+  `jsd_summary()`, `global_boot_jsd()`, or `compare_overlap_metrics()`. The
+  `eval_on` control applies to `method = "legacy"` only.
+- The `fast_diag` engine now evaluates true (normalized) densities, matching
+  `ks::kde()` to machine precision for diagonal bandwidths.
+
+## API
+
+- Aligned defaults across the estimation API: `min_tokens = 20` and
+  `n_boot = 1000` everywhere (previously `estimate_jsd()` defaulted to
+  `min_tokens = 5`, and `jsd_summary()`/`boot_jsd()`/`hier_boot_jsd_model()` to
+  `min_tokens = 30` / `n_boot = 300`).
+- Standardized the `estimate_*`/`global_*` wrappers to return tibbles uniformly.
+- Documented the `pillai_p_value` (wide) and `p_value` (long) columns returned
+  by `compare_overlap_metrics()`.
+
 ## Metrics
 
 - Added opt-in high-dimensional KDE speed controls: `bw = "scott.diag"`,
