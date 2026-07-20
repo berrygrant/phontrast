@@ -57,7 +57,7 @@
 #' )
 #' }
 #' @export
-#' @importFrom dplyr group_by ungroup summarize n first bind_rows left_join across all_of
+#' @importFrom dplyr group_by summarize first bind_rows left_join across all_of
 #' @importFrom purrr map
 #' @importFrom tibble tibble
 #' @importFrom stats coef
@@ -77,6 +77,7 @@ hier_boot_jsd_model <- function(data,
   .check_columns(data, c(group_col, category_col, features))
   .check_positive_count(n_outer, "n_outer")
   .check_positive_count(min_tokens, "min_tokens")
+  .validate_metric_inputs(data, features, category_col, group_col)
   if (!inherits(formula, "formula")) {
     stop("`formula` must be a model formula.", call. = FALSE)
   }
@@ -136,8 +137,10 @@ hier_boot_jsd_model <- function(data,
       message("Bootstrap replicate ", b, " / ", n_outer)
     }
 
-    # Resample groups with replacement
-    boot_group_ids <- sample(groups, size = n_groups, replace = TRUE)
+    # Resample groups with replacement. Index into `groups` rather than calling
+    # sample(groups, ...) directly: with a single numeric group id, sample() would
+    # dispatch to sample.int() and draw from 1:id instead of the id itself.
+    boot_group_ids <- groups[sample.int(n_groups, size = n_groups, replace = TRUE)]
 
     boot_df_list <- Map(function(g, draw_id) {
       df_g <- data[data[[group_col]] == g, , drop = FALSE]

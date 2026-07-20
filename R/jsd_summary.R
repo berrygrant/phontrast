@@ -54,6 +54,7 @@ jsd_summary <- function(data,
     .check_positive_count(n_boot, "n_boot")
   }
   .check_positive_count(min_tokens, "min_tokens")
+  .validate_metric_inputs(data, features, category_col, group_col)
 
   # Point estimates
   pt <- speaker_jsd(

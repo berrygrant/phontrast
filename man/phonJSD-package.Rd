@@ -62,7 +62,7 @@ compatibility.
 }
 
 \author{
-\strong{Maintainer}: Grant Berry \email{berry.grant@gmail.com}
+\strong{Maintainer}: Grant M. Berry \email{berry.grant@gmail.com}
 
 Other contributors:
 \itemize{

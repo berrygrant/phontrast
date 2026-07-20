@@ -2,12 +2,12 @@ Package: phonJSD
 Title: Information-Theoretic Overlap Metrics for Phonological Categories
 Version: 1.1.0
 Authors@R: c(
-    person("Grant", "Berry", email = "berry.grant@gmail.com", role = c("aut", "cre")),
+    person(c("Grant", "M."), "Berry", email = "berry.grant@gmail.com", role = c("aut", "cre")),
     person("ChatGPT", "Assistant", role = "ctb")
   )
-Author: Grant Berry [aut, cre],
+Author: Grant M. Berry [aut, cre],
     ChatGPT Assistant [ctb]
-Maintainer: Grant Berry <berry.grant@gmail.com>
+Maintainer: Grant M. Berry <berry.grant@gmail.com>
 Description: Tools for quantifying separation between phonological categories 
     (e.g., vowels, consonants) using information-theoretic measures such as 
     Jensen-Shannon divergence (JSD) in arbitrary n-dimensional acoustic spaces 
@@ -17,6 +17,8 @@ Description: Tools for quantifying separation between phonological categories
     models). Also provides comparison metrics including the Pillai-Bartlett 
     trace and Bhattacharyya distance under multivariate normality assumptions.
 License: MIT + file LICENSE
+URL: https://github.com/berrygrant/phonJSD
+BugReports: https://github.com/berrygrant/phonJSD/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
@@ -32,11 +34,9 @@ Imports:
 Suggests:
     ggplot2,
     mgcv,
-    lme4,
     tuneR,
     testthat (>= 3.0.0),
     knitr,
     rmarkdown
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-LazyData: true

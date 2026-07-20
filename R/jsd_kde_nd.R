@@ -75,6 +75,8 @@ jsd_kde_nd <- function(data,
                        engine = c("ks", "fast_diag", "fast_diagonal"),
                        chunk_size = 1000L) {
 
+  .validate_metric_inputs(data, features, group)
+
   dens <- .kde_density_pair(
     data = data,
     features = features,

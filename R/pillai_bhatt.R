@@ -88,7 +88,7 @@ pillai_overlap <- function(data, features, category_col) {
 #'
 #' @return A tibble with columns: group, n_tokens, pillai, p_value.
 #' @export
-#' @importFrom dplyr group_by summarize n n_distinct filter ungroup rename
+#' @importFrom dplyr group_by summarize n_distinct rename
 #' @importFrom rlang .data
 speaker_pillai <- function(data,
                            group_col,
@@ -97,6 +97,7 @@ speaker_pillai <- function(data,
                            min_tokens = 20) {
 
   .check_positive_count(min_tokens, "min_tokens")
+  .validate_metric_inputs(data, features, category_col, group_col)
   group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
@@ -111,19 +112,19 @@ speaker_pillai <- function(data,
       pillai_overlap(df_g, features, category_col),
       error = function(e) NULL
     )
-    if (is.null(po)) {
-      return(NULL)
-    }
     tibble::tibble(
       group = .group_label(df_g, group_col),
       n_tokens = n_tok,
-      pillai = po$pillai,
-      p_value = po$p_value
+      pillai = if (is.null(po)) NA_real_ else po$pillai,
+      p_value = if (is.null(po)) NA_real_ else po$p_value
     )
   })
 
   out <- dplyr::bind_rows(out)
-  if (nrow(out)) out else .empty_group_pillai()
+  if (!nrow(out)) {
+    return(.empty_group_pillai())
+  }
+  .warn_failed_groups(out, "pillai", "speaker_pillai()")
 }
 
 #' Global Pillai trace (point estimate)
@@ -193,6 +194,7 @@ estimate_pillai <- function(data,
                             min_tokens = 20) {
 
   .check_positive_count(min_tokens, "min_tokens")
+  .validate_metric_inputs(data, features, category_col, group_col)
   if (is.null(group_col)) {
     # global
     gp <- global_pillai(
@@ -322,6 +324,7 @@ speaker_bhatt <- function(data,
 
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
+  .validate_metric_inputs(data, features, category_col, group_col)
   group_col <- .check_group_cols(group_col)
   .check_columns(data, c(group_col, category_col, features))
   data <- .metric_data(data, c(group_col, category_col, features))
@@ -341,14 +344,11 @@ speaker_bhatt <- function(data,
       ),
       error = function(e) NULL
     )
-    if (is.null(bh)) {
-      return(NULL)
-    }
     data.frame(
       group         = .group_label(df_g, group_col),
       n_tokens      = n_tok,
-      bhatt_dist    = bh$distance,
-      bhatt_affinity = bh$affinity,
+      bhatt_dist    = if (is.null(bh)) NA_real_ else bh$distance,
+      bhatt_affinity = if (is.null(bh)) NA_real_ else bh$affinity,
       stringsAsFactors = FALSE
     )
   })
@@ -356,7 +356,7 @@ speaker_bhatt <- function(data,
   out <- do.call(rbind, out_list)
   if (is.null(out)) out <- .empty_group_bhatt()
   rownames(out) <- NULL
-  out
+  .warn_failed_groups(out, "bhatt_dist", "speaker_bhatt()")
 }
 
 #' Estimate Bhattacharyya distance, globally or by group
@@ -383,6 +383,7 @@ estimate_bhatt <- function(data,
 
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
+  .validate_metric_inputs(data, features, category_col, group_col)
   if (is.null(group_col)) {
     # global
     keep_cols <- c(category_col, features)

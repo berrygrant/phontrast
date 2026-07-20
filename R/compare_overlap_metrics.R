@@ -146,6 +146,7 @@ compare_overlap_metrics <- function(data,
   if (isTRUE(do_boot)) {
     .check_positive_count(n_boot, "n_boot")
   }
+  .validate_metric_inputs(data, features, category_col, group_col)
 
   wide <- .compare_overlap_metrics_point(
     data = data,
@@ -646,7 +647,7 @@ compare_overlap_metrics <- function(data,
     )
   }
   rownames(out) <- NULL
-  out
+  .warn_failed_groups(out, "mahalanobis_dist", "estimate_mahalanobis()")
 }
 
 .comparison_long <- function(wide) {
