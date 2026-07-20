@@ -58,7 +58,7 @@ JSD. Groups with fewer tokens are dropped.}
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
-or \code{"legacy"} (pre-1.1.0 self-normalized estimate).}
+or \code{"legacy"} (pre-1.2.0 self-normalized estimate).}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
 }

@@ -73,7 +73,7 @@ bootstrap resamples are running.}
 
 \item{method}{KDE estimator for the JSD and percent-overlap columns, passed
 to \code{jsd_kde_nd()}/\code{percent_overlap_kde()}: \code{"mc"} (default)
-for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.1.0
+for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.2.0
 self-normalized estimate.}
 }
 \value{

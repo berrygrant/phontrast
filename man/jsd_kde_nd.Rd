@@ -60,7 +60,7 @@ state is used.}
 points processed per chunk by \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
-estimate of the continuous JSD, or \code{"legacy"} for the pre-1.1.0
+estimate of the continuous JSD, or \code{"legacy"} for the pre-1.2.0
 self-normalized sample-point index.}
 
 \item{loo}{Logical; if \code{TRUE} (default) the Monte-Carlo estimator uses a
@@ -81,7 +81,7 @@ By default (\code{method = "mc"}) JSD is estimated with a Monte-Carlo plug-in:
 each category's KDE is evaluated at that category's own observations and the
 log density ratio against the mixture is averaged. This is a consistent
 estimator of the continuous JSD in any dimension. \code{method = "legacy"}
-reproduces the pre-1.1.0 self-normalized sample-point estimate (a bounded
+reproduces the pre-1.2.0 self-normalized sample-point estimate (a bounded
 relative separation index rather than the continuous JSD); use it only to
 reproduce results from phonJSD 1.0.0.
 }

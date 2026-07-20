@@ -26,7 +26,7 @@
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param method Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
-#'   or \code{"legacy"} (pre-1.1.0 self-normalized estimate).
+#'   or \code{"legacy"} (pre-1.2.0 self-normalized estimate).
 #' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
 #'
 #' @return A one-row data frame with columns:

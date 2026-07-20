@@ -1,4 +1,4 @@
-# phonJSD 1.1.0
+# phonJSD 1.2.0
 
 ## Corrected KDE estimator (changes results)
 

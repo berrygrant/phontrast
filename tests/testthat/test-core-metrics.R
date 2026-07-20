@@ -939,7 +939,7 @@ test_that("Monte-Carlo JSD tracks a grid-integrated reference and the extremes",
   expect_gt(jsd_kde_nd(far, c("f1", "f2"), "cat"), 0.9)
 })
 
-test_that("legacy method reproduces the pre-1.1.0 sample-point estimate", {
+test_that("legacy method reproduces the pre-1.2.0 sample-point estimate", {
   set.seed(5)
   data <- data.frame(
     cat = rep(c("a", "b"), each = 50),

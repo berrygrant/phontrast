@@ -48,7 +48,7 @@ points processed per chunk by \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
 estimate of the overlapping coefficient, or \code{"legacy"} for the
-pre-1.1.0 self-normalized sample-point estimate. \code{eval_on} applies to
+pre-1.2.0 self-normalized sample-point estimate. \code{eval_on} applies to
 \code{"legacy"} only.}
 
 \item{...}{Reserved for future extensions; currently unused.}

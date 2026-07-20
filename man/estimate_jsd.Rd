@@ -60,7 +60,7 @@ into a labeled \code{group} value such as \code{"Sex=F | Style=read"}.}
 
 \item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
 for the Monte-Carlo plug-in estimate of the continuous JSD, or
-\code{"legacy"} to reproduce the pre-1.1.0 self-normalized sample-point
+\code{"legacy"} to reproduce the pre-1.2.0 self-normalized sample-point
 estimate.}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()} (e.g.,

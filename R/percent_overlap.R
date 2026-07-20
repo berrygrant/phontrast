@@ -25,7 +25,7 @@
 #'   points processed per chunk by \code{engine = "fast_diag"}.
 #' @param method Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
 #'   estimate of the overlapping coefficient, or \code{"legacy"} for the
-#'   pre-1.1.0 self-normalized sample-point estimate. \code{eval_on} applies to
+#'   pre-1.2.0 self-normalized sample-point estimate. \code{eval_on} applies to
 #'   \code{"legacy"} only.
 #' @param ... Reserved for future extensions; currently unused.
 #'
@@ -106,7 +106,7 @@ percent_overlap_kde <- function(data,
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param method Estimator passed to \code{percent_overlap_kde()}: \code{"mc"}
-#'   (default) or \code{"legacy"} (pre-1.1.0 self-normalized estimate).
+#'   (default) or \code{"legacy"} (pre-1.2.0 self-normalized estimate).
 #' @param ... Additional arguments passed to \code{percent_overlap_kde()}.
 #'
 #' @return A tibble (global = one row; grouped = one per group) with
