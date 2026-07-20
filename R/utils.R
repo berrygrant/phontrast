@@ -485,3 +485,195 @@
 
   list(p = p, q = q, levels = levs, data = data)
 }
+
+# ---- Monte-Carlo plug-in KDE estimator ----------------------------------
+# Consistent estimator of the continuous Jensen-Shannon divergence / overlap:
+# evaluate each category's KDE at that category's own observations and average
+# the true log density ratio against the mixture. Dimension-agnostic (unlike a
+# grid) and unbiased in the limit (unlike the self-normalized sample-point plug
+# -in used by `.kde_density_pair()`, kept as the `method = "legacy"` path).
+
+.log_add_exp <- function(a, b) {
+  n <- max(length(a), length(b))
+  a <- rep(a, length.out = n)
+  b <- rep(b, length.out = n)
+  m <- pmax(a, b)
+  out <- m
+  # Only evaluate log1p where the max is finite; both -Inf stays -Inf. Indexing
+  # (not ifelse) avoids computing NaN intermediates that emit spurious warnings.
+  fin <- is.finite(m)
+  out[fin] <- m[fin] + log1p(exp(-abs(a[fin] - b[fin])))
+  out
+}
+
+.log_sub_exp <- function(a, b) {
+  # log(exp(a) - exp(b)); -Inf where a <= b (e.g., an isolated leave-one-out
+  # point). Evaluate the log only on strictly-greater elements so `log1p` is
+  # never handed a value <= -1 (which would emit a "NaNs produced" warning).
+  n <- max(length(a), length(b))
+  a <- rep(a, length.out = n)
+  b <- rep(b, length.out = n)
+  out <- rep(-Inf, n)
+  ok <- a > b
+  ok[is.na(ok)] <- FALSE
+  out[ok] <- a[ok] + log1p(-exp(b[ok] - a[ok]))
+  out
+}
+
+.kde_diag_log_density <- function(x, eval_points, H, chunk_size = 1000L) {
+  variances <- diag(H)
+  d <- ncol(x)
+  log_norm <- -0.5 * (d * log(2 * pi) + sum(log(variances)))
+  x <- as.matrix(x)
+  eval_points <- as.matrix(eval_points)
+  log_density <- numeric(nrow(eval_points))
+  inv_variances <- 1 / variances
+  starts <- seq.int(1L, nrow(eval_points), by = chunk_size)
+  for (start in starts) {
+    stop <- min(start + chunk_size - 1L, nrow(eval_points))
+    eval_chunk <- eval_points[start:stop, , drop = FALSE]
+    log_kernel <- matrix(0, nrow = nrow(eval_chunk), ncol = nrow(x))
+    for (j in seq_len(ncol(x))) {
+      diff <- outer(eval_chunk[, j], x[, j], `-`)
+      log_kernel <- log_kernel - 0.5 * diff * diff * inv_variances[j]
+    }
+    log_density[start:stop] <- apply(log_kernel, 1, .logsumexp) - log(nrow(x))
+  }
+  log_density + log_norm
+}
+
+.kde_kh0 <- function(bwspec, d) {
+  # K_H(0): the kernel's value at the origin (self-contribution), for LOO.
+  if (is.matrix(bwspec)) {
+    (2 * pi) ^ (-d / 2) * det(bwspec) ^ (-0.5)
+  } else {
+    stats::dnorm(0) / bwspec
+  }
+}
+
+.kde_eval_logdens <- function(train, eval, bwspec, engine, chunk_size, label) {
+  if (!is.matrix(bwspec)) {
+    dens <- .kde_1d_values(as.numeric(train[, 1]), as.numeric(eval[, 1]), bwspec)
+    return(log(dens))
+  }
+  if (identical(engine, "fast_diag")) {
+    return(.kde_diag_log_density(train, eval, bwspec, chunk_size = chunk_size))
+  }
+  kde <- tryCatch(
+    ks::kde(x = train, H = bwspec, eval.points = eval),
+    error = function(e) {
+      stop(
+        "KDE estimation failed for category `", label, "`. Original error: ",
+        conditionMessage(e), call. = FALSE
+      )
+    }
+  )
+  dens <- as.numeric(kde$estimate)
+  dens[dens < 0] <- 0
+  log(dens)
+}
+
+.select_kde_bandwidth <- function(train, bw, engine, n_features, label) {
+  if (n_features == 1L) {
+    return(.select_univariate_bandwidth(as.numeric(train[, 1]), bw))
+  }
+  if (identical(engine, "fast_diag") && !bw %in% c("Hpi.diag", "scott.diag")) {
+    stop(
+      "`engine = \"fast_diag\"` requires `bw = \"scott.diag\"` or ",
+      "`bw = \"Hpi.diag\"` for multivariate KDE.",
+      call. = FALSE
+    )
+  }
+  .select_multivariate_bandwidth(train, bw, label)
+}
+
+.kde_mc_pair <- function(data,
+                         features,
+                         category_col,
+                         bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                         eval_n = NULL,
+                         eval_seed = NULL,
+                         engine = c("ks", "fast_diag", "fast_diagonal"),
+                         chunk_size = 1000L,
+                         metric = "KDE") {
+  bw <- match.arg(bw)
+  engine <- .match_kde_engine(engine)
+  if (!is.null(eval_n)) {
+    .check_positive_count(eval_n, "eval_n")
+  }
+  .check_positive_count(chunk_size, "chunk_size")
+
+  .check_columns(data, c(category_col, features))
+  data <- .metric_data(data, c(category_col, features))
+  .check_numeric_features(data, features)
+
+  levs <- .two_levels(data[[category_col]], "category_col")
+  n_features <- length(features)
+  .check_two_category_sample_size(
+    data, category_col, .kde_min_category_tokens(n_features), metric
+  )
+
+  X1 <- as.matrix(data[data[[category_col]] == levs[1], features, drop = FALSE])
+  X2 <- as.matrix(data[data[[category_col]] == levs[2], features, drop = FALSE])
+  n1 <- nrow(X1)
+  n2 <- nrow(X2)
+
+  # KDEs are trained on the full samples; evaluation points may be subsampled
+  # for speed (leave-one-out below still uses the full training size n1/n2).
+  X1e <- .sample_kde_eval_points(X1, eval_n = eval_n, eval_seed = eval_seed)
+  X2e <- .sample_kde_eval_points(X2, eval_n = eval_n, eval_seed = eval_seed)
+
+  bw1 <- .select_kde_bandwidth(X1, bw, engine, n_features, levs[1])
+  bw2 <- .select_kde_bandwidth(X2, bw, engine, n_features, levs[2])
+
+  out <- list(
+    logp1 = .kde_eval_logdens(X1, X1e, bw1, engine, chunk_size, levs[1]),
+    logq1 = .kde_eval_logdens(X2, X1e, bw2, engine, chunk_size, levs[2]),
+    logp2 = .kde_eval_logdens(X1, X2e, bw1, engine, chunk_size, levs[1]),
+    logq2 = .kde_eval_logdens(X2, X2e, bw2, engine, chunk_size, levs[2]),
+    n1 = n1, n2 = n2,
+    kh0_1 = .kde_kh0(bw1, n_features),
+    kh0_2 = .kde_kh0(bw2, n_features),
+    levels = levs, data = data
+  )
+  if (any(!is.finite(out$logp1)) && any(!is.finite(out$logp2))) {
+    stop("KDE returned invalid density estimates.", call. = FALSE)
+  }
+  out
+}
+
+.loo_logdens <- function(log_dens, n, kh0) {
+  # leave-one-out log density at a KDE's own training points
+  .log_sub_exp(log(n) + log_dens, log(kh0)) - log(n - 1)
+}
+
+.jsd_mc <- function(mc, loo = TRUE) {
+  ln2 <- log(2)
+  logp1 <- if (isTRUE(loo)) .loo_logdens(mc$logp1, mc$n1, mc$kh0_1) else mc$logp1
+  logm1 <- log(0.5) + .log_add_exp(logp1, mc$logq1)
+  t1 <- (logp1 - logm1) / ln2
+
+  logq2 <- if (isTRUE(loo)) .loo_logdens(mc$logq2, mc$n2, mc$kh0_2) else mc$logq2
+  logm2 <- log(0.5) + .log_add_exp(mc$logp2, logq2)
+  t2 <- (logq2 - logm2) / ln2
+
+  t1 <- t1[is.finite(t1)]
+  t2 <- t2[is.finite(t2)]
+  if (!length(t1) || !length(t2)) {
+    stop("Monte-Carlo JSD: no usable evaluation points.", call. = FALSE)
+  }
+  min(max(0.5 * mean(t1) + 0.5 * mean(t2), 0), 1)
+}
+
+.overlap_mc <- function(mc) {
+  # OVL = integral of min(p, q); estimate each half with that group's own
+  # samples via min(1, cross-density / self-density).
+  o1 <- pmin(1, exp(mc$logq1 - mc$logp1))
+  o2 <- pmin(1, exp(mc$logp2 - mc$logq2))
+  o1 <- o1[is.finite(o1)]
+  o2 <- o2[is.finite(o2)]
+  if (!length(o1) || !length(o2)) {
+    stop("Monte-Carlo overlap: no usable evaluation points.", call. = FALSE)
+  }
+  min(max(0.5 * mean(o1) + 0.5 * mean(o2), 0), 1)
+}

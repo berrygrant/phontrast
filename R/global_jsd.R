@@ -25,6 +25,8 @@
 #' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()}.
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
+#' @param method Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
+#'   or \code{"legacy"} (pre-1.1.0 self-normalized estimate).
 #' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
 #'
 #' @return A one-row data frame with columns:
@@ -44,7 +46,7 @@
 global_boot_jsd <- function(data,
                             features,
                             category_col,
-                            n_boot     = 300,
+                            n_boot     = 1000,
                             min_tokens = 20,
                             est_distance = FALSE,
                             conf_level = 0.95,
@@ -54,6 +56,7 @@ global_boot_jsd <- function(data,
                             eval_seed = NULL,
                             engine = c("ks", "fast_diag", "fast_diagonal"),
                             chunk_size = 1000L,
+                            method = c("mc", "legacy"),
                             ...) {
 
   out <- estimate_jsd(
@@ -72,8 +75,9 @@ global_boot_jsd <- function(data,
     eval_seed = eval_seed,
     engine = engine,
     chunk_size = chunk_size,
+    method = method,
     ...
   )
   out$scope <- NULL
-  as.data.frame(out)
+  tibble::as_tibble(out)
 }

@@ -27,7 +27,12 @@
 #' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()}.
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
-#' @param ... Additional arguments passed to \code{jsd_kde_nd()}.
+#' @param method Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
+#'   for the Monte-Carlo plug-in estimate of the continuous JSD, or
+#'   \code{"legacy"} to reproduce the pre-1.1.0 self-normalized sample-point
+#'   estimate.
+#' @param ... Additional arguments passed to \code{jsd_kde_nd()} (e.g.,
+#'   \code{loo}).
 #'
 #' @return A tibble. Global: one row with columns
 #'   scope, n_tokens, n_boot, conf_level, jsd_point, jsd_mean, jsd_sd,
@@ -82,7 +87,7 @@ estimate_jsd <- function(data,
                          group_col    = NULL,
                          do_boot      = FALSE,
                          n_boot       = 1000,
-                         min_tokens   = 5,
+                         min_tokens   = 20,
                          est_distance = FALSE,
                          conf_level   = 0.95,
                          bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
@@ -91,11 +96,13 @@ estimate_jsd <- function(data,
                          eval_seed = NULL,
                          engine = c("ks", "fast_diag", "fast_diagonal"),
                          chunk_size = 1000L,
+                         method = c("mc", "legacy"),
                          ...) {
 
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
+  method <- match.arg(method)
   .check_conf_level(conf_level)
   if (isTRUE(do_boot)) {
     .check_positive_count(n_boot, "n_boot")
@@ -128,9 +135,10 @@ estimate_jsd <- function(data,
       eval_seed = eval_seed,
       engine    = engine,
       chunk_size = chunk_size,
+      method    = method,
       ...
     )
-    
+
     jsd_point <- if (est_distance) sqrt(jsd_div_point) else jsd_div_point
     
     # If no bootstrap, just return the point estimate row
@@ -173,6 +181,7 @@ estimate_jsd <- function(data,
           eval_seed = eval_seed,
           engine    = engine,
           chunk_size = chunk_size,
+          method    = method,
           ...
         ),
         error = function(e) NA_real_
@@ -232,6 +241,7 @@ estimate_jsd <- function(data,
     eval_seed    = eval_seed,
     engine       = engine,
     chunk_size   = chunk_size,
+    method       = method,
     ...
   ) |>
     dplyr::rename(jsd_point = "jsd")
@@ -272,9 +282,10 @@ estimate_jsd <- function(data,
     eval_seed    = eval_seed,
     engine       = engine,
     chunk_size   = chunk_size,
+    method       = method,
     ...
   )
-  
+
   out <- dplyr::left_join(pt, bt, by = c("group", "n_tokens"))
   out$scope <- "group"
   out <- out[, c("scope", "group", "n_tokens", "n_boot",

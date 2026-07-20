@@ -19,9 +19,10 @@ compare_overlap_metrics(
   eps = 1e-06,
   output = c("wide", "long"),
   do_boot = FALSE,
-  n_boot = 300,
+  n_boot = 1000,
   conf_level = 0.95,
-  progress = TRUE
+  progress = TRUE,
+  method = c("mc", "legacy")
 )
 }
 \arguments{
@@ -69,12 +70,19 @@ deviations, and confidence intervals for each reported metric.}
 
 \item{progress}{Logical; if \code{TRUE}, print progress messages while
 bootstrap resamples are running.}
+
+\item{method}{KDE estimator for the JSD and percent-overlap columns, passed
+to \code{jsd_kde_nd()}/\code{percent_overlap_kde()}: \code{"mc"} (default)
+for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.1.0
+self-normalized estimate.}
 }
 \value{
-A data frame. Wide output contains one column per metric. Long output
+A data frame. Wide output contains one column per metric plus
+\code{pillai_p_value} (the Pillai trace's MANOVA p-value). Long output
 contains \code{metric}, \code{estimate}, \code{orientation},
-\code{bounded_0_1}, \code{separation_value}, and
-\code{separation_rank} columns. If \code{do_boot = TRUE}, wide output
+\code{bounded_0_1}, \code{separation_value}, \code{separation_rank}, and
+\code{p_value} (populated for the Pillai row, \code{NA} otherwise) columns.
+If \code{do_boot = TRUE}, wide output
 also includes metric-specific \code{*_mean}, \code{*_sd},
 \code{*_ci_lower}, \code{*_ci_upper}, and \code{*_n_boot} columns, while
 long output includes \code{boot_mean}, \code{boot_sd}, \code{ci_lower},

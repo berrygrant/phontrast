@@ -15,6 +15,8 @@
 #' @param engine KDE evaluation engine passed to \code{jsd_kde_nd()}.
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
+#' @param method Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
+#'   or \code{"legacy"} (pre-1.1.0 self-normalized estimate).
 #'
 #' @return A tibble with one row per group and columns:
 #'   \itemize{
@@ -35,8 +37,8 @@ jsd_summary <- function(data,
                         category_col,
                         features,
                         do_boot     = TRUE,
-                        n_boot      = 300,
-                        min_tokens  = 30,
+                        n_boot      = 1000,
+                        min_tokens  = 20,
                         conf_level  = 0.95,
                         bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
                         eval_on = c("pooled", "group1", "group2", "pooled_sample"),
@@ -44,11 +46,13 @@ jsd_summary <- function(data,
                         eval_seed = NULL,
                         engine = c("ks", "fast_diag", "fast_diagonal"),
                         chunk_size = 1000L,
+                        method = c("mc", "legacy"),
                         ...) {
 
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
+  method <- match.arg(method)
   .check_conf_level(conf_level)
   if (isTRUE(do_boot)) {
     .check_positive_count(n_boot, "n_boot")
@@ -69,6 +73,7 @@ jsd_summary <- function(data,
     eval_seed    = eval_seed,
     engine       = engine,
     chunk_size   = chunk_size,
+    method       = method,
     ...
   ) |>
     dplyr::rename(jsd_point = "jsd")
@@ -100,6 +105,7 @@ jsd_summary <- function(data,
     eval_seed    = eval_seed,
     engine       = engine,
     chunk_size   = chunk_size,
+    method       = method,
     ...
   )
 

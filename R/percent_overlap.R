@@ -23,6 +23,10 @@
 #'   \code{"fast_diagonal"}.
 #' @param chunk_size Positive integer controlling the number of evaluation
 #'   points processed per chunk by \code{engine = "fast_diag"}.
+#' @param method Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
+#'   estimate of the overlapping coefficient, or \code{"legacy"} for the
+#'   pre-1.1.0 self-normalized sample-point estimate. \code{eval_on} applies to
+#'   \code{"legacy"} only.
 #' @param ... Reserved for future extensions; currently unused.
 #'
 #' @return Numeric scalar proportion in \code{[0, 1]}.
@@ -36,9 +40,26 @@ percent_overlap_kde <- function(data,
                                 eval_seed = NULL,
                                 engine = c("ks", "fast_diag", "fast_diagonal"),
                                 chunk_size = 1000L,
+                                method = c("mc", "legacy"),
                                 ...) {
 
   .validate_metric_inputs(data, features, category_col)
+  method <- match.arg(method)
+
+  if (identical(method, "mc")) {
+    mc <- .kde_mc_pair(
+      data = data,
+      features = features,
+      category_col = category_col,
+      bw = bw,
+      eval_n = eval_n,
+      eval_seed = eval_seed,
+      engine = engine,
+      chunk_size = chunk_size,
+      metric = "percent_overlap_kde()"
+    )
+    return(.overlap_mc(mc))
+  }
 
   dens <- .kde_density_pair(
     data = data,
@@ -84,9 +105,11 @@ percent_overlap_kde <- function(data,
 #' @param engine KDE evaluation engine passed to \code{percent_overlap_kde()}.
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
+#' @param method Estimator passed to \code{percent_overlap_kde()}: \code{"mc"}
+#'   (default) or \code{"legacy"} (pre-1.1.0 self-normalized estimate).
 #' @param ... Additional arguments passed to \code{percent_overlap_kde()}.
 #'
-#' @return A data frame (global = one row; grouped = one per group) with
+#' @return A tibble (global = one row; grouped = one per group) with
 #'   \code{overlap} as a 0--1 proportion.
 #' @export
 estimate_overlap <- function(data,
@@ -100,11 +123,13 @@ estimate_overlap <- function(data,
                              eval_seed = NULL,
                              engine = c("ks", "fast_diag", "fast_diagonal"),
                              chunk_size = 1000L,
+                             method = c("mc", "legacy"),
                              ...) {
 
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
+  method <- match.arg(method)
   .check_positive_count(min_tokens, "min_tokens")
   .validate_metric_inputs(data, features, category_col, group_col)
 
@@ -127,14 +152,14 @@ estimate_overlap <- function(data,
       eval_seed    = eval_seed,
       engine       = engine,
       chunk_size   = chunk_size,
+      method       = method,
       ...
     )
 
-    return(data.frame(
+    return(tibble::tibble(
       scope        = "global",
       n_tokens     = n,
-      overlap      = ov,
-      stringsAsFactors = FALSE
+      overlap      = ov
     ))
   }
 
@@ -162,6 +187,7 @@ estimate_overlap <- function(data,
         eval_seed    = eval_seed,
         engine       = engine,
         chunk_size   = chunk_size,
+        method       = method,
         ...
       ),
       error = function(e) NA_real_
@@ -187,5 +213,5 @@ estimate_overlap <- function(data,
     )
   }
   rownames(out) <- NULL
-  .warn_failed_groups(out, "overlap", "estimate_overlap()")
+  tibble::as_tibble(.warn_failed_groups(out, "overlap", "estimate_overlap()"))
 }

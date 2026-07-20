@@ -201,7 +201,7 @@ test_that("fast KDE controls support diagonal Scott bandwidths", {
     "requires `bw = \"scott.diag\"`"
   )
   expect_error(
-    jsd_kde_nd(data, features, "category", eval_on = "pooled_sample"),
+    jsd_kde_nd(data, features, "category", eval_on = "pooled_sample", method = "legacy"),
     "`eval_n` must be supplied"
   )
 })
@@ -894,4 +894,102 @@ test_that("grouped metrics keep failed groups as NA and warn consistently", {
   expect_true(is.na(bhatt$bhatt_dist[bhatt$group == "bad"]))
   expect_true(is.finite(bhatt$bhatt_dist[bhatt$group == "good"]))
   expect_true(is.na(jsd$jsd_point[jsd$group == "bad"]))
+})
+
+test_that("Monte-Carlo JSD tracks a grid-integrated reference and the extremes", {
+  skip_if_not_installed("ks")
+  set.seed(2027)
+
+  # Reference: integrate the same per-group Hpi KDEs that the MC path uses.
+  jsd_grid <- function(X1, X2, ng = 130) {
+    H1 <- ks::Hpi(X1); H2 <- ks::Hpi(X2)
+    rng <- apply(rbind(X1, X2), 2, range)
+    sds <- apply(rbind(X1, X2), 2, stats::sd)
+    g1 <- seq(rng[1, 1] - 4 * sds[1], rng[2, 1] + 4 * sds[1], length.out = ng)
+    g2 <- seq(rng[1, 2] - 4 * sds[2], rng[2, 2] + 4 * sds[2], length.out = ng)
+    grid <- as.matrix(expand.grid(g1, g2))
+    p <- ks::kde(X1, H = H1, eval.points = grid)$estimate
+    q <- ks::kde(X2, H = H2, eval.points = grid)$estimate
+    p[p < 0] <- 0; q[q < 0] <- 0
+    m <- 0.5 * (p + q); cell <- diff(g1)[1] * diff(g2)[1]
+    term <- function(a) { i <- a > 0 & m > 0; sum(a[i] * log2(a[i] / m[i])) * cell }
+    0.5 * term(p) + 0.5 * term(q)
+  }
+
+  n <- 200
+  data <- data.frame(
+    cat = rep(c("a", "b"), each = n),
+    f1 = c(rnorm(n, 0), rnorm(n, 1.8)),
+    f2 = c(rnorm(n, 0), rnorm(n, 1.1))
+  )
+  X1 <- as.matrix(data[data$cat == "a", c("f1", "f2")])
+  X2 <- as.matrix(data[data$cat == "b", c("f1", "f2")])
+
+  expect_equal(jsd_kde_nd(data, c("f1", "f2"), "cat"), jsd_grid(X1, X2),
+               tolerance = 0.06)
+
+  set.seed(11)
+  same <- data.frame(cat = rep(c("a", "b"), each = 150),
+                     f1 = rnorm(300), f2 = rnorm(300))
+  expect_lt(jsd_kde_nd(same, c("f1", "f2"), "cat"), 0.05)
+
+  far <- data.frame(cat = rep(c("a", "b"), each = 120),
+                    f1 = c(rnorm(120, 0), rnorm(120, 6)),
+                    f2 = c(rnorm(120, 0), rnorm(120, 6)))
+  expect_gt(jsd_kde_nd(far, c("f1", "f2"), "cat"), 0.9)
+})
+
+test_that("legacy method reproduces the pre-1.1.0 sample-point estimate", {
+  set.seed(5)
+  data <- data.frame(
+    cat = rep(c("a", "b"), each = 50),
+    f1 = c(rnorm(50, 0), rnorm(50, 1)),
+    f2 = c(rnorm(50, 0), rnorm(50, 1))
+  )
+  legacy <- jsd_kde_nd(data, c("f1", "f2"), "cat", method = "legacy")
+  dens <- phonJSD:::.kde_density_pair(data, c("f1", "f2"), "cat", metric = "x")
+  expect_equal(legacy, jsd(dens$p, dens$q))
+  # the corrected default differs from the legacy index
+  expect_false(isTRUE(all.equal(legacy, jsd_kde_nd(data, c("f1", "f2"), "cat"))))
+})
+
+test_that("MC estimator is label-symmetric, dimension-agnostic, and engine-consistent", {
+  skip_if_not_installed("ks")
+  set.seed(9)
+
+  # label swap must not change JSD
+  d <- data.frame(cat = rep(c("a", "b"), each = 80),
+                  f1 = c(rnorm(80, 0), rnorm(80, 1.3)),
+                  f2 = c(rnorm(80, 0), rnorm(80, 0.9)))
+  d2 <- d; d2$cat <- factor(d2$cat, levels = c("b", "a"))
+  expect_equal(jsd_kde_nd(d, c("f1", "f2"), "cat"),
+               jsd_kde_nd(d2, c("f1", "f2"), "cat"))
+
+  # 13-D (grid is infeasible) returns finite values in range; engines agree
+  feats <- paste0("m", 1:13); n <- 90
+  mat <- matrix(rnorm(2 * n * 13), ncol = 13)
+  mat[(n + 1):(2 * n), 1:4] <- mat[(n + 1):(2 * n), 1:4] + 1.2
+  hd <- data.frame(cat = rep(c("a", "b"), each = n)); hd[feats] <- mat
+  jf <- jsd_kde_nd(hd, feats, "cat", bw = "scott.diag", engine = "fast_diag")
+  jk <- jsd_kde_nd(hd, feats, "cat", bw = "scott.diag", engine = "ks")
+  ov <- percent_overlap_kde(hd, feats, "cat", bw = "scott.diag", engine = "fast_diag")
+  expect_true(is.finite(jf) && jf >= 0 && jf <= 1)
+  expect_true(is.finite(ov) && ov >= 0 && ov <= 1)
+  expect_equal(jf, jk, tolerance = 1e-6)
+})
+
+test_that("estimate_* wrappers return tibbles", {
+  set.seed(3)
+  data <- data.frame(
+    speaker = rep(c("s1", "s2"), each = 60),
+    cat = rep(rep(c("a", "b"), each = 30), 2),
+    f1 = c(rnorm(30, 0), rnorm(30, 1), rnorm(30, 0.2), rnorm(30, 1.2)),
+    f2 = c(rnorm(30, 0), rnorm(30, 1), rnorm(30, 0.1), rnorm(30, 1.1))
+  )
+  for (col in list(NULL, "speaker")) {
+    expect_s3_class(estimate_jsd(data, c("f1", "f2"), "cat", group_col = col, min_tokens = 20), "tbl_df")
+    expect_s3_class(estimate_overlap(data, c("f1", "f2"), "cat", group_col = col, min_tokens = 20), "tbl_df")
+    expect_s3_class(estimate_pillai(data, c("f1", "f2"), "cat", group_col = col, min_tokens = 20), "tbl_df")
+    expect_s3_class(estimate_bhatt(data, c("f1", "f2"), "cat", group_col = col, min_tokens = 20), "tbl_df")
+  }
 })

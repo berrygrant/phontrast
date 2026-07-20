@@ -14,6 +14,7 @@ percent_overlap_kde(
   eval_seed = NULL,
   engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
+  method = c("mc", "legacy"),
   ...
 )
 }
@@ -44,6 +45,11 @@ evaluation-point subsampling.}
 
 \item{chunk_size}{Positive integer controlling the number of evaluation
 points processed per chunk by \code{engine = "fast_diag"}.}
+
+\item{method}{Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
+estimate of the overlapping coefficient, or \code{"legacy"} for the
+pre-1.1.0 self-normalized sample-point estimate. \code{eval_on} applies to
+\code{"legacy"} only.}
 
 \item{...}{Reserved for future extensions; currently unused.}
 }

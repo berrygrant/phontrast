@@ -11,7 +11,7 @@ estimate_jsd(
   group_col = NULL,
   do_boot = FALSE,
   n_boot = 1000,
-  min_tokens = 5,
+  min_tokens = 20,
   est_distance = FALSE,
   conf_level = 0.95,
   bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
@@ -20,6 +20,7 @@ estimate_jsd(
   eval_seed = NULL,
   engine = c("ks", "fast_diag", "fast_diagonal"),
   chunk_size = 1000L,
+  method = c("mc", "legacy"),
   ...
 )
 }
@@ -57,7 +58,13 @@ into a labeled \code{group} value such as \code{"Sex=F | Style=read"}.}
 
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
-\item{...}{Additional arguments passed to \code{jsd_kde_nd()}.}
+\item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
+for the Monte-Carlo plug-in estimate of the continuous JSD, or
+\code{"legacy"} to reproduce the pre-1.1.0 self-normalized sample-point
+estimate.}
+
+\item{...}{Additional arguments passed to \code{jsd_kde_nd()} (e.g.,
+\code{loo}).}
 }
 \value{
 A tibble. Global: one row with columns

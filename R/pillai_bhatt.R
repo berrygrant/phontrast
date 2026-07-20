@@ -163,11 +163,10 @@ global_pillai <- function(data,
     category_col = category_col
   )
 
-  data.frame(
+  tibble::tibble(
     n_tokens = n,
     pillai   = po$pillai,
-    p_value  = po$p_value,
-    stringsAsFactors = FALSE
+    p_value  = po$p_value
   )
 }
 
@@ -356,7 +355,7 @@ speaker_bhatt <- function(data,
   out <- do.call(rbind, out_list)
   if (is.null(out)) out <- .empty_group_bhatt()
   rownames(out) <- NULL
-  .warn_failed_groups(out, "bhatt_dist", "speaker_bhatt()")
+  tibble::as_tibble(.warn_failed_groups(out, "bhatt_dist", "speaker_bhatt()"))
 }
 
 #' Estimate Bhattacharyya distance, globally or by group
@@ -402,12 +401,11 @@ estimate_bhatt <- function(data,
       eps          = eps
     )
 
-    out <- data.frame(
+    out <- tibble::tibble(
       scope          = "global",
       n_tokens       = n,
       bhatt_dist     = bh$distance,
-      bhatt_affinity = bh$affinity,
-      stringsAsFactors = FALSE
+      bhatt_affinity = bh$affinity
     )
     return(out)
   } else {
@@ -421,7 +419,7 @@ estimate_bhatt <- function(data,
       eps          = eps
     )
     if (!nrow(sb)) {
-      return(.empty_estimate_bhatt_group())
+      return(tibble::as_tibble(.empty_estimate_bhatt_group()))
     }
     sb$scope <- "group"
     sb <- sb[, c("scope", "group", "n_tokens", "bhatt_dist", "bhatt_affinity")]
