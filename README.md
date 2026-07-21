@@ -5,7 +5,7 @@ It is designed for researchers working in sociophonetics, laboratory phonology, 
 
 Version **1.0.0** was the first stable release of phonJSD, focused on core overlap/separation metrics, reproducible uncertainty estimates, visualization, and comparison with classical overlap measures. Version **1.2.0** replaces the KDE-based JSD and percent-overlap estimator with a consistent Monte-Carlo plug-in (now the default; results differ from 1.0.0, and `method = "legacy"` reproduces them) and adds opt-in high-dimensional KDE speed controls.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20932518.svg)](https://doi.org/10.5281/zenodo.20932518)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21465469.svg)](https://doi.org/10.5281/zenodo.21465469)
 
 ---
 
