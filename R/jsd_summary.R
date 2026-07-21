@@ -20,12 +20,12 @@
 #'
 #' @return A tibble with one row per group and columns:
 #'   \itemize{
-#'     \item \code{group} – group ID (e.g., speaker)
-#'     \item \code{n_tokens} – number of tokens for that group
-#'     \item \code{jsd_point} – single JSD point estimate
+#'     \item \code{group} - group ID (e.g., speaker)
+#'     \item \code{n_tokens} - number of tokens for that group
+#'     \item \code{jsd_point} - single JSD point estimate
 #'     \item \code{n_boot}, \code{conf_level}, \code{jsd_mean},
 #'       \code{jsd_sd}, \code{ci_lower}, \code{ci_upper},
-#'       \code{jsd_low}, \code{jsd_high} – bootstrap summary columns.
+#'       \code{jsd_low}, \code{jsd_high} - bootstrap summary columns.
 #'       These are \code{NA} (or 0 for \code{n_boot}) if
 #'       \code{do_boot = FALSE}.
 #'   }

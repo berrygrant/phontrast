@@ -76,10 +76,5 @@ Useful links:
 \author{
 \strong{Maintainer}: Grant M. Berry \email{berry.grant@gmail.com}
 
-Other contributors:
-\itemize{
-  \item ChatGPT Assistant [contributor]
-}
-
 }
 \keyword{internal}

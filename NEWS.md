@@ -1,3 +1,13 @@
+# phontrast 2.0.1
+
+## CRAN preparation
+
+- Prepared the package for CRAN submission: expanded acronyms and added a
+  Jensen-Shannon divergence reference (Lin, 1991) to the `Description`,
+  normalized non-ASCII characters in the R sources, added `inst/WORDLIST` and
+  `cran-comments.md`, and removed the AI assistant from `Authors@R` (the AI-use
+  acknowledgment remains in the README). No user-facing code changes.
+
 # phontrast 2.0.0
 
 ## Package renamed: phonJSD is now phontrast

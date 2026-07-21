@@ -71,7 +71,7 @@ resubstitution bias. Ignored when \code{method = "legacy"}.}
 A single numeric JSD value in bits, bounded in \code{[0, 1]}.
 }
 \description{
-Computes Jensen–Shannon divergence between two categories in an
+Computes Jensen-Shannon divergence between two categories in an
 arbitrary n-dimensional acoustic space using multivariate KDE. The default
 engine uses the \pkg{ks} package; a faster diagonal-Gaussian engine is
 available for diagonal bandwidths.

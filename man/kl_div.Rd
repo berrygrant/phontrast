@@ -2,7 +2,7 @@
 % Please edit documentation in R/jsd_core.R
 \name{kl_div}
 \alias{kl_div}
-\title{Kullback–Leibler divergence for discrete distributions}
+\title{Kullback-Leibler divergence for discrete distributions}
 \usage{
 kl_div(p, q)
 }

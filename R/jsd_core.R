@@ -1,4 +1,4 @@
-#' Kullback–Leibler divergence for discrete distributions
+#' Kullback-Leibler divergence for discrete distributions
 #'
 #' Computes KL(p || q) in bits for discrete probability vectors.
 #' Zero-probability events in `p` contribute zero; positive mass in `p`
@@ -23,14 +23,14 @@ kl_div <- function(p, q) {
   sum(p[keep] * log2(p[keep] / q[keep]))
 }
 
-#' Jensen–Shannon divergence for discrete distributions
+#' Jensen-Shannon divergence for discrete distributions
 #'
 #' Computes JSD(p, q) in bits for discrete probability vectors.
 #' The value is bounded in \code{[0, 1]} for equally weighted mixtures.
 #'
 #' @inheritParams kl_div
 #'
-#' @return A single numeric value: the Jensen–Shannon divergence in bits.
+#' @return A single numeric value: the Jensen-Shannon divergence in bits.
 #' @export
 jsd <- function(p, q) {
   if (length(p) != length(q)) {

@@ -11,6 +11,7 @@
 ^\.claude(/|$)
 ^phontrast\.Rcheck(/|$)
 ^phontrast_.*\.tar\.gz$
+^cran-comments\.md$
 ^\.gitignore$
 ^\.Rhistory$
 ^\.Rproj\.user(/|$)

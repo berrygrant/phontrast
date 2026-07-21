@@ -93,7 +93,7 @@ speaker_jsd <- function(data,
 #'
 #' @inheritParams speaker_jsd
 #' @param n_boot Number of bootstrap resamples per group.
-#' @param est_distance Logical; if TRUE, return Jensen–Shannon distance
+#' @param est_distance Logical; if TRUE, return Jensen-Shannon distance
 #'   (sqrt of divergence) instead of divergence.
 #' @param conf_level Confidence level for bootstrap intervals.
 #'

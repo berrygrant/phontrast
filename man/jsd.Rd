@@ -2,7 +2,7 @@
 % Please edit documentation in R/jsd_core.R
 \name{jsd}
 \alias{jsd}
-\title{Jensen–Shannon divergence for discrete distributions}
+\title{Jensen-Shannon divergence for discrete distributions}
 \usage{
 jsd(p, q)
 }
@@ -10,7 +10,7 @@ jsd(p, q)
 \item{p, q}{Numeric probability vectors of the same length.}
 }
 \value{
-A single numeric value: the Jensen–Shannon divergence in bits.
+A single numeric value: the Jensen-Shannon divergence in bits.
 }
 \description{
 Computes JSD(p, q) in bits for discrete probability vectors.

@@ -47,9 +47,9 @@ fitted model. Defaults to \code{mgcv::gam} if available, otherwise \code{stats::
 \value{
 A tibble with columns:
 \itemize{
-\item \code{boot_id} – bootstrap replicate index
-\item \code{term} – model term
-\item \code{estimate} – estimate for that term in that replicate
+\item \code{boot_id} - bootstrap replicate index
+\item \code{term} - model term
+\item \code{estimate} - estimate for that term in that replicate
 }
 }
 \description{

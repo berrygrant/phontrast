@@ -1,6 +1,6 @@
 #' n-dimensional JSD via multivariate kernel density estimation
 #'
-#' Computes Jensen–Shannon divergence between two categories in an
+#' Computes Jensen-Shannon divergence between two categories in an
 #' arbitrary n-dimensional acoustic space using multivariate KDE. The default
 #' engine uses the \pkg{ks} package; a faster diagonal-Gaussian engine is
 #' available for diagonal bandwidths.

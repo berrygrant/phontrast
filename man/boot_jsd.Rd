@@ -38,7 +38,7 @@ to compare (e.g., "vowel"). Each group must have exactly two categories.}
 \item{min_tokens}{Minimum number of tokens per group required to compute
 JSD. Groups with fewer tokens are dropped.}
 
-\item{est_distance}{Logical; if TRUE, return Jensen–Shannon distance
+\item{est_distance}{Logical; if TRUE, return Jensen-Shannon distance
 (sqrt of divergence) instead of divergence.}
 
 \item{conf_level}{Confidence level for bootstrap intervals.}

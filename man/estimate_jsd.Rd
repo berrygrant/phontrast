@@ -2,7 +2,7 @@
 % Please edit documentation in R/jsd_wrappers.R
 \name{estimate_jsd}
 \alias{estimate_jsd}
-\title{Estimate Jensen–Shannon divergence or distance between two categories}
+\title{Estimate Jensen-Shannon divergence or distance between two categories}
 \usage{
 estimate_jsd(
   data,
@@ -41,7 +41,7 @@ into a labeled \code{group} value such as \code{"Sex=F | Style=read"}.}
 
 \item{min_tokens}{Minimum total tokens required (globally or per group).}
 
-\item{est_distance}{Logical; if TRUE, return Jensen–Shannon \emph{distance} (sqrt of divergence).}
+\item{est_distance}{Logical; if TRUE, return Jensen-Shannon \emph{distance} (sqrt of divergence).}
 
 \item{conf_level}{Confidence level for bootstrap interval.}
 

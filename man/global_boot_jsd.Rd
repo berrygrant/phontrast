@@ -62,19 +62,19 @@ or \code{"legacy"} (pre-1.2.0 self-normalized estimate).}
 \value{
 A one-row data frame with columns:
 \itemize{
-\item \code{n_tokens} – total number of tokens used
-\item \code{n_boot} – number of successful bootstrap samples
-\item \code{conf_level} – confidence level used for the interval
-\item \code{jsd_point} – JSD on the full dataset
-\item \code{jsd_mean} – mean JSD across bootstrap samples
-\item \code{jsd_sd} – standard deviation of bootstrap JSD
-\item \code{ci_lower}, \code{ci_upper} – bootstrap confidence interval
-\item \code{jsd_low}, \code{jsd_high} – legacy aliases for
+\item \code{n_tokens} - total number of tokens used
+\item \code{n_boot} - number of successful bootstrap samples
+\item \code{conf_level} - confidence level used for the interval
+\item \code{jsd_point} - JSD on the full dataset
+\item \code{jsd_mean} - mean JSD across bootstrap samples
+\item \code{jsd_sd} - standard deviation of bootstrap JSD
+\item \code{ci_lower}, \code{ci_upper} - bootstrap confidence interval
+\item \code{jsd_low}, \code{jsd_high} - legacy aliases for
 \code{ci_lower} and \code{ci_upper}
 }
 }
 \description{
-Computes a single Jensen–Shannon divergence (JSD) value for two categories
+Computes a single Jensen-Shannon divergence (JSD) value for two categories
 in an n-dimensional acoustic space, together with bootstrap-based
 confidence intervals obtained by resampling tokens with replacement.
 }

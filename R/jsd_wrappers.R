@@ -1,4 +1,4 @@
-#' Estimate Jensen–Shannon divergence or distance between two categories
+#' Estimate Jensen-Shannon divergence or distance between two categories
 #'
 #' Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon
 #' distance is the primary outcome. If you want to compare JSD with Pillai,
@@ -18,7 +18,7 @@
 #' @param do_boot Logical; if TRUE, run nonparametric bootstrap.
 #' @param n_boot Number of bootstrap resamples.
 #' @param min_tokens Minimum total tokens required (globally or per group).
-#' @param est_distance Logical; if TRUE, return Jensen–Shannon *distance* (sqrt of divergence).
+#' @param est_distance Logical; if TRUE, return Jensen-Shannon *distance* (sqrt of divergence).
 #' @param conf_level Confidence level for bootstrap interval.
 #' @param bw Bandwidth selection method passed to \code{jsd_kde_nd()}.
 #' @param eval_on KDE evaluation points passed to \code{jsd_kde_nd()}.

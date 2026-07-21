@@ -24,9 +24,9 @@
 #'
 #' @return A tibble with columns:
 #'   \itemize{
-#'     \item \code{boot_id} – bootstrap replicate index
-#'     \item \code{term} – model term
-#'     \item \code{estimate} – estimate for that term in that replicate
+#'     \item \code{boot_id} - bootstrap replicate index
+#'     \item \code{term} - model term
+#'     \item \code{estimate} - estimate for that term in that replicate
 #'   }
 #'
 #' @examples
