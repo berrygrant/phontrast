@@ -1,17 +1,18 @@
-#' Compare major phonological category overlap metrics
+#' Compute and compare phonological contrast metrics
 #'
-#' Computes the package's main category-separation and overlap metrics in one
-#' call: Pillai trace, Bhattacharyya distance and affinity, Jensen-Shannon
-#' divergence, Jensen-Shannon distance, Mahalanobis distance, and proportional
-#' overlap. Results can be returned in a wide format for analysis tables or a
-#' long format for plotting and rank-based comparison. The
-#' \code{percent_overlap} column is retained for compatibility, but its values
-#' are 0--1 proportions rather than 0--100 percentages.
+#' \code{phontrast()} is the package's main entry point. It computes one or more
+#' category separation and overlap metrics for a two-category phonological
+#' contrast in a single call: Jensen-Shannon divergence and distance, the
+#' Pillai-Bartlett trace, Bhattacharyya distance and affinity, Mahalanobis
+#' distance, and proportional overlap. Choose the metrics you want with
+#' \code{metrics}; the default computes all of them. Results are returned
+#' globally or by group, in a wide format (one column per metric, the default)
+#' or a tidy long format (one row per metric per comparison). The
+#' \code{percent_overlap} values are 0--1 proportions, not 0--100 percentages.
 #'
-#' This is the recommended entry point when you want to compare more than one
-#' overlap metric for the same phonological contrast. Use \code{estimate_jsd()}
-#' when JSD is the only outcome of interest, and use lower-level metric helpers
-#' only when you need direct control over one estimator.
+#' Use \code{estimate_jsd()} when Jensen-Shannon divergence is the only outcome
+#' of interest, and the lower-level metric helpers when you need direct control
+#' over one estimator.
 #'
 #' Metric directions differ. JSD, Jensen-Shannon distance, Pillai trace,
 #' Bhattacharyya distance, and Mahalanobis distance increase as categories
@@ -33,6 +34,11 @@
 #'   If \code{NULL}, metrics are computed globally. Multiple grouping columns
 #'   are combined into a labeled \code{group} value such as
 #'   \code{"Sex=F | Style=read"}.
+#' @param metrics Character vector selecting which contrast metrics to compute.
+#'   Any of \code{"jsd"}, \code{"js_distance"}, \code{"pillai"},
+#'   \code{"bhattacharyya"}, \code{"mahalanobis"}, and \code{"overlap"}.
+#'   Defaults to all of them. \code{"bhattacharyya"} returns both the
+#'   Bhattacharyya distance and affinity.
 #' @param min_tokens Minimum tokens required globally or per group.
 #' @param bw Bandwidth selection method passed to \code{jsd_kde_nd()} and
 #'   \code{percent_overlap_kde()}.
@@ -59,16 +65,17 @@
 #'   for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.2.0
 #'   self-normalized estimate.
 #'
-#' @return A data frame. Wide output contains one column per metric plus
-#'   \code{pillai_p_value} (the Pillai trace's MANOVA p-value). Long output
-#'   contains \code{metric}, \code{estimate}, \code{orientation},
+#' @return A data frame containing only the requested \code{metrics}. Wide
+#'   output (the default) contains one column per requested metric plus
+#'   \code{pillai_p_value} when Pillai is requested; with \code{do_boot = TRUE}
+#'   it also includes metric-specific \code{*_mean}, \code{*_sd},
+#'   \code{*_ci_lower}, \code{*_ci_upper}, and \code{*_n_boot} columns. Long
+#'   output contains \code{metric}, \code{estimate}, \code{orientation},
 #'   \code{bounded_0_1}, \code{separation_value}, \code{separation_rank}, and
-#'   \code{p_value} (populated for the Pillai row, \code{NA} otherwise) columns.
-#'   If \code{do_boot = TRUE}, wide output
-#'   also includes metric-specific \code{*_mean}, \code{*_sd},
-#'   \code{*_ci_lower}, \code{*_ci_upper}, and \code{*_n_boot} columns, while
-#'   long output includes \code{boot_mean}, \code{boot_sd}, \code{ci_lower},
-#'   \code{ci_upper}, \code{n_boot}, and \code{conf_level}.
+#'   \code{p_value} (populated for the Pillai row, \code{NA} otherwise) columns;
+#'   with \code{do_boot = TRUE} it also includes \code{boot_mean},
+#'   \code{boot_sd}, \code{ci_lower}, \code{ci_upper}, \code{n_boot}, and
+#'   \code{conf_level}.
 #'
 #' @examples
 #' set.seed(2026)
@@ -85,59 +92,61 @@
 #'   )
 #' )
 #'
-#' compare_overlap_metrics(
+#' # All metrics in one wide comparison table (the default), by speaker.
+#' phontrast(
+#'   data = vowels,
+#'   features = c("f1", "f2"),
+#'   category_col = "vowel",
+#'   group_col = "speaker"
+#' )
+#'
+#' # A single metric in wide format.
+#' phontrast(
 #'   data = vowels,
 #'   features = c("f1", "f2"),
 #'   category_col = "vowel",
 #'   group_col = "speaker",
+#'   metrics = "pillai",
 #'   output = "wide"
 #' )
 #'
-#' metrics_long <- compare_overlap_metrics(
-#'   data = vowels,
-#'   features = c("f1", "f2"),
-#'   category_col = "vowel",
-#'   group_col = "speaker",
-#'   output = "long"
-#' )
-#'
-#' metrics_long[, c("group", "metric", "estimate", "orientation",
-#'                  "separation_value", "separation_rank")]
-#'
 #' \donttest{
-#' # Bootstrapping all metrics is useful but slower because every metric is
+#' # Bootstrapping is useful but slower because every requested metric is
 #' # recomputed on every resample. Use a larger n_boot for real analyses.
-#' compare_overlap_metrics(
+#' phontrast(
 #'   data = vowels,
 #'   features = "f1",
 #'   category_col = "vowel",
 #'   group_col = "speaker",
+#'   metrics = c("jsd", "pillai"),
 #'   do_boot = TRUE,
 #'   n_boot = 5,
-#'   progress = FALSE,
-#'   output = "long"
+#'   progress = FALSE
 #' )
 #' }
 #' @export
-compare_overlap_metrics <- function(data,
-                                    features,
-                                    category_col,
-                                    group_col = NULL,
-                                    min_tokens = 20,
-                                    bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
-                                    eval_on = c("pooled", "group1", "group2", "pooled_sample"),
-                                    eval_n = NULL,
-                                    eval_seed = NULL,
-                                    engine = c("ks", "fast_diag", "fast_diagonal"),
-                                    chunk_size = 1000L,
-                                    eps = 1e-6,
-                                    output = c("wide", "long"),
-                                    do_boot = FALSE,
-                                    n_boot = 1000,
-                                    conf_level = 0.95,
-                                    progress = TRUE,
-                                    method = c("mc", "legacy")) {
+phontrast <- function(data,
+                      features,
+                      category_col,
+                      group_col = NULL,
+                      metrics = c("jsd", "js_distance", "pillai",
+                                  "bhattacharyya", "mahalanobis", "overlap"),
+                      min_tokens = 20,
+                      bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                      eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                      eval_n = NULL,
+                      eval_seed = NULL,
+                      engine = c("ks", "fast_diag", "fast_diagonal"),
+                      chunk_size = 1000L,
+                      eps = 1e-6,
+                      output = c("wide", "long"),
+                      do_boot = FALSE,
+                      n_boot = 1000,
+                      conf_level = 0.95,
+                      progress = TRUE,
+                      method = c("mc", "legacy")) {
   output <- match.arg(output)
+  metrics <- .resolve_contrast_metrics(metrics)
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
@@ -210,11 +219,118 @@ compare_overlap_metrics <- function(data,
     ), drop = FALSE]
   }
 
+  wide <- .select_contrast_columns(wide, metrics)
+
   if (identical(output, "wide")) {
     return(wide)
   }
 
   .comparison_long(wide)
+}
+
+# ---- metric selection ------------------------------------------------------
+
+.contrast_metric_columns <- function() {
+  list(
+    jsd           = "jsd",
+    js_distance   = "js_distance",
+    pillai        = "pillai",
+    bhattacharyya = c("bhatt_dist", "bhatt_affinity"),
+    mahalanobis   = "mahalanobis_dist",
+    overlap       = "percent_overlap"
+  )
+}
+
+.resolve_contrast_metrics <- function(metrics) {
+  choices <- names(.contrast_metric_columns())
+  if (is.null(metrics)) {
+    return(choices)
+  }
+  if (!is.character(metrics) || !length(metrics)) {
+    stop("`metrics` must be a non-empty character vector.", call. = FALSE)
+  }
+  metrics <- unique(metrics)
+  unknown <- setdiff(metrics, choices)
+  if (length(unknown)) {
+    stop(
+      "Unknown metric(s): ", paste(unknown, collapse = ", "),
+      ". Choose from: ", paste(choices, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  choices[choices %in% metrics]
+}
+
+.select_contrast_columns <- function(wide, metrics) {
+  map <- .contrast_metric_columns()
+  key_cols <- intersect(
+    c("scope", "group", "n_tokens", "n_boot", "conf_level"),
+    names(wide)
+  )
+  metric_cols <- unlist(map[metrics], use.names = FALSE)
+  keep <- unlist(lapply(metric_cols, function(col) {
+    c(col, paste0(col, c("_n_boot", "_mean", "_sd", "_ci_lower", "_ci_upper")))
+  }))
+  if ("pillai" %in% metrics) {
+    keep <- c(keep, "pillai_p_value")
+  }
+  keep <- c(key_cols, keep)
+  wide[, intersect(names(wide), keep), drop = FALSE]
+}
+
+#' Compare phonological category overlap metrics (deprecated)
+#'
+#' @description
+#' `compare_overlap_metrics()` was renamed to [phontrast()] in phontrast 2.0.0
+#' (the package formerly released as 'phonJSD'). It remains as a thin wrapper
+#' that calls [phontrast()] with `output = "wide"` for backward compatibility
+#' and will be removed in a future release. New code should call [phontrast()].
+#'
+#' @inheritParams phontrast
+#' @return See [phontrast()]; wide format by default.
+#' @seealso [phontrast()]
+#' @keywords internal
+#' @export
+compare_overlap_metrics <- function(data,
+                                    features,
+                                    category_col,
+                                    group_col = NULL,
+                                    min_tokens = 20,
+                                    bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                                    eval_on = c("pooled", "group1", "group2", "pooled_sample"),
+                                    eval_n = NULL,
+                                    eval_seed = NULL,
+                                    engine = c("ks", "fast_diag", "fast_diagonal"),
+                                    chunk_size = 1000L,
+                                    eps = 1e-6,
+                                    output = c("wide", "long"),
+                                    do_boot = FALSE,
+                                    n_boot = 1000,
+                                    conf_level = 0.95,
+                                    progress = TRUE,
+                                    method = c("mc", "legacy")) {
+  .Deprecated("phontrast")
+  output <- match.arg(output)
+  phontrast(
+    data = data,
+    features = features,
+    category_col = category_col,
+    group_col = group_col,
+    min_tokens = min_tokens,
+    bw = bw,
+    eval_on = eval_on,
+    eval_n = eval_n,
+    eval_seed = eval_seed,
+    engine = engine,
+    chunk_size = chunk_size,
+    eps = eps,
+    output = output,
+    do_boot = do_boot,
+    n_boot = n_boot,
+    conf_level = conf_level,
+    progress = progress,
+    method = method
+  )
 }
 
 .compare_overlap_metrics_point <- function(data,
@@ -349,7 +465,7 @@ compare_overlap_metrics <- function(data,
 
   if (is.null(df) || !nrow(df)) {
     warning(
-      "compare_overlap_metrics() returned no rows after removing missing or non-finite values.",
+      "phontrast() returned no rows after removing missing or non-finite values.",
       call. = FALSE
     )
     return(invisible(NULL))
@@ -358,7 +474,7 @@ compare_overlap_metrics <- function(data,
   if (is.null(group_col)) {
     counts <- .observed_category_counts(df[[category_col]])
     warning(
-      "compare_overlap_metrics() returned no rows. Observed category counts after filtering were: ",
+      "phontrast() returned no rows. Observed category counts after filtering were: ",
       paste(names(counts), as.integer(counts), sep = "=", collapse = ", "),
       ". Exactly two observed categories and at least ", min_per_category,
       " observations per category are required for KDE-based metrics.",
@@ -384,7 +500,7 @@ compare_overlap_metrics <- function(data,
   )
 
   warning(
-    "compare_overlap_metrics() returned no grouped rows. After removing missing/non-finite values, ",
+    "phontrast() returned no grouped rows. After removing missing/non-finite values, ",
     sum(meets_min & exactly_two), " of ", length(groups),
     " groups had at least min_tokens = ", min_tokens,
     " and exactly two observed categories; ",

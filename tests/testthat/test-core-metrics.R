@@ -158,7 +158,7 @@ test_that("fast KDE controls support diagonal Scott bandwidths", {
     eval_seed = 2026,
     engine = "fast_diag"
   )
-  metrics <- compare_overlap_metrics(
+  metrics <- phontrast(
     data = data,
     features = features,
     category_col = "category",
@@ -271,7 +271,7 @@ test_that("metric wrappers accept multiple grouping columns", {
     group_col = group_cols,
     min_tokens = 20
   )
-  metrics <- compare_overlap_metrics(
+  metrics <- phontrast(
     data = data,
     features = c("f1", "f2"),
     category_col = "category",
@@ -312,7 +312,7 @@ test_that("KDE metrics ignore unused factor levels after filtering", {
 
   jsd_val <- jsd_kde_nd(data, c("f1", "f2"), "category")
   overlap <- percent_overlap_kde(data, c("f1", "f2"), "category")
-  metrics <- compare_overlap_metrics(
+  metrics <- phontrast(
     data = data,
     features = c("f1", "f2"),
     category_col = "category",
@@ -534,7 +534,7 @@ test_that("small KDE samples fail with a clear data-size message", {
   )
 })
 
-test_that("compare_overlap_metrics returns wide and long comparisons", {
+test_that("phontrastreturns wide and long comparisons", {
   set.seed(10)
   data <- data.frame(
     speaker = rep(c("s1", "s2"), each = 80),
@@ -543,14 +543,14 @@ test_that("compare_overlap_metrics returns wide and long comparisons", {
     f2 = c(rnorm(40, 0), rnorm(40, 1), rnorm(40, 0.2), rnorm(40, 1.2))
   )
 
-  wide <- compare_overlap_metrics(
+  wide <- phontrast(
     data = data,
     features = c("f1", "f2"),
     category_col = "category",
     group_col = "speaker",
     min_tokens = 20
   )
-  long <- compare_overlap_metrics(
+  long <- phontrast(
     data = data,
     features = c("f1", "f2"),
     category_col = "category",
@@ -570,6 +570,57 @@ test_that("compare_overlap_metrics returns wide and long comparisons", {
   ) %in% names(long)))
 })
 
+test_that("phontrast selects a subset of metrics", {
+  set.seed(101)
+  data <- data.frame(
+    category = rep(c("a", "b"), each = 40),
+    f1 = c(rnorm(40, 0), rnorm(40, 1)),
+    f2 = c(rnorm(40, 0), rnorm(40, 1))
+  )
+
+  wide <- phontrast(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    metrics = c("jsd", "pillai")
+  )
+  expect_true(all(c("jsd", "pillai", "pillai_p_value") %in% names(wide)))
+  expect_false(any(c("bhatt_dist", "mahalanobis_dist", "percent_overlap") %in% names(wide)))
+
+  long <- phontrast(
+    data = data,
+    features = c("f1", "f2"),
+    category_col = "category",
+    metrics = "overlap",
+    output = "long"
+  )
+  expect_equal(sort(unique(long$metric)), "Percent overlap")
+
+  expect_error(
+    phontrast(data, c("f1", "f2"), "category", metrics = "nope"),
+    "Unknown metric"
+  )
+})
+
+test_that("compare_overlap_metrics() still works but warns as deprecated", {
+  set.seed(102)
+  data <- data.frame(
+    category = rep(c("a", "b"), each = 40),
+    f1 = c(rnorm(40, 0), rnorm(40, 1)),
+    f2 = c(rnorm(40, 0), rnorm(40, 1))
+  )
+
+  expect_warning(
+    out <- compare_overlap_metrics(
+      data = data,
+      features = c("f1", "f2"),
+      category_col = "category"
+    ),
+    "deprecated|phontrast"
+  )
+  expect_true(all(c("jsd", "pillai", "percent_overlap") %in% names(out)))
+})
+
 test_that("metric plotting accepts wide and long comparison output", {
   testthat::skip_if_not_installed("ggplot2")
   set.seed(201)
@@ -580,7 +631,7 @@ test_that("metric plotting accepts wide and long comparison output", {
     f2 = c(rnorm(30, 0), rnorm(30, 1), rnorm(30, 0.2), rnorm(30, 1.2))
   )
 
-  wide <- compare_overlap_metrics(
+  wide <- phontrast(
     data = data,
     features = c("f1", "f2"),
     category_col = "category",
@@ -588,7 +639,7 @@ test_that("metric plotting accepts wide and long comparison output", {
     min_tokens = 20,
     output = "wide"
   )
-  long <- compare_overlap_metrics(
+  long <- phontrast(
     data = data,
     features = c("f1", "f2"),
     category_col = "category",
@@ -656,7 +707,7 @@ test_that("PCA category plotting supports multidimensional feature sets", {
   )
 })
 
-test_that("compare_overlap_metrics diagnoses grouped contrasts with no estimable groups", {
+test_that("phontrastdiagnoses grouped contrasts with no estimable groups", {
   set.seed(21)
   data <- data.frame(
     speaker = rep(paste0("s", 1:5), each = 4),
@@ -666,7 +717,7 @@ test_that("compare_overlap_metrics diagnoses grouped contrasts with no estimable
   )
 
   expect_warning(
-    metrics <- compare_overlap_metrics(
+    metrics <- phontrast(
       data = data,
       features = c("f1", "f2"),
       category_col = "category",
@@ -677,7 +728,7 @@ test_that("compare_overlap_metrics diagnoses grouped contrasts with no estimable
   expect_equal(nrow(metrics), 0)
 })
 
-test_that("compare_overlap_metrics can bootstrap all reported metrics", {
+test_that("phontrastcan bootstrap all reported metrics", {
   set.seed(22)
   data <- data.frame(
     speaker = rep(c("s1", "s2"), each = 60),
@@ -686,7 +737,7 @@ test_that("compare_overlap_metrics can bootstrap all reported metrics", {
   )
 
   set.seed(23)
-  wide <- compare_overlap_metrics(
+  wide <- phontrast(
     data = data,
     features = "f1",
     category_col = "category",
@@ -712,7 +763,7 @@ test_that("compare_overlap_metrics can bootstrap all reported metrics", {
   expect_true(all(is.finite(wide$jsd_ci_upper)))
 
   set.seed(23)
-  long <- compare_overlap_metrics(
+  long <- phontrast(
     data = data,
     features = "f1",
     category_col = "category",
@@ -733,7 +784,7 @@ test_that("compare_overlap_metrics can bootstrap all reported metrics", {
   expect_true(all(long$n_boot <= 2))
 })
 
-test_that("compare_overlap_metrics reports progress while bootstrapping", {
+test_that("phontrastreports progress while bootstrapping", {
   set.seed(24)
   data <- data.frame(
     category = rep(c("a", "b"), each = 30),
@@ -742,7 +793,7 @@ test_that("compare_overlap_metrics reports progress while bootstrapping", {
 
   messages <- character()
   withCallingHandlers(
-    compare_overlap_metrics(
+    phontrast(
       data = data,
       features = "f1",
       category_col = "category",
@@ -828,7 +879,7 @@ test_that("metric entry points validate their inputs", {
     "single column name"
   )
   expect_error(
-    compare_overlap_metrics(data, features = c("f1", "category"),
+    phontrast(data, features = c("f1", "category"),
                             category_col = "category"),
     "must not overlap"
   )
@@ -947,7 +998,7 @@ test_that("legacy method reproduces the pre-1.2.0 sample-point estimate", {
     f2 = c(rnorm(50, 0), rnorm(50, 1))
   )
   legacy <- jsd_kde_nd(data, c("f1", "f2"), "cat", method = "legacy")
-  dens <- phonJSD:::.kde_density_pair(data, c("f1", "f2"), "cat", metric = "x")
+  dens <- phontrast:::.kde_density_pair(data, c("f1", "f2"), "cat", metric = "x")
   expect_equal(legacy, jsd(dens$p, dens$q))
   # the corrected default differs from the legacy index
   expect_false(isTRUE(all.equal(legacy, jsd_kde_nd(data, c("f1", "f2"), "cat"))))

@@ -1,3 +1,36 @@
+# phontrast 2.0.0
+
+## Package renamed: phonJSD is now phontrast
+
+- **The package has been renamed from `phonJSD` to `phontrast`** and reoriented
+  around comparing *multiple* category contrast and separation metrics rather
+  than Jensen-Shannon divergence alone. Update your code from `library(phonJSD)`
+  to `library(phontrast)`. Function names are unchanged except as noted below,
+  and no metric estimates change relative to 1.2.0 -- this release is a rename
+  and API reframe, not a numerical change.
+- The GitHub repository moved to <https://github.com/berrygrant/phontrast> (old
+  links redirect), and the Zenodo concept DOI (10.5281/zenodo.20816585) is
+  unchanged, so existing citations continue to resolve.
+
+## New unified entry point: `phontrast()`
+
+- Added **`phontrast()`**, the package's headline function: compute and compare
+  any subset of the contrast metrics -- Jensen-Shannon divergence and distance,
+  Pillai-Bartlett trace, Bhattacharyya distance and affinity, Mahalanobis
+  distance, and proportional overlap -- for a two-category contrast in one call,
+  globally or by group, wide or tidy long, with optional bootstrap intervals.
+- The new `metrics` argument selects which metrics to compute (default: all),
+  e.g. `phontrast(data, features, "vowel", metrics = c("jsd", "pillai"))`.
+- **`compare_overlap_metrics()` is deprecated** in favor of `phontrast()`. It
+  still works (it calls `phontrast()` with `output = "wide"`) and emits a
+  deprecation message; it will be removed in a future release.
+
+## Roadmap
+
+- The next priority (P1) is a full architectural redesign around a metric
+  registry with a uniform per-metric interface, a generalized bootstrap that
+  works for any metric, and first-class metric orientation. See `ROADMAP.md`.
+
 # phonJSD 1.2.0
 
 ## Corrected KDE estimator (changes results)

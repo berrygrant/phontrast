@@ -2,7 +2,7 @@
 % Please edit documentation in R/compare_overlap_metrics.R
 \name{compare_overlap_metrics}
 \alias{compare_overlap_metrics}
-\title{Compare major phonological category overlap metrics}
+\title{Compare phonological category overlap metrics (deprecated)}
 \usage{
 compare_overlap_metrics(
   data,
@@ -77,91 +77,15 @@ for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.2.0
 self-normalized estimate.}
 }
 \value{
-A data frame. Wide output contains one column per metric plus
-\code{pillai_p_value} (the Pillai trace's MANOVA p-value). Long output
-contains \code{metric}, \code{estimate}, \code{orientation},
-\code{bounded_0_1}, \code{separation_value}, \code{separation_rank}, and
-\code{p_value} (populated for the Pillai row, \code{NA} otherwise) columns.
-If \code{do_boot = TRUE}, wide output
-also includes metric-specific \code{*_mean}, \code{*_sd},
-\code{*_ci_lower}, \code{*_ci_upper}, and \code{*_n_boot} columns, while
-long output includes \code{boot_mean}, \code{boot_sd}, \code{ci_lower},
-\code{ci_upper}, \code{n_boot}, and \code{conf_level}.
+See \code{\link[=phontrast]{phontrast()}}; wide format by default.
 }
 \description{
-Computes the package's main category-separation and overlap metrics in one
-call: Pillai trace, Bhattacharyya distance and affinity, Jensen-Shannon
-divergence, Jensen-Shannon distance, Mahalanobis distance, and proportional
-overlap. Results can be returned in a wide format for analysis tables or a
-long format for plotting and rank-based comparison. The
-\code{percent_overlap} column is retained for compatibility, but its values
-are 0--1 proportions rather than 0--100 percentages.
+\code{compare_overlap_metrics()} was renamed to \code{\link[=phontrast]{phontrast()}} in phontrast 2.0.0
+(the package formerly released as 'phonJSD'). It remains as a thin wrapper
+that calls \code{\link[=phontrast]{phontrast()}} with \code{output = "wide"} for backward compatibility
+and will be removed in a future release. New code should call \code{\link[=phontrast]{phontrast()}}.
 }
-\details{
-This is the recommended entry point when you want to compare more than one
-overlap metric for the same phonological contrast. Use \code{estimate_jsd()}
-when JSD is the only outcome of interest, and use lower-level metric helpers
-only when you need direct control over one estimator.
-
-Metric directions differ. JSD, Jensen-Shannon distance, Pillai trace,
-Bhattacharyya distance, and Mahalanobis distance increase as categories
-become more separated. Percent overlap and Bhattacharyya affinity increase
-as categories overlap more. Long output includes \code{orientation},
-\code{separation_value}, and \code{separation_rank} columns so all metrics
-can be read on a separation-oriented scale.
-
-If \code{do_boot = TRUE}, each metric is recomputed on \code{n_boot}
-nonparametric bootstrap resamples to estimate uncertainty. This can take
-substantial time because every resample recomputes KDE, MANOVA, and
-covariance-based metrics. Progress messages are printed by default while
-bootstrapping is running; set \code{progress = FALSE} to suppress them.
+\seealso{
+\code{\link[=phontrast]{phontrast()}}
 }
-\examples{
-set.seed(2026)
-vowels <- data.frame(
-  speaker = rep(c("s01", "s02"), each = 60),
-  vowel = rep(rep(c("ih", "eh"), each = 30), 2),
-  f1 = c(
-    rnorm(30, 500, 55), rnorm(30, 560, 60),
-    rnorm(30, 510, 60), rnorm(30, 575, 65)
-  ),
-  f2 = c(
-    rnorm(30, 1980, 150), rnorm(30, 1880, 155),
-    rnorm(30, 1960, 160), rnorm(30, 1840, 165)
-  )
-)
-
-compare_overlap_metrics(
-  data = vowels,
-  features = c("f1", "f2"),
-  category_col = "vowel",
-  group_col = "speaker",
-  output = "wide"
-)
-
-metrics_long <- compare_overlap_metrics(
-  data = vowels,
-  features = c("f1", "f2"),
-  category_col = "vowel",
-  group_col = "speaker",
-  output = "long"
-)
-
-metrics_long[, c("group", "metric", "estimate", "orientation",
-                 "separation_value", "separation_rank")]
-
-\donttest{
-# Bootstrapping all metrics is useful but slower because every metric is
-# recomputed on every resample. Use a larger n_boot for real analyses.
-compare_overlap_metrics(
-  data = vowels,
-  features = "f1",
-  category_col = "vowel",
-  group_col = "speaker",
-  do_boot = TRUE,
-  n_boot = 5,
-  progress = FALSE,
-  output = "long"
-)
-}
-}
+\keyword{internal}

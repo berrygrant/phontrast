@@ -111,8 +111,8 @@ hier_boot_jsd_model <- function(data,
     ))
   }
 
-  boot_group_col <- ".phonJSD_boot_group"
-  original_group_col <- ".phonJSD_original_group"
+  boot_group_col <- ".phontrast_boot_group"
+  original_group_col <- ".phontrast_original_group"
   while (boot_group_col %in% names(data)) {
     boot_group_col <- paste0(boot_group_col, "_")
   }

@@ -1,6 +1,6 @@
-Package: phonJSD
-Title: Information-Theoretic Overlap Metrics for Phonological Categories
-Version: 1.2.0
+Package: phontrast
+Title: Contrast and Separation Metrics for Phonological Categories
+Version: 2.0.0
 Authors@R: c(
     person(c("Grant", "M."), "Berry", email = "berry.grant@gmail.com", role = c("aut", "cre")),
     person("ChatGPT", "Assistant", role = "ctb")
@@ -8,21 +8,23 @@ Authors@R: c(
 Author: Grant M. Berry [aut, cre],
     ChatGPT Assistant [ctb]
 Maintainer: Grant M. Berry <berry.grant@gmail.com>
-Description: Tools for quantifying separation between phonological categories 
-    (e.g., vowels, consonants) using information-theoretic measures such as 
-    Jensen-Shannon divergence (JSD) in arbitrary n-dimensional acoustic spaces 
-    (e.g., MFCCs, formants, duration). Includes utilities for computing 
-    group-level JSD (e.g., per speaker), bootstrap confidence intervals, 
-    and preparing JSD estimates for downstream modelling (GAMs, mixed-effects 
-    models). Also provides comparison metrics including the Pillai-Bartlett 
-    trace and Bhattacharyya distance under multivariate normality assumptions.
+Description: A unified toolkit for quantifying the separation and overlap
+    between phonological categories (e.g., vowels, consonants) in arbitrary
+    n-dimensional acoustic spaces such as formants, MFCCs, duration, or learned
+    embeddings. The main entry point, phontrast(), computes and compares
+    multiple contrast metrics in one call -- Jensen-Shannon divergence and
+    distance, the Pillai-Bartlett trace, Bhattacharyya distance and affinity,
+    Mahalanobis distance, and proportional overlap -- globally or by group, on a
+    common separation-oriented scale. Includes bootstrap confidence intervals
+    and utilities for preparing estimates for downstream modelling (GAMs,
+    mixed-effects models). Formerly released as 'phonJSD'.
 License: MIT + file LICENSE
-URL: https://github.com/berrygrant/phonJSD
-BugReports: https://github.com/berrygrant/phonJSD/issues
+URL: https://github.com/berrygrant/phontrast
+BugReports: https://github.com/berrygrant/phontrast/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Depends: 
+Depends:
     R (>= 4.1.0)
 Imports:
     ks,

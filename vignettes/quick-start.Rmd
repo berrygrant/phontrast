@@ -16,11 +16,11 @@ knitr::opts_chunk$set(
 
 Most analyses should start with a token-level table: one row per observation,
 one column for the category contrast, and one or more numeric acoustic
-features. `compare_overlap_metrics()` is the preferred entry point because it
+features. `phontrast()` is the preferred entry point because it
 returns the main overlap and separation metrics side by side.
 
 ```{r}
-library(phonJSD)
+library(phontrast)
 
 set.seed(2026)
 vowels <- data.frame(
@@ -40,7 +40,7 @@ vowels <- data.frame(
 The wide output is useful for analysis tables and joining to speaker metadata.
 
 ```{r}
-metrics_wide <- compare_overlap_metrics(
+metrics_wide <- phontrast(
   data = vowels,
   features = c("f1", "f2"),
   category_col = "vowel",
@@ -57,7 +57,7 @@ separation, even for overlap metrics such as percent overlap and
 Bhattacharyya affinity.
 
 ```{r}
-metrics_long <- compare_overlap_metrics(
+metrics_long <- phontrast(
   data = vowels,
   features = c("f1", "f2"),
   category_col = "vowel",
@@ -88,7 +88,7 @@ metric on every resample, so use a larger `n_boot` for final analyses than for
 interactive examples.
 
 ```{r, eval = FALSE}
-compare_overlap_metrics(
+phontrast(
   data = vowels,
   features = c("f1", "f2"),
   category_col = "vowel",

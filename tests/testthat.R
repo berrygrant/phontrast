@@ -1,4 +1,4 @@
 library(testthat)
-library(phonJSD)
+library(phontrast)
 
-test_check("phonJSD")
+test_check("phontrast")

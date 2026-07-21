@@ -8,6 +8,9 @@
 ^\.DS_Store$
 ^\.git$
 ^\.github(/|$)
+^\.claude(/|$)
+^phontrast\.Rcheck(/|$)
+^phontrast_.*\.tar\.gz$
 ^\.gitignore$
 ^\.Rhistory$
 ^\.Rproj\.user(/|$)

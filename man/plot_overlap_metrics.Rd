@@ -15,7 +15,7 @@ plot_overlap_metrics(
 )
 }
 \arguments{
-\item{metrics}{Data frame returned by \code{compare_overlap_metrics()}.}
+\item{metrics}{Data frame returned by \code{phontrast()}.}
 
 \item{value}{Scale to plot: \code{"separation"} plots
 \code{separation_value}; \code{"estimate"} plots raw metric estimates.}
@@ -37,7 +37,7 @@ value.}
 A \pkg{ggplot2} plot object.
 }
 \description{
-Visualizes the output of \code{compare_overlap_metrics()} with \pkg{ggplot2}.
+Visualizes the output of \code{phontrast()} with \pkg{ggplot2}.
 The input may be either wide or long output. By default, values are plotted on
 a separation-oriented scale so overlap-oriented metrics are transformed as
 \code{1 - estimate}.
@@ -53,7 +53,7 @@ vowels <- data.frame(
          rnorm(30, 1960, 160), rnorm(30, 1840, 165))
 )
 
-metrics <- compare_overlap_metrics(
+metrics <- phontrast(
   vowels,
   features = c("f1", "f2"),
   category_col = "vowel",

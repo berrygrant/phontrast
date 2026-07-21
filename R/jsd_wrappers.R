@@ -3,7 +3,7 @@
 #' Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon
 #' distance is the primary outcome. If you want to compare JSD with Pillai,
 #' Bhattacharyya, Mahalanobis, and percent-overlap metrics, start with
-#' \code{compare_overlap_metrics()} instead.
+#' \code{phontrast()} instead.
 #'
 #' JSD is bounded from 0 to 1 for two equally weighted distributions. Larger
 #' values indicate greater category separation. Jensen-Shannon distance is

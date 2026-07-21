@@ -1,11 +1,11 @@
 #' Plot overlap metric comparisons
 #'
-#' Visualizes the output of \code{compare_overlap_metrics()} with \pkg{ggplot2}.
+#' Visualizes the output of \code{phontrast()} with \pkg{ggplot2}.
 #' The input may be either wide or long output. By default, values are plotted on
 #' a separation-oriented scale so overlap-oriented metrics are transformed as
 #' \code{1 - estimate}.
 #'
-#' @param metrics Data frame returned by \code{compare_overlap_metrics()}.
+#' @param metrics Data frame returned by \code{phontrast()}.
 #' @param value Scale to plot: \code{"separation"} plots
 #'   \code{separation_value}; \code{"estimate"} plots raw metric estimates.
 #' @param metric Optional character vector of metric display names to include.
@@ -29,7 +29,7 @@
 #'          rnorm(30, 1960, 160), rnorm(30, 1840, 165))
 #' )
 #'
-#' metrics <- compare_overlap_metrics(
+#' metrics <- phontrast(
 #'   vowels,
 #'   features = c("f1", "f2"),
 #'   category_col = "vowel",
@@ -416,7 +416,7 @@ plot_category_pca <- function(data,
 
 .as_overlap_metrics_long <- function(metrics) {
   if (!is.data.frame(metrics)) {
-    stop("`metrics` must be a data frame returned by compare_overlap_metrics().", call. = FALSE)
+    stop("`metrics` must be a data frame returned by phontrast().", call. = FALSE)
   }
   if (all(c("metric", "estimate") %in% names(metrics))) {
     return(as.data.frame(metrics))
@@ -425,7 +425,7 @@ plot_category_pca <- function(data,
     return(as.data.frame(.comparison_long(metrics)))
   }
   stop(
-    "`metrics` must be wide or long output from compare_overlap_metrics().",
+    "`metrics` must be wide or long output from phontrast().",
     call. = FALSE
   )
 }

@@ -80,7 +80,7 @@ columns; \code{jsd_low} and \code{jsd_high} are retained as legacy aliases.
 Use this function when Jensen-Shannon divergence (JSD) or Jensen-Shannon
 distance is the primary outcome. If you want to compare JSD with Pillai,
 Bhattacharyya, Mahalanobis, and percent-overlap metrics, start with
-\code{compare_overlap_metrics()} instead.
+\code{phontrast()} instead.
 }
 \details{
 JSD is bounded from 0 to 1 for two equally weighted distributions. Larger

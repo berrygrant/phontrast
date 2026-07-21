@@ -1,18 +1,23 @@
-#' phonJSD: Information-Theoretic Measures of Phonological Category Separation
+#' phontrast: Contrast and Separation Metrics for Phonological Categories
 #'
-#' Tools for quantifying separation between phonological categories
-#' (e.g., vowels, consonants) using Jensen–Shannon divergence (JSD) in
-#' arbitrary n-dimensional acoustic spaces such as formants, MFCCs,
-#' spectral features, or learned embeddings. The package provides unified 
-#' functions to estimate global and group-level JSD (with optional bootstrap),
-#' and comparison metrics such as the Pillai–Bartlett trace, Bhattacharyya
-#' distance and affinity, Mahalanobis distance, and percent overlap. Percent
-#' overlap is returned as a 0--1 proportion, not a 0--100 percentage.
+#' A unified toolkit for quantifying the separation and overlap between
+#' phonological categories (e.g., vowels, consonants) in arbitrary
+#' n-dimensional acoustic spaces such as formants, MFCCs, spectral features,
+#' duration, or learned embeddings. The main entry point, \code{phontrast()},
+#' computes and compares multiple contrast metrics in one call: Jensen-Shannon
+#' divergence and distance, the Pillai-Bartlett trace, Bhattacharyya distance
+#' and affinity, Mahalanobis distance, and proportional overlap, globally or by
+#' group, with optional bootstrap intervals. Percent overlap is returned as a
+#' 0--1 proportion, not a 0--100 percentage.
+#'
+#' phontrast was formerly released as phonJSD (through version 1.2.0); see the
+#' package NEWS for migration notes.
 #'
 #' @section Recommended workflow:
 #' \enumerate{
-#'   \item Start with \code{compare_overlap_metrics()} when you want a complete
-#'     comparison table for one contrast, either globally or by group.
+#'   \item Start with \code{phontrast()} to compute one or more contrast metrics
+#'     for a two-category contrast, globally or by group, in tidy long or wide
+#'     form.
 #'   \item Use \code{estimate_jsd()} when Jensen-Shannon divergence or
 #'     Jensen-Shannon distance is the primary outcome and you need optional
 #'     bootstrap intervals.
@@ -29,12 +34,11 @@
 #' JSD, Jensen-Shannon distance, Pillai trace, Bhattacharyya distance, and
 #' Mahalanobis distance increase as categories become more separated. Percent
 #' overlap and Bhattacharyya affinity increase as categories overlap more. The
-#' long output from \code{compare_overlap_metrics()} includes an
-#' \code{orientation} column and a separation-oriented \code{separation_value}
-#' column to make these directions explicit. JSD and percent overlap estimate
-#' distributional separation/overlap using KDE by default; Pillai and
-#' Mahalanobis emphasize mean separation; Bhattacharyya metrics use a
-#' multivariate-normal approximation.
+#' long output from \code{phontrast()} includes an \code{orientation} column and
+#' a separation-oriented \code{separation_value} column to make these directions
+#' explicit. JSD and percent overlap estimate distributional separation/overlap
+#' using KDE by default; Pillai and Mahalanobis emphasize mean separation;
+#' Bhattacharyya metrics use a multivariate-normal approximation.
 #'
 #' @section High-dimensional workflows:
 #' Metrics can be estimated in arbitrary n-dimensional numeric feature spaces,
