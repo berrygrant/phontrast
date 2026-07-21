@@ -254,7 +254,7 @@ remotes::install_github("berrygrant/phonJSD")
 
 ## AI Use Disclosure
 
-OpenAI ChatGPT/Codex assisted with code review, documentation drafting,
+OpenAI ChatGPT/Codex and Anthropic Claude Code assisted with code review, documentation drafting,
 test generation, and implementation support during development of this package.
 All package design decisions, analyses, validation, and release decisions were
 reviewed and directed by the maintainer.
