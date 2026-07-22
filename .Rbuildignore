@@ -19,3 +19,4 @@
 ^\.Rproj\.user(/|$)
 ^\.ruff_cache(/|$)
 ^Rplots\.pdf$
+^CRAN-SUBMISSION$
