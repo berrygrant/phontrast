@@ -5,11 +5,11 @@
 ^paper(/|$)
 ^revisions(/|$)
 ^tmp(/|$)
-^\.DS_Store$
+\.DS_Store$
 ^\.git$
 ^\.github(/|$)
 ^\.claude(/|$)
-^phontrast\.Rcheck(/|$)
+\.Rcheck(/|$)
 ^phontrast_.*\.tar\.gz$
 ^cran-comments\.md$
 ^OSF(/|$)
