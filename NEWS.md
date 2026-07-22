@@ -7,6 +7,9 @@
   listed in `.Rbuildignore`, resolving the non-portable-paths and
   non-standard-top-level-files NOTEs from `R CMD check`. Added "mel" to
   `inst/WORDLIST`.
+- Trimmed the `estimate_jsd()` example to a fast point estimate and moved the
+  bootstrap demonstrations into `\donttest{}`, keeping every example under
+  CRAN's execution-time limit.
 
 # phontrast 2.0.1
 
