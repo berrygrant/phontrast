@@ -4,6 +4,8 @@ Version: 2.0.2
 Authors@R:
     person(c("Grant", "M."), "Berry", email = "berry.grant@gmail.com",
            role = c("aut", "cre"))
+Author: Grant M. Berry [aut, cre]
+Maintainer: Grant M. Berry <berry.grant@gmail.com>
 Description: Computes and compares multiple measures of separation and overlap
     between phonological categories (for example vowels or consonants) in
     arbitrary multi-dimensional acoustic spaces such as formant values,
