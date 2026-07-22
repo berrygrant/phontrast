@@ -70,3 +70,10 @@ load_test/outputs/
 
 # Manuscript drafts (keep local)
 paper/
+
+# Local research data and reproducibility bundles (not part of the package;
+# also excluded from the build via .Rbuildignore)
+OSF/
+revisions/
+analysis/
+load_test/
