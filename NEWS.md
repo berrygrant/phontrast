@@ -1,3 +1,13 @@
+# phontrast 2.0.2
+
+## CRAN preparation
+
+- Kept non-package content out of the built tarball: the (untracked) local
+  `OSF/` reproducibility-data directory and the top-level `ROADMAP.md` are now
+  listed in `.Rbuildignore`, resolving the non-portable-paths and
+  non-standard-top-level-files NOTEs from `R CMD check`. Added "mel" to
+  `inst/WORDLIST`.
+
 # phontrast 2.0.1
 
 ## CRAN preparation
