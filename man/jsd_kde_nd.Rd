@@ -64,8 +64,15 @@ estimate of the continuous JSD, or \code{"legacy"} for the pre-1.2.0
 self-normalized sample-point index.}
 
 \item{loo}{Logical; if \code{TRUE} (default) the Monte-Carlo estimator uses a
-leave-one-out correction on each category's self-density to reduce
-resubstitution bias. Ignored when \code{method = "legacy"}.}
+partial leave-one-out correction on each category's self-density to reduce
+resubstitution bias. The correction removes a sample-size-scaled fraction
+\code{n / (n + 20)} of each point's own kernel: half at 20 tokens per
+category (the \code{min_tokens} default), approaching the full
+leave-one-out correction as the category grows. Removing only part of the
+self-kernel keeps the corrected density strictly positive at isolated
+points, so small but real divergences remain small positive values rather
+than being floored to exactly 0 (as the full leave-one-out correction did
+through phontrast 2.0.2). Ignored when \code{method = "legacy"}.}
 }
 \value{
 A single numeric JSD value in bits, bounded in \code{[0, 1]}.

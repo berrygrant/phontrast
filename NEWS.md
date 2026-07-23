@@ -1,3 +1,34 @@
+# phontrast 2.1.0
+
+## Monte-Carlo JSD no longer floors small divergences to exactly 0
+
+- **Fixed `method = "mc"` (the default KDE JSD estimator) flooring small but
+  real divergences to exactly 0.** The full leave-one-out correction could
+  collapse a category's self-density at isolated points, driving the raw
+  plug-in mean negative, which the final clamp then floored to 0 -- while
+  `method = "legacy"` still reported a nonzero contrast. The estimator now uses
+  a *partial* leave-one-out correction that removes a sample-size-scaled
+  fraction `n / (n + 20)` of each point's own kernel: half at 20 tokens per
+  category (the `min_tokens` default), approaching the full correction as the
+  category grows. The corrected density stays strictly positive, so
+  near-merged categories yield small positive estimates instead of exact 0.
+- Validated against grid-integrated JSD of the same KDEs: on 44 real
+  speaker contrasts (20 tokens per phase, 2-D formant space) the previous
+  estimator returned exactly 0 for 24 speakers; the corrected one returns 0
+  for none, tracks the grid reference more closely than either the previous
+  default or `method = "legacy"`, and still passes the package's
+  grid-calibration test at n = 200 within the original tolerance.
+- **This changes `method = "mc"` results relative to 2.0.x**, most visibly for
+  small divergences and small samples (estimates that were floored at 0 become
+  small positive values; others typically shift upward slightly).
+  `method = "legacy"` is unchanged, and `loo = FALSE` is unchanged.
+
+## CRAN preparation
+
+- Replaced the relative `ROADMAP.md` link in the README with a plain reference,
+  since `ROADMAP.md` is excluded from the built package; this resolves the
+  "invalid file URI" flagged by the CRAN incoming checks.
+
 # phontrast 2.0.2
 
 ## CRAN preparation

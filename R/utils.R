@@ -642,18 +642,50 @@
   out
 }
 
-.loo_logdens <- function(log_dens, n, kh0) {
-  # leave-one-out log density at a KDE's own training points
-  .log_sub_exp(log(n) + log_dens, log(kh0)) - log(n - 1)
+.loo_alpha <- function(n) {
+  # Strength of the partial leave-one-out correction (see `.loo_logdens()`),
+  # phased in with sample size: alpha = 1/2 at n = 20 (the package's
+  # `min_tokens` default) and alpha -> 1 (full leave-one-out) as n grows.
+  n / (n + 20)
+}
+
+.loo_logdens <- function(log_dens, n, kh0, alpha = 1) {
+  # Partial leave-one-out log density at a KDE's own training points:
+  # p_alpha(x_i) = (n * p_hat(x_i) - alpha * K_H(0)) / (n - alpha),
+  # which removes a fraction `alpha` of the point's own kernel. `alpha = 1` is
+  # the classical leave-one-out density.
+  #
+  # Why partial: at an isolated point the self-kernel K_H(0)/n dominates the
+  # full-sample estimate p_hat(x_i), so full leave-one-out drives p_LOO toward
+  # 0 there. In the Jensen-Shannon integrand log2(p / m) those points produce
+  # unbounded *negative* contributions that drag the plug-in mean below its
+  # true (provably non-negative) value -- small real divergences were floored
+  # to exactly 0 by the final clamp. Removing only a fraction alpha < 1 keeps
+  # the density bounded below by (1 - alpha) * K_H(0) / (n - alpha) > 0, which
+  # bounds the integrand and eliminates the flooring, while still correcting
+  # the bulk of the resubstitution bias. With alpha = .loo_alpha(n) the
+  # correction approaches the full leave-one-out density as n grows, so the
+  # estimator keeps its consistency for the continuous Jensen-Shannon
+  # divergence; the retained self-kernel share vanishes with the same order as
+  # the KDE's own smoothing bias.
+  .log_sub_exp(log(n) + log_dens, log(alpha) + log(kh0)) - log(n - alpha)
 }
 
 .jsd_mc <- function(mc, loo = TRUE) {
   ln2 <- log(2)
-  logp1 <- if (isTRUE(loo)) .loo_logdens(mc$logp1, mc$n1, mc$kh0_1) else mc$logp1
+  logp1 <- if (isTRUE(loo)) {
+    .loo_logdens(mc$logp1, mc$n1, mc$kh0_1, .loo_alpha(mc$n1))
+  } else {
+    mc$logp1
+  }
   logm1 <- log(0.5) + .log_add_exp(logp1, mc$logq1)
   t1 <- (logp1 - logm1) / ln2
 
-  logq2 <- if (isTRUE(loo)) .loo_logdens(mc$logq2, mc$n2, mc$kh0_2) else mc$logq2
+  logq2 <- if (isTRUE(loo)) {
+    .loo_logdens(mc$logq2, mc$n2, mc$kh0_2, .loo_alpha(mc$n2))
+  } else {
+    mc$logq2
+  }
   logm2 <- log(0.5) + .log_add_exp(mc$logp2, logq2)
   t2 <- (logq2 - logm2) / ln2
 

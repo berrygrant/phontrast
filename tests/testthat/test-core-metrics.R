@@ -1029,6 +1029,44 @@ test_that("MC estimator is label-symmetric, dimension-agnostic, and engine-consi
   expect_equal(jf, jk, tolerance = 1e-6)
 })
 
+test_that("MC estimator keeps small real divergences positive instead of flooring to 0", {
+  skip_if_not_installed("ks")
+  # A small but real contrast under heavy overlap: a modest F1 mean shift plus a
+  # variance increase, the two clouds overlapping almost completely. Under the
+  # full leave-one-out correction the self-density collapsed at isolated points,
+  # drove the raw plug-in mean negative, and max(., 0) floored the result to
+  # exactly 0 even though the legacy index still reported the contrast. The
+  # sample-size-scaled partial leave-one-out correction keeps the estimate
+  # small but positive.
+  set.seed(24)
+  d <- data.frame(
+    cat = rep(c("early", "late"), each = 40),
+    f1 = c(rnorm(40, 0, 1), rnorm(40, 0.45, 1.5)),
+    f2 = c(rnorm(40, 0, 1), rnorm(40, 0.15, 1.25))
+  )
+  mc <- jsd_kde_nd(d, c("f1", "f2"), "cat")                    # method = "mc" default
+  expect_gt(mc, 0)                                             # not floored to 0
+  expect_lt(mc, 0.15)                                          # still the small-divergence regime
+
+  # The full leave-one-out correction (alpha = 1) on the same data reproduces
+  # the old flooring, confirming the partial correction is what fixes it.
+  mc_pair <- phontrast:::.kde_mc_pair(d, c("f1", "f2"), "cat", metric = "x")
+  full_loo <- local({
+    ln2 <- log(2)
+    lp <- phontrast:::.loo_logdens(mc_pair$logp1, mc_pair$n1, mc_pair$kh0_1, 1)
+    t1 <- (lp - (log(0.5) + phontrast:::.log_add_exp(lp, mc_pair$logq1))) / ln2
+    lq <- phontrast:::.loo_logdens(mc_pair$logq2, mc_pair$n2, mc_pair$kh0_2, 1)
+    t2 <- (lq - (log(0.5) + phontrast:::.log_add_exp(mc_pair$logp2, lq))) / ln2
+    min(max(0.5 * mean(t1[is.finite(t1)]) + 0.5 * mean(t2[is.finite(t2)]), 0), 1)
+  })
+  expect_equal(full_loo, 0)
+
+  # The correction strength is phased in with sample size: half at the
+  # `min_tokens` default of 20 tokens, approaching full leave-one-out with n.
+  expect_equal(phontrast:::.loo_alpha(20), 0.5)
+  expect_gt(phontrast:::.loo_alpha(200), 0.9)
+})
+
 test_that("estimate_* wrappers return tibbles", {
   set.seed(3)
   data <- data.frame(

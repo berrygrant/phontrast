@@ -1,4 +1,5 @@
 ^analysis(/|$)
+^manuscript(/|$)
 ^comparison_outputs(/|$)
 ^load_test(/|$)
 ^outputs(/|$)

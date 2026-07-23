@@ -5,7 +5,7 @@ It is designed for researchers in sociophonetics, laboratory phonology, bilingua
 
 The package's entry point, `phontrast()`, computes and compares a family of metrics for a two-category contrast — Jensen–Shannon divergence and distance, the Pillai–Bartlett trace, Bhattacharyya distance and affinity, Mahalanobis distance, and proportional overlap — globally or by group, with optional bootstrap confidence intervals. Because the metrics differ in what they capture (distribution shape vs. mean separation vs. overlap), reporting several together gives a fuller picture of a contrast than any one alone.
 
-> **Formerly `phonJSD`.** phontrast is the continuation of the `phonJSD` package (through v1.2.0), broadened from a Jensen–Shannon-divergence focus to a general multi-metric contrast toolkit. The estimators are unchanged; see [`NEWS.md`](NEWS.md) for migration notes and [`ROADMAP.md`](ROADMAP.md) for where it's headed.
+> **Formerly `phonJSD`.** phontrast is the continuation of the `phonJSD` package (through v1.2.0), broadened from a Jensen–Shannon-divergence focus to a general multi-metric contrast toolkit. The estimators are unchanged; see [`NEWS.md`](NEWS.md) for migration notes, and `ROADMAP.md` in the repository for what's planned next.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20816585.svg)](https://doi.org/10.5281/zenodo.20816585)
 
@@ -191,10 +191,12 @@ histogram-based, empirical-binned, and Gaussian-mixture distribution estimates.
 By default (`method = "mc"`) the divergence is estimated with a Monte-Carlo
 plug-in: each category's KDE is evaluated at that category's own tokens and the
 log density ratio against the mixture is averaged, giving a consistent estimate
-of the continuous JSD in any number of dimensions. The pre-1.2.0 self-normalized
-sample-point estimate — a bounded relative separation index rather than the JSD
-integral — remains available as `method = "legacy"` for reproducing 1.0.0
-results.
+of the continuous JSD in any number of dimensions. A sample-size-scaled partial
+leave-one-out correction reduces resubstitution bias while keeping small real
+divergences as small positive values rather than flooring them to exactly 0.
+The pre-1.2.0 self-normalized sample-point estimate — a bounded relative
+separation index rather than the JSD integral — remains available as
+`method = "legacy"` for reproducing 1.0.0 results.
 
 JSD values:
 - **0** → complete overlap (no separation)
@@ -250,7 +252,7 @@ This package is not yet on CRAN. Install the latest tagged release with:
 
 ```r
 # install.packages("remotes")
-remotes::install_github("berrygrant/phontrast@v2.0.0")
+remotes::install_github("berrygrant/phontrast@v2.1.0")
 ```
 
 For the current development version, use:

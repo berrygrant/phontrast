@@ -77,3 +77,8 @@ OSF/
 revisions/
 analysis/
 load_test/
+
+# Manuscript analysis: track code (script, README) but keep raw research data
+# and generated tables local (unpublished data must not land in the public repo)
+manuscript/data/
+manuscript/outputs/

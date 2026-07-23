@@ -1,20 +1,28 @@
+## Resubmission
+
+This is a resubmission. Compared to the previously submitted version (2.0.2):
+
+- I removed a relative-path link to `ROADMAP.md` from the README (that file is
+  intentionally not shipped in the package), which resolves the "invalid file
+  URI" reported by the CRAN incoming checks.
+- The version was bumped to 2.1.0 because the default Monte-Carlo
+  Jensen-Shannon divergence estimator was corrected: its leave-one-out bias
+  correction could floor small but real divergences to exactly 0, and now uses
+  a sample-size-scaled partial correction instead (documented in NEWS.md and
+  covered by a regression test).
+
 ## Submission
 
-This is a new submission. `phontrast` is a rename and reframing of the
-previously GitHub-only package `phonJSD` (released through v1.2.0); it has not
-been on CRAN before. Development, testing, and documentation were assisted by AI
-tools, as disclosed in the README; all design, analysis, and release decisions
-were made by the maintainer.
+This is a new submission (first time on CRAN). `phontrast` is a rename and
+reframing of the previously GitHub-only package `phonJSD` (released through
+v1.2.0). Development, testing, and documentation were assisted by AI tools, as
+disclosed in the README; all design, analysis, and release decisions were made
+by the maintainer.
 
 ## Test environments
 
-<!-- Fill in with your actual runs before submitting. -->
-
-- Local: <your OS>, R <version>
-- win-builder: R-devel and R-release (`devtools::check_win_devel()`,
-  `check_win_release()`)
-- macOS builder: <mac.r-project.org result>
-- R-hub: <platforms>
+- Local: macOS 26.5 (aarch64-apple-darwin), R 4.5.3
+- win-builder: R-devel (`devtools::check_win_devel()`)
 
 ## R CMD check results
 

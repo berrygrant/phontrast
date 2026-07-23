@@ -1,6 +1,6 @@
 Package: phontrast
 Title: Contrast and Separation Metrics for Phonological Categories
-Version: 2.0.2
+Version: 2.1.0
 Authors@R:
     person(c("Grant", "M."), "Berry", email = "berry.grant@gmail.com",
            role = c("aut", "cre"))
