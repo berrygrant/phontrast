@@ -86,12 +86,12 @@ if (!is.null(rho) && length(unique(rho$dim_lab)) == 2) {
     scale_x_discrete(expand = expansion(mult = c(0.18, 0.42)),
                      labels = c("2-D" = "2-D\nPB52 F1/F2", "13-D" = "13-D\nSBCSAE MFCC")) +
     scale_y_continuous(limits = c(min(rho$rho) - 0.03, 1.04), breaks = seq(0.75, 1, 0.05)) +
-    labs(title = "Correspondence with KDE overlap holds for JSD as dimensionality grows",
-         subtitle = "Spearman rho between each separation metric and (1 - KDE overlap); Monte-Carlo estimator",
+    labs(title = "The KDE-overlap view (the coupled reference that motivates the audit)",
+         subtitle = "Spearman rho with (1 - KDE overlap), Monte-Carlo JSD",
          x = "Acoustic space", y = expression(Spearman~rho),
-         caption = "Okabe-Ito CVD-safe palette. Higher = tighter correspondence with distributional overlap.") +
+         caption = "KDE overlap shares JSD's estimator, so JSD leads here; on assumption-neutral yardsticks the metrics are comparable (Fig 4).") +
     theme_pub()
-  save_fig(p1, "fig1_dimensionality_slopegraph", 7.4, 5.0)
+  save_fig(p1, "fig1_dimensionality_slopegraph", 7.6, 5.0)
 }
 
 ## ---- fig 2: MFCC correspondence panels -------------------------------------
@@ -113,10 +113,10 @@ if (!is.null(mfcc)) {
               size = 3.6, fontface = "bold", color = INK) +
     facet_wrap(~metric, nrow = 1, scales = "free_y") +
     scale_color_manual(values = PAL) +
-    labs(title = "Separation-metric vs. distributional overlap in 13-D MFCC space",
-         subtitle = "Each point is one of 351 vowel pairs; JSD tracks overlap most tightly",
+    labs(title = "Each separation metric vs. KDE overlap, 13-D MFCC (the coupled reference)",
+         subtitle = "351 vowel pairs. JSD and KDE overlap share the KDE estimator; Fig 4 removes this coupling",
          x = "1 - KDE overlap  (greater separation)", y = "Metric value",
-         caption = "SBCSAE 13-MFCC. Monte-Carlo JSD and percent-overlap; Pillai and Bhattacharyya are parametric.") +
+         caption = "SBCSAE 13-MFCC. Monte-Carlo JSD and percent-overlap; Pillai and Bhattacharyya are parametric (multivariate-normal).") +
     theme_pub() + theme(strip.text = element_text(size = rel(1.05)))
   save_fig(p2, "fig2_mfcc_correspondence_panels", 9.2, 3.6)
 }
@@ -156,12 +156,22 @@ if (!is.null(corr)) {
   dims <- if ("dim" %in% names(d)) d$dim else "13-D"
   d$col_lab <- factor(paste0(d$dataset, "\n(", dims, ")"))
   d$col_lab <- factor(d$col_lab, levels = unique(d$col_lab[order(match(dims, c("2-D","13-D")))]))
+  # Neutral-yardstick average per dataset -- makes the three-way tie explicit.
+  neu <- d[d$shares_machinery == "neutral", ]
+  neu_ann <- do.call(rbind, lapply(split(neu, neu$col_lab), function(s) {
+    a <- tapply(s$abs_spearman, s$metric, mean)
+    data.frame(col_lab = s$col_lab[1], grp = factor(grp["neutral"], levels = grp),
+               yardstick = factor("kNN density k=10", levels = rev(ylev)),
+               lab = sprintf("neutral avg:   JSD %.2f    Pillai %.2f    Bhatt %.2f",
+                             a[["JSD"]], a[["Pillai"]], a[["Bhattacharyya"]])) }))
   dodge <- position_dodge(width = 0.62)
   two <- length(unique(d$col_lab)) > 1
   p4 <- ggplot(d, aes(abs_spearman, yardstick, color = metric)) +
     geom_errorbarh(aes(xmin = spearman_lo, xmax = spearman_hi), height = 0.28,
                    position = dodge, linewidth = 0.5, alpha = 0.55) +
     geom_point(size = 2.5, position = dodge) +
+    geom_text(data = neu_ann, aes(x = 0.55, y = yardstick, label = lab), inherit.aes = FALSE,
+              hjust = 0, vjust = -1.1, size = 2.9, fontface = "italic", color = INK) +
     facet_grid(grp ~ col_lab, scales = "free_y", space = "free_y", switch = "y") +
     scale_color_manual(values = PAL) +
     scale_x_continuous(limits = c(0.55, 1.0), breaks = seq(0.6, 1, 0.1)) +

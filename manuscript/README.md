@@ -62,10 +62,27 @@ Everything else is computed from these tokens with phontrast 2.1.0 and
   assumptions** (JSD ↔ KDE, Pillai/Bhattacharyya ↔ MVN Monte-Carlo). On
   assumption-neutral references (kNN density, PCA) the metrics are comparable
   (mean |Spearman| ≈ 0.91 for all three) — no single metric is universally best.
-- **What distinguishes JSD is not a higher correlation but its properties:**
-  fully nonparametric (no MVN assumption, unlike Pillai/Bhattacharyya), bounded,
-  symmetric, and dimension-general. That is the argument for including it, framed
-  honestly rather than as a correspondence-ranking win.
+- **The honest case for JSD is that it makes the fewest distributional
+  assumptions of the separation metrics** (verified against the implementations):
+  - JSD / Jensen–Shannon distance (`jsd_kde_nd`) are **nonparametric** — they
+    read the whole distribution (shape, variance, multimodality) off a KDE and
+    assume no parametric family.
+  - Pillai (`pillai_overlap`, a MANOVA), Bhattacharyya (`bhattacharyya_mvnorm`,
+    the Gaussian closed form), and Mahalanobis (`.mahalanobis_distance`, mean
+    separation scaled by pooled covariance) all rest on **multivariate normality
+    and/or a common-covariance assumption**, and use only first/second moments.
+  - This connects directly to the audit: Pillai and Bhattacharyya look best
+    against the **MVN Monte-Carlo** yardstick *because* they share its
+    multivariate-normal model — an assumption real, often skewed or bimodal
+    vowel clouds routinely violate. JSD earns its correspondence without that
+    assumption, so it neither gets an MVN reference's free boost nor its penalty
+    when the data are non-Gaussian.
+  - Honest caveat: JSD is not assumption-*free*. It trades parametric
+    assumptions for density estimation — a bandwidth choice and the curse of
+    dimensionality — which is why it is the KDE-coupled metric in fig4.
+
+  Net: recommend JSD on **robustness / minimal assumptions** (plus bounded,
+  symmetric, dimension-general), not on a correspondence-ranking win.
 - **Estimator choice:** `mc` is primary (consistent estimate of the continuous
   JSD; 2.1.0 default), `legacy` reported as a robustness column. The manuscript's
   vowel categories are large (PB52 E/I: 152 + 152 tokens; each SBCSAE vowel ≈
