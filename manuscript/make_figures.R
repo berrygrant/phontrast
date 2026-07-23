@@ -36,6 +36,7 @@ theme_pub <- function(base = 12) {
       plot.title = element_text(color = INK, face = "bold", size = rel(1.1)),
       plot.subtitle = element_text(color = INK2, size = rel(0.9)),
       plot.caption = element_text(color = INK2, size = rel(0.75), hjust = 0),
+      plot.title.position = "plot", plot.caption.position = "plot",
       strip.text = element_text(color = INK, face = "bold"),
       legend.position = "none", plot.margin = margin(12, 16, 10, 12)
     )
@@ -137,6 +138,39 @@ if (!is.null(mfcc)) {
          caption = "Dashed line: y = x. Ranks agree; the Monte-Carlo estimator compresses the high end.") +
     theme_pub()
   save_fig(p3, "fig3_estimator_robustness", 6.0, 6.2)
+}
+
+## ---- fig 4: estimator-influence audit (fairness centerpiece) ---------------
+corr <- read_tab("estimator_influence_correspondence.csv")
+if (!is.null(corr)) {
+  d <- corr[corr$metric %in% c("JSD (mc)", "Pillai", "Bhattacharyya"), ]
+  d$metric <- factor(ifelse(d$metric == "JSD (mc)", "JSD", d$metric), levels = names(PAL))
+  grp <- c("KDE (JSD)"          = "KDE\n(JSD's\nestimator)",
+           "neutral"            = "neutral\n(no shared\nassumptions)",
+           "MVN (Pillai/Bhatt)" = "MVN\n(Pillai /\nBhatt)")
+  d$grp <- factor(grp[d$shares_machinery], levels = grp)
+  ylev <- c("KDE density", "kNN density k=10", "kNN density k=25", "kNN density k=50",
+            "PCA-2D grid", "PCA-2D convex hull", "MVN Monte-Carlo")
+  d$yardstick <- factor(d$yardstick, levels = rev(ylev))
+  dodge <- position_dodge(width = 0.62)
+  p4 <- ggplot(d, aes(abs_spearman, yardstick, color = metric)) +
+    geom_errorbarh(aes(xmin = spearman_lo, xmax = spearman_hi), height = 0.28,
+                   position = dodge, linewidth = 0.5, alpha = 0.55) +
+    geom_point(size = 2.7, position = dodge) +
+    facet_grid(grp ~ ., scales = "free_y", space = "free_y", switch = "y") +
+    scale_color_manual(values = PAL) +
+    scale_x_continuous(limits = c(0.70, 1.0), breaks = seq(0.75, 1, 0.05)) +
+    coord_cartesian(clip = "off") +
+    labs(title = "The best-matching metric depends on the overlap yardstick",
+         subtitle = "|Spearman rho| with each overlap estimator (13-D MFCC, 351 pairs, Monte-Carlo JSD)",
+         x = "|Spearman rho|  (separation metric vs. overlap)", y = NULL, color = NULL,
+         caption = paste("95% bootstrap intervals over vowel pairs. Each metric peaks on its own-assumption yardstick;",
+                         "on neutral references they are comparable.")) +
+    theme_pub() +
+    theme(legend.position = "top", legend.text = element_text(color = INK),
+          strip.placement = "outside", panel.spacing.y = unit(6, "pt"),
+          strip.text.y.left = element_text(angle = 0, face = "bold", size = rel(0.8), color = INK))
+  save_fig(p4, "fig4_estimator_influence_audit", 8.8, 5.8)
 }
 
 message("Figures written to ", FIG)
