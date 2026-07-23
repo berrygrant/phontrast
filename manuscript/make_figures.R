@@ -152,25 +152,32 @@ if (!is.null(corr)) {
   ylev <- c("KDE density", "kNN density k=10", "kNN density k=25", "kNN density k=50",
             "PCA-2D grid", "PCA-2D convex hull", "MVN Monte-Carlo")
   d$yardstick <- factor(d$yardstick, levels = rev(ylev))
+  # Order dataset columns low-D -> high-D so the emergence of coupling reads L->R.
+  dims <- if ("dim" %in% names(d)) d$dim else "13-D"
+  d$col_lab <- factor(paste0(d$dataset, "\n(", dims, ")"))
+  d$col_lab <- factor(d$col_lab, levels = unique(d$col_lab[order(match(dims, c("2-D","13-D")))]))
   dodge <- position_dodge(width = 0.62)
+  two <- length(unique(d$col_lab)) > 1
   p4 <- ggplot(d, aes(abs_spearman, yardstick, color = metric)) +
     geom_errorbarh(aes(xmin = spearman_lo, xmax = spearman_hi), height = 0.28,
                    position = dodge, linewidth = 0.5, alpha = 0.55) +
-    geom_point(size = 2.7, position = dodge) +
-    facet_grid(grp ~ ., scales = "free_y", space = "free_y", switch = "y") +
+    geom_point(size = 2.5, position = dodge) +
+    facet_grid(grp ~ col_lab, scales = "free_y", space = "free_y", switch = "y") +
     scale_color_manual(values = PAL) +
-    scale_x_continuous(limits = c(0.70, 1.0), breaks = seq(0.75, 1, 0.05)) +
+    scale_x_continuous(limits = c(0.55, 1.0), breaks = seq(0.6, 1, 0.1)) +
     coord_cartesian(clip = "off") +
-    labs(title = "The best-matching metric depends on the overlap yardstick",
-         subtitle = "|Spearman rho| with each overlap estimator (13-D MFCC, 351 pairs, Monte-Carlo JSD)",
+    labs(title = "The best-matching metric depends on the yardstick and the dimension",
+         subtitle = "|Spearman rho| of each metric with each overlap estimator (Monte-Carlo JSD). In 2-D the metrics nearly tie; the coupling emerges in 13-D",
          x = "|Spearman rho|  (separation metric vs. overlap)", y = NULL, color = NULL,
-         caption = paste("95% bootstrap intervals over vowel pairs. Each metric peaks on its own-assumption yardstick;",
-                         "on neutral references they are comparable.")) +
+         caption = paste("95% bootstrap CIs over vowel pairs. Each metric peaks on its own-assumption yardstick;",
+                         "on neutral references (kNN, PCA) they are comparable.")) +
     theme_pub() +
     theme(legend.position = "top", legend.text = element_text(color = INK),
           strip.placement = "outside", panel.spacing.y = unit(6, "pt"),
-          strip.text.y.left = element_text(angle = 0, face = "bold", size = rel(0.8), color = INK))
-  save_fig(p4, "fig4_estimator_influence_audit", 8.8, 5.8)
+          panel.spacing.x = unit(10, "pt"),
+          strip.text.y.left = element_text(angle = 0, face = "bold", size = rel(0.8), color = INK),
+          strip.text.x = element_text(face = "bold", color = INK))
+  save_fig(p4, "fig4_estimator_influence_audit", if (two) 10.6 else 8.8, 6.0)
 }
 
 message("Figures written to ", FIG)

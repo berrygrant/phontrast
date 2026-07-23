@@ -55,16 +55,21 @@ corr_report <- function(tab, label) {
 }
 
 ## ---- 1. PB52 F1/F2 (10 monophthongs, pooled speakers) ---------------------
-if (requireNamespace("phonTools", quietly = TRUE)) {
-  utils::data("pb52", package = "phonTools")
-  pb <- get("pb52")
+## Prefer a committed data/pb52.csv (columns vowel, f1, f2); fall back to the
+## phonTools package copy.
+pb52_path <- file.path(DATA, "pb52.csv")
+pb <- if (file.exists(pb52_path)) {
+  read.csv(pb52_path)
+} else if (requireNamespace("phonTools", quietly = TRUE)) {
+  utils::data("pb52", package = "phonTools"); get("pb52")
+} else NULL
+if (!is.null(pb)) {
   pb$vowel <- as.character(pb$vowel)
   pb52_tab <- pairwise_metrics(pb, c("f1", "f2"), "vowel", bw = "Hpi", engine = "ks")
   write.csv(pb52_tab, file.path(OUT, "pb52_pairwise_phontrast210.csv"), row.names = FALSE)
   corr_report(pb52_tab, "PB52 F1/F2")
 } else {
-  message("phonTools not installed; skipping PB52 block. ",
-          "install.packages('phonTools') to include it.")
+  message("no data/pb52.csv and phonTools not installed; skipping PB52 block.")
 }
 
 ## ---- 2. SBCSAE 13-MFCC (sampled tokens) -----------------------------------
