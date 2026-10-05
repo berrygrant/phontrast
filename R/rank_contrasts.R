@@ -240,7 +240,7 @@ rank_contrasts <- function(data,
     group_col = group_col, k = k, n_ceiling = sum(out$at_ceiling),
     n_dropped = nrow(dropped), margin = margin, ceiling = ceiling,
     estimator = est, bw_check = bw_check, floors = floors,
-    data = df
+    eval_seed = eval_seed, data = df
   )
   class(out) <- unique(c("phontrast_ranking", class(out)))
   out

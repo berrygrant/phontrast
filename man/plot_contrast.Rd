@@ -11,6 +11,7 @@ plot_contrast(
   group_col = NULL,
   density = c("kde", "mvnorm"),
   bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+  bw_scale = 1,
   levels = c(0.5, 0.8, 0.95),
   points = TRUE,
   overlap = TRUE,
@@ -49,6 +50,12 @@ argument of the metric functions.}
 
 \item{bw}{Bandwidth selection method for \code{density = "kde"}; same
 options as \code{jsd_kde_nd()}.}
+
+\item{bw_scale}{Positive multiplier on the selected kernel bandwidth for
+\code{density = "kde"} (default \code{1}; see \code{jsd_kde_nd()}). The
+drawn regions, the shaded overlap, and the annotations all use the same
+scaled bandwidth, so \code{bw_scale = 0.5} and \code{2} show the halved
+and doubled smoothing of the bandwidth check in \code{rank_contrasts()}.}
 
 \item{levels}{Numeric vector of probability levels in (0, 1) for the drawn
 regions: highest-density regions under \code{"kde"}, coverage ellipses
