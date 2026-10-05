@@ -386,11 +386,24 @@ protocol_floors <- function(d) {
   }
 }
 
+# Columns every rank_contrasts() result carries (the bandwidth-check columns
+# are optional); the print and plot methods refuse objects without them.
+.ranking_required_cols <- function() {
+  c("group", "n_tokens", "n_min", "sqrt_jsd", "pillai", "shared_mass",
+    "at_ceiling", "pr_jsd", "pr_pillai", "rank_diff", "flag",
+    "rank_licensed", "flag_licensed", "rank_basis")
+}
+
 #' @export
 print.phontrast_ranking <- function(x, ...) {
   p <- attr(x, "protocol")
-  if (is.null(p)) {
-    return(NextMethod())
+  if (is.null(p) || !all(.ranking_required_cols() %in% names(x))) {
+    # A column subset (or a hand-built object) no longer carries the protocol
+    # columns the header reads; print it as the plain tibble it now is.
+    y <- x
+    class(y) <- setdiff(class(y), "phontrast_ranking")
+    attr(y, "protocol") <- NULL
+    return(print(y, ...))
   }
   fmt_floor <- function(f) if (is.finite(f)) format(f) else "none"
   est <- p$estimator

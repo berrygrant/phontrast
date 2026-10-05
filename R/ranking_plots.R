@@ -329,8 +329,13 @@ inspect_contrast <- function(ranking,
 # ---- helpers -----------------------------------------------------------------
 
 .check_ranking <- function(ranking) {
-  if (!inherits(ranking, "phontrast_ranking") || is.null(attr(ranking, "protocol"))) {
-    stop("`ranking` must be the result of rank_contrasts().", call. = FALSE)
+  if (!inherits(ranking, "phontrast_ranking") || is.null(attr(ranking, "protocol")) ||
+      !all(.ranking_required_cols() %in% names(ranking))) {
+    stop(
+      "`ranking` must be the unmodified result of rank_contrasts() (a column ",
+      "subset no longer carries the protocol columns).",
+      call. = FALSE
+    )
   }
   invisible(ranking)
 }

@@ -293,6 +293,14 @@ test_that("rank_contrasts() works on one feature and with multiple grouping colu
   expect_true(all(grepl("speaker=.* \\| style=read", r2$group)))
 })
 
+test_that("column subsets of a ranking print as plain tibbles", {
+  sub <- ranking_main[ranking_main$flag %in% TRUE, c("group", "sqrt_jsd", "pillai")]
+  out <- paste(capture.output(print(sub)), collapse = "\n")
+  expect_false(grepl("phontrast ranking", out))
+  expect_match(out, "plant")
+  expect_error(phontrast:::.check_ranking(sub), "unmodified result")
+})
+
 test_that("print.phontrast_ranking() summarises the protocol", {
   d <- cohort_main
   r <- ranking_main
