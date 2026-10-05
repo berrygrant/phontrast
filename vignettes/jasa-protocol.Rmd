@@ -1,0 +1,192 @@
+---
+title: "Ranking speakers by Jensen-Shannon distance and checking Pillai agreement"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Ranking speakers by Jensen-Shannon distance and checking Pillai agreement}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6.5,
+  fig.height = 5
+)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+This vignette walks through the measurement protocol that phontrast 2.5.0
+implements in `rank_contrasts()`. The protocol comes from a simulation study
+that scored seven vowel-overlap measures against a known ground truth (Berry,
+under review, Sec. VII.A). Its recommendations, in three steps:
+
+1. **Compute Jensen-Shannon distance ($\sqrt{JSD}$) and Pillai on the same
+   tokens**, and report the estimated shared probability mass beside them.
+2. **Rank speakers by $\sqrt{JSD}$.**
+3. **Flag speakers whose Pillai percentile rank differs from their
+   $\sqrt{JSD}$ percentile rank by 0.25 of the ordering or more**, inspect
+   them, and plot them.
+
+Each step carries conditions: measurements at the $\sqrt{JSD}$ ceiling are set
+apart, sample-size floors decide whether a rank or a flag may be read, and a
+bandwidth check marks measurements whose rank depends on the smoothing.
+`rank_contrasts()` applies and reports all of them.
+
+## The example cohort
+
+`vowel_cohort` is a simulated twelve-speaker cohort built so that each part of
+the protocol has something to do: eight speakers with a graded centroid gap,
+one speaker whose two vowels share a centroid but differ in shape (a bimodal
+"eh"), one speaker with fully separated vowels, and two speakers with fewer
+tokens than the others.
+
+```{r cohort}
+library(phontrast)
+
+head(vowel_cohort)
+table(vowel_cohort$speaker, vowel_cohort$vowel)
+```
+
+## Steps 1 to 3 in one call
+
+```{r rank}
+ranking <- rank_contrasts(
+  data = vowel_cohort,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker"
+)
+ranking
+```
+
+The header states what was computed and under which conditions; the table has
+one row per speaker, sorted by $\sqrt{JSD}$. Reading it column by column:
+
+- `sqrt_jsd`, `pillai`, `shared_mass`: step 1. $\sqrt{JSD}$ and shared mass are
+  read off one kernel density estimate per speaker, Pillai off the same
+  tokens.
+- `at_ceiling`: `TRUE` where $\sqrt{JSD} \ge 0.99$. spk10's vowels are fully
+  separated, so its kernel estimate can no longer grade separation; its shared
+  mass and Pillai are still reported, but it leaves both rankings.
+- `pr_jsd`, `pr_pillai`, `rank_diff`: step 2, on the percentile-rank scale
+  $(\bar r - \tfrac12)/k$ over the $k$ speakers below the ceiling (ties
+  averaged).
+- `flag`: step 3, `TRUE` where `abs(rank_diff) >= 0.25`. spk09 is the planted
+  disagreement: Pillai, a mean-based measure, sees almost no contrast between
+  two vowels with the same centroid, while $\sqrt{JSD}$ sees two distributions
+  that barely overlap.
+
+```{r flagged}
+ranking[ranking$flag %in% TRUE, c("group", "sqrt_jsd", "pillai", "pr_jsd", "pr_pillai", "rank_diff")]
+```
+
+## Licensing: when a rank or a flag may be read
+
+The simulation licenses these readings only from certain token counts per
+vowel per speaker, and only up to certain dimensionalities. The floors are
+applied per speaker from the smaller vowel's count (`n_min`):
+
+```{r floors}
+protocol_floors(2)
+ranking[, c("group", "n_min", "rank_licensed", "flag_licensed", "rank_basis", "flag")]
+```
+
+At two dimensions, ranking by $\sqrt{JSD}$ is licensed from 50 tokens per
+vowel and the flag is readable from 100. spk11 (60 tokens) can be ranked by
+$\sqrt{JSD}$ but its flag is `NA`: a single speaker's rank difference spans
+about 0.28 of the ordering across redraws at 50 tokens, so a 0.25 margin cannot
+be read there. spk12 (40 tokens) is below the rank floor, so `rank_basis` says
+to order that speaker by Pillai. `rank_diff` is still reported for both; only
+the inference is withheld. From eight dimensions the agreement test returns
+agreement whatever the data contain, and above eight the study offers ordering
+evidence only, so `rank_contrasts()` withholds the flag and the licence there
+too.
+
+## The agreement plot
+
+`plot()` on the ranking draws step 3: Pillai percentile rank against
+$\sqrt{JSD}$ percentile rank, the identity line, and the inspection band of
+$\pm 0.25$ around it. Flagged speakers are coloured and labelled, set-aside
+speakers crossed, and speakers whose flag is not readable are hollow.
+
+```{r agreement-plot, eval = has_ggplot2}
+plot(ranking)
+```
+
+## Inspecting a flagged speaker across bandwidths
+
+Before interpreting a flag, the protocol asks for one more check: recompute
+$\sqrt{JSD}$ at half and at twice the diagonal Scott bandwidth, re-rank, and
+set the measurement aside if its rank moves by 0.25 of the ordering or more,
+or if a flagged rank difference changes sign. `rank_contrasts()` runs this
+check by default (`bw_check = TRUE`):
+
+```{r bw-check}
+ranking[, c("group", "sqrt_jsd_half", "sqrt_jsd_double", "bw_shift", "sign_change", "set_aside")]
+```
+
+`inspect_contrast()` then redraws one speaker with `plot_contrast()`'s layers,
+one panel per bandwidth, so the flag can be judged against the distributions
+that produced it. The panels are labelled with $\sqrt{JSD}$ and shared mass at
+that bandwidth and with the speaker's Pillai, and the subtitle restates the
+reported ranks and the outcome of the bandwidth check.
+
+```{r inspect, eval = has_ggplot2, fig.width = 8, fig.height = 4}
+inspect_contrast(ranking, "spk09", reverse_x = TRUE, reverse_y = TRUE)
+```
+
+The same bandwidth multiplier is available throughout the kernel path as
+`bw_scale` (on `jsd_kde_nd()`, `estimate_jsd()`, `phontrast()`,
+`plot_contrast()`, and the overlap functions), so any kernel estimate can be
+bracketed by hand.
+
+## The estimator behind the numbers
+
+The floors above were calibrated with particular estimator settings, which
+change with dimensionality. `recommended_estimator()` returns them, and
+`rank_contrasts()` uses them by default:
+
+```{r estimator}
+recommended_estimator(2)[c("tier", "bw", "engine", "eval_n", "loo")]
+recommended_estimator(8)[c("tier", "bw", "engine", "eval_n", "loo")]
+```
+
+To run the protocol with other settings, pass a modified list:
+
+```{r estimator-override, eval = FALSE}
+rank_contrasts(
+  vowel_cohort, c("f1", "f2"), "vowel", "speaker",
+  estimator = modifyList(recommended_estimator(2), list(bw = "scott.diag", engine = "fast_diag"))
+)
+```
+
+## Measures and estimators side by side
+
+The study's central distinction is between a *measure* (the quantity) and its
+*estimator*. `phontrast()` makes that distinction visible: the closed-form
+Gaussian Bhattacharyya columns and the matched-kernel ones estimate the same
+quantity under different models, and the whole kernel family (Jensen-Shannon,
+overlap, total variation, kernel Bhattacharyya, Hellinger) is scored on one
+shared density estimate per comparison.
+
+```{r measures}
+one_speaker <- vowel_cohort[vowel_cohort$speaker == "spk05", ]
+phontrast(
+  one_speaker, c("f1", "f2"), "vowel",
+  metrics = c("js_distance", "pillai", "overlap", "tv",
+              "bhattacharyya", "bhattacharyya_kde", "euclidean")
+)
+```
+
+## What to report
+
+For a set of speakers measured on one contrast, report per speaker the three
+step-1 quantities (`sqrt_jsd`, `pillai`, `shared_mass`), the token count per
+vowel (`n_min`) and the number of features, and then the $\sqrt{JSD}$ ordering
+with its licensing. Name the flagged speakers, say whether the flag was readable
+at that sample size, and show the inspected distributions for the ones you
+discuss. State the estimator settings (`attr(ranking, "protocol")$estimator`)
+and the bandwidth-check outcome. `print(ranking)` gives all of this in one
+block; the plots above give the picture.

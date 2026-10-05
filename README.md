@@ -5,6 +5,8 @@ It is designed for researchers in sociophonetics, laboratory phonology, bilingua
 
 The package's entry point, `phontrast()`, computes and compares a family of metrics for a two-category contrast — Jensen–Shannon divergence and distance, the Pillai–Bartlett trace, Bhattacharyya distance and affinity, Mahalanobis distance, and proportional overlap — globally or by group, with optional bootstrap confidence intervals. Because the metrics differ in what they capture (distribution shape vs. mean separation vs. overlap), reporting several together gives a fuller picture of a contrast than any one alone.
 
+`rank_contrasts()` turns the recommendations of the simulation study behind the package — rank speakers by Jensen–Shannon distance, check the ranking against Pillai, and read ranks and flags only where the sample licenses them — into one call with a plot and an inspection view; see [Ranking speakers and checking Pillai agreement](#ranking-speakers-and-checking-pillai-agreement).
+
 > **Formerly `phonJSD`.** phontrast is the continuation of the `phonJSD` package (through v1.2.0), broadened from a Jensen–Shannon-divergence focus to a general multi-metric contrast toolkit. The estimators are unchanged; see [`NEWS.md`](NEWS.md) for migration notes, and `ROADMAP.md` in the repository for what's planned next.
 
 [![CRAN status](https://www.r-pkg.org/badges/version/phontrast)](https://CRAN.R-project.org/package=phontrast)
@@ -27,8 +29,9 @@ This approach is especially useful when:
 
 ## Core Features
 
-- **One call, many metrics:** `phontrast()` computes Jensen–Shannon divergence and distance, Pillai–Bartlett trace, Bhattacharyya distance/affinity, Mahalanobis distance, and percent overlap side by side
+- **One call, many metrics:** `phontrast()` computes Jensen–Shannon divergence and distance, Pillai–Bartlett trace, Bhattacharyya distance/affinity, Mahalanobis distance, and percent overlap side by side; opt-in metrics add total variation, matched-kernel Bhattacharyya and Hellinger distances, and the Euclidean distance between standardized means
 - Pick any subset with the `metrics` argument
+- **The ranking protocol in one call:** `rank_contrasts()` computes √JSD, Pillai, and shared mass on the same tokens, ranks speakers on the percentile scale, flags Pillai/√JSD disagreements of 0.25 or more, applies the sample-size floors, and runs a bandwidth check; `plot()` draws the agreement plot and `inspect_contrast()` a flagged speaker across bandwidths
 - Kernel density–based estimation of acoustic distributions for the distributional metrics, with an optional multivariate-normal backend (`density = "mvnorm"`)
 - Support for **1D and n-dimensional acoustic features**
 - Optional high-dimensional KDE speed controls, including diagonal Scott
@@ -200,6 +203,36 @@ argument. `density` is available on `phontrast()`, `estimate_jsd()`,
 `estimate_overlap()`, `jsd_summary()`, `global_boot_jsd()`, `jsd_kde_nd()`, and
 `percent_overlap_kde()`.
 
+### Ranking speakers and checking Pillai agreement
+
+The simulation study behind phontrast ("Estimand or estimator? Comparing
+vowel overlap measures against a known ground truth", Berry, under review)
+closes with a measurement protocol: compute √JSD and Pillai on the same tokens
+and report shared mass beside them; rank speakers by √JSD; flag speakers whose
+Pillai percentile rank differs from their √JSD percentile rank by 0.25 of the
+ordering or more, and inspect them. `rank_contrasts()` runs the three steps
+and applies their conditions — the √JSD ceiling, the sample-size floors per
+speaker and dimensionality, and a bandwidth check at half and twice the
+diagonal Scott bandwidth — on the bundled `vowel_cohort` or your own data:
+
+```r
+ranking <- rank_contrasts(
+  data = vowel_cohort,
+  features = c("f1", "f2"),
+  category_col = "vowel",
+  group_col = "speaker"
+)
+ranking                      # the protocol table, with a header that states the conditions
+plot(ranking)                # Pillai rank vs. sqrt(JSD) rank, with the +/- 0.25 band
+inspect_contrast(ranking, "spk09", reverse_x = TRUE, reverse_y = TRUE)
+```
+
+`protocol_floors(d)` returns the licensing floors, `recommended_estimator(d)`
+the kernel settings the study calibrated at each dimensionality, and
+`percentile_rank()` the rank scale. The vignette *Ranking speakers by
+Jensen–Shannon distance and checking Pillai agreement* walks through the whole
+protocol.
+
 If you only need the package's information-theoretic estimate on its own, use
 `estimate_jsd()`:
 
@@ -295,6 +328,10 @@ The metrics are not all oriented in the same direction:
 | Mahalanobis distance | Higher = more separation | 0 to infinity | You want mean separation scaled by covariance | Sensitive to covariance estimation and small samples |
 | Percent overlap | Higher = more overlap | 0-1 proportion | You want a directly interpretable shared-density estimate | Despite the name, output is a proportion, not 0-100 |
 | Bhattacharyya affinity | Higher = more overlap | 0-1 | You want a parametric overlap analogue | Assumes approximately multivariate normal categories |
+| Total variation (`tv`, opt-in) | Higher = more separation | 0-1 | You want the separation complement of percent overlap | Same kernel estimator as percent overlap |
+| Bhattacharyya distance / affinity, kernel (`bhattacharyya_kde`, opt-in) | Distance: higher = more separation; affinity: higher = more overlap | 0 to infinity / 0-1 | You want the Bhattacharyya quantity under the same kernel densities as JSD, to separate measure from estimator | Kernel estimates move with the bandwidth; compare with the closed-form columns |
+| Hellinger distance (`bhattacharyya_kde`, opt-in) | Higher = more separation | 0-1 | You want a bounded proper metric from the same kernel densities | As above |
+| Euclidean distance of standardized means (`euclidean`, opt-in) | Higher = more separation | 0 to 2√d | You want the classic centroid distance on a comparable scale | Mean-based; blind to shape and variance |
 
 For side-by-side comparison, `phontrast(output = "long")` adds `orientation`,
 `separation_value`, and `separation_rank` columns so overlap metrics can be read

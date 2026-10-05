@@ -32,7 +32,27 @@
 #'     \code{plot_category_space()}, and \code{plot_category_pca()} for
 #'     ggplot2-backed diagnostics and presentation figures, all sharing the
 #'     colorblind-safe \code{theme_phontrast()} visual identity.
+#'   \item To rank a set of speakers on one contrast, use
+#'     \code{rank_contrasts()} (see the next section), then \code{plot()} the
+#'     ranking and \code{inspect_contrast()} any flagged speaker.
 #' }
+#'
+#' @section Ranking protocol:
+#' \code{rank_contrasts()} implements the measurement protocol recommended by
+#' the simulation study behind this package (Berry, under review, Sec. VII.A;
+#' see \code{citation("phontrast")}): compute Jensen-Shannon distance and
+#' Pillai on the same tokens and report shared mass beside them; rank speakers
+#' by Jensen-Shannon distance on the percentile-rank scale of
+#' \code{percentile_rank()}; and flag speakers whose Pillai and Jensen-Shannon
+#' percentile ranks differ by 0.25 of the ordering or more. Measurements at the
+#' Jensen-Shannon ceiling are set apart, sample-size floors
+#' (\code{protocol_floors()}) decide per speaker whether a rank or a flag may
+#' be read, and a bandwidth check marks measurements whose rank depends on the
+#' smoothing. \code{recommended_estimator()} supplies the kernel settings the
+#' study used at each dimensionality; \code{plot_rank_agreement()} and
+#' \code{inspect_contrast()} draw the ranking and a flagged speaker; the
+#' bundled \code{vowel_cohort} data and the vignette "Ranking speakers by
+#' Jensen-Shannon distance and checking Pillai agreement" walk through it.
 #'
 #' @section Choosing metrics:
 #' JSD, Jensen-Shannon distance, Pillai trace, Bhattacharyya distance, and
@@ -42,7 +62,11 @@
 #' a separation-oriented \code{separation_value} column to make these directions
 #' explicit. JSD and percent overlap estimate distributional separation/overlap
 #' using KDE by default; Pillai and Mahalanobis emphasize mean separation;
-#' Bhattacharyya metrics use a multivariate-normal approximation.
+#' Bhattacharyya metrics use a multivariate-normal approximation. Opt-in
+#' metrics add total variation (\code{"tv"}), the matched-kernel Bhattacharyya
+#' and Hellinger distances read off the same kernel densities as JSD
+#' (\code{"bhattacharyya_kde"}), and the Euclidean distance between
+#' standardized category means (\code{"euclidean"}).
 #'
 #' @section Density backends:
 #' The distributional metrics (Jensen-Shannon divergence and proportional

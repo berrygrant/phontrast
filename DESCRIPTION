@@ -1,6 +1,6 @@
 Package: phontrast
 Title: Contrast and Separation Metrics for Phonological Categories
-Version: 2.4.1
+Version: 2.5.0
 Authors@R:
     person(c("Grant", "M."), "Berry", email = "berry.grant@gmail.com",
            role = c("aut", "cre"))
@@ -15,13 +15,17 @@ Description: Computes and compares multiple measures of separation and overlap
     <doi:10.1109/18.61115>, the Pillai-Bartlett trace, Bhattacharyya distance
     and affinity, Mahalanobis distance, and proportional overlap -- globally or
     by group on a common separation-oriented scale, with bootstrap confidence
-    intervals. Also provides utilities for preparing estimates for downstream
+    intervals. rank_contrasts() implements a measurement protocol for ranking
+    speakers' contrasts by Jensen-Shannon distance and checking the ranking
+    against Pillai, with sample-size licensing and a bandwidth-sensitivity
+    check. Also provides utilities for preparing estimates for downstream
     modelling such as generalized additive models and mixed-effects models.
     Formerly released as 'phonJSD'.
 License: MIT + file LICENSE
 URL: https://github.com/berrygrant/phontrast
 BugReports: https://github.com/berrygrant/phontrast/issues
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:

@@ -6,9 +6,9 @@ authors:
   - family-names: Berry
     given-names: Grant M.
     affiliation: Villanova University
-version: 2.4.1
+version: 2.5.0
 doi: 10.5281/zenodo.20816585
-date-released: 2026-08-31
+date-released: 2026-10-05
 url: "https://doi.org/10.5281/zenodo.20816585"
 repository-code: "https://github.com/berrygrant/phontrast"
 license: MIT
