@@ -19,6 +19,7 @@ estimate_overlap(
   method = c("mc", "legacy"),
   density = c("kde", "mvnorm"),
   mc_n = 10000L,
+  bw_scale = 1,
   ...
 )
 }
@@ -61,6 +62,9 @@ by Monte-Carlo).}
 \item{mc_n}{Positive integer; number of Monte-Carlo samples drawn from each
 fitted Gaussian when \code{density = "mvnorm"} (default \code{10000}).
 Ignored when \code{density = "kde"}.}
+
+\item{bw_scale}{Positive bandwidth multiplier passed to
+\code{percent_overlap_kde()} (default \code{1}); see \code{jsd_kde_nd()}.}
 
 \item{...}{Additional arguments passed to \code{percent_overlap_kde()}.}
 }

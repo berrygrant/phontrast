@@ -41,6 +41,10 @@
 #'   Gaussian to estimate the overlapping coefficient between the two Gaussians.
 #'   Larger values reduce Monte-Carlo variance. Ignored when
 #'   \code{density = "kde"}.
+#' @param bw_scale Positive number multiplying the selected kernel bandwidth on
+#'   the standard-deviation scale (univariate bandwidths by \code{bw_scale},
+#'   bandwidth matrices by \code{bw_scale^2}); see \code{jsd_kde_nd()}.
+#'   Ignored when \code{density = "mvnorm"}.
 #' @param ... Reserved for future extensions; currently unused.
 #'
 #' @return Numeric scalar proportion in \code{[0, 1]}.
@@ -57,11 +61,13 @@ percent_overlap_kde <- function(data,
                                 method = c("mc", "legacy"),
                                 density = c("kde", "mvnorm"),
                                 mc_n = 10000L,
+                                bw_scale = 1,
                                 ...) {
 
   .validate_metric_inputs(data, features, category_col)
   method <- match.arg(method)
   density <- match.arg(density)
+  .check_bw_scale(bw_scale)
 
   if (identical(density, "mvnorm")) {
     mc <- .mvnorm_mc_pair(
@@ -85,7 +91,8 @@ percent_overlap_kde <- function(data,
       eval_seed = eval_seed,
       engine = engine,
       chunk_size = chunk_size,
-      metric = "percent_overlap_kde()"
+      metric = "percent_overlap_kde()",
+      bw_scale = bw_scale
     )
     return(.overlap_mc(mc))
   }
@@ -100,7 +107,8 @@ percent_overlap_kde <- function(data,
     eval_seed = eval_seed,
     engine = engine,
     chunk_size = chunk_size,
-    metric = "percent_overlap_kde()"
+    metric = "percent_overlap_kde()",
+    bw_scale = bw_scale
   )
 
   # Normalize to discrete probability masses on a shared grid
@@ -144,6 +152,8 @@ percent_overlap_kde <- function(data,
 #' @param mc_n Positive integer; number of Monte-Carlo samples drawn from each
 #'   fitted Gaussian when \code{density = "mvnorm"} (default \code{10000}).
 #'   Ignored when \code{density = "kde"}.
+#' @param bw_scale Positive bandwidth multiplier passed to
+#'   \code{percent_overlap_kde()} (default \code{1}); see \code{jsd_kde_nd()}.
 #' @param ... Additional arguments passed to \code{percent_overlap_kde()}.
 #'
 #' @return A tibble (global = one row; grouped = one per group) with
@@ -163,6 +173,7 @@ estimate_overlap <- function(data,
                              method = c("mc", "legacy"),
                              density = c("kde", "mvnorm"),
                              mc_n = 10000L,
+                             bw_scale = 1,
                              ...) {
 
   bw <- match.arg(bw)
@@ -170,6 +181,7 @@ estimate_overlap <- function(data,
   engine <- .match_kde_engine(engine)
   method <- match.arg(method)
   density <- match.arg(density)
+  .check_bw_scale(bw_scale)
   .check_positive_count(min_tokens, "min_tokens")
   .validate_metric_inputs(data, features, category_col, group_col)
 
@@ -195,6 +207,7 @@ estimate_overlap <- function(data,
       method       = method,
       density      = density,
       mc_n         = mc_n,
+      bw_scale     = bw_scale,
       ...
     )
 
@@ -232,6 +245,7 @@ estimate_overlap <- function(data,
         method       = method,
         density      = density,
         mc_n         = mc_n,
+        bw_scale     = bw_scale,
         ...
       ),
       error = function(e) NA_real_

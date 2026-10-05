@@ -77,6 +77,11 @@
 #'   fitted Gaussian for the Jensen-Shannon and overlap columns when
 #'   \code{density = "mvnorm"} (default \code{10000}). Ignored when
 #'   \code{density = "kde"}.
+#' @param bw_scale Positive number multiplying the selected kernel bandwidth on
+#'   the standard-deviation scale for the Jensen-Shannon and overlap columns
+#'   (default \code{1}); \code{0.5} and \code{2} give the halved and doubled
+#'   bandwidths of the smoothing-sensitivity check in \code{rank_contrasts()}.
+#'   Ignored when \code{density = "mvnorm"}.
 #'
 #' @return A data frame containing only the requested \code{metrics}. Wide
 #'   output (the default) contains one column per requested metric plus
@@ -159,7 +164,8 @@ phontrast <- function(data,
                       progress = TRUE,
                       method = c("mc", "legacy"),
                       density = c("kde", "mvnorm"),
-                      mc_n = 10000L) {
+                      mc_n = 10000L,
+                      bw_scale = 1) {
   output <- match.arg(output)
   metrics <- .resolve_contrast_metrics(metrics)
   bw <- match.arg(bw)
@@ -169,6 +175,7 @@ phontrast <- function(data,
   density <- match.arg(density)
   .check_positive_count(min_tokens, "min_tokens")
   .check_ridge_eps(eps, "eps")
+  .check_bw_scale(bw_scale)
   if (!is.logical(do_boot) || length(do_boot) != 1L || is.na(do_boot)) {
     stop("`do_boot` must be TRUE or FALSE.", call. = FALSE)
   }
@@ -196,7 +203,8 @@ phontrast <- function(data,
     eps = eps,
     method = method,
     density = density,
-    mc_n = mc_n
+    mc_n = mc_n,
+    bw_scale = bw_scale
   )
   if (!nrow(wide)) {
     .warn_empty_overlap_comparison(
@@ -228,7 +236,8 @@ phontrast <- function(data,
       progress = progress,
       method = method,
       density = density,
-      mc_n = mc_n
+      mc_n = mc_n,
+      bw_scale = bw_scale
     )
     key_cols <- if (is.null(group_col)) c("scope", "n_tokens") else c("scope", "group", "n_tokens")
     wide <- dplyr::left_join(wide, boot, by = key_cols)
@@ -337,7 +346,8 @@ compare_overlap_metrics <- function(data,
                                     progress = TRUE,
                                     method = c("mc", "legacy"),
                                     density = c("kde", "mvnorm"),
-                                    mc_n = 10000L) {
+                                    mc_n = 10000L,
+                                    bw_scale = 1) {
   .Deprecated("phontrast")
   output <- match.arg(output)
   method <- match.arg(method)
@@ -362,7 +372,8 @@ compare_overlap_metrics <- function(data,
     progress = progress,
     method = method,
     density = density,
-    mc_n = mc_n
+    mc_n = mc_n,
+    bw_scale = bw_scale
   )
 }
 
@@ -380,7 +391,8 @@ compare_overlap_metrics <- function(data,
                                            eps = 1e-6,
                                            method = c("mc", "legacy"),
                                            density = c("kde", "mvnorm"),
-                                           mc_n = 10000L) {
+                                           mc_n = 10000L,
+                                           bw_scale = 1) {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
@@ -402,9 +414,10 @@ compare_overlap_metrics <- function(data,
     chunk_size = chunk_size,
     method = method,
     density = density,
-    mc_n = mc_n
+    mc_n = mc_n,
+    bw_scale = bw_scale
   )
-  jsd_wide <- jsd_out[, intersect(c("scope", "group", "n_tokens"), names(jsd_out)), drop = FALSE]
+  jsd_wide <-jsd_out[, intersect(c("scope", "group", "n_tokens"), names(jsd_out)), drop = FALSE]
   jsd_wide$jsd <- jsd_out$jsd_point
   jsd_wide$js_distance <- sqrt(jsd_out$jsd_point)
 
@@ -454,9 +467,10 @@ compare_overlap_metrics <- function(data,
     chunk_size = chunk_size,
     method = method,
     density = density,
-    mc_n = mc_n
+    mc_n = mc_n,
+    bw_scale = bw_scale
   )
-  overlap_wide <- overlap_out[, intersect(c("scope", "group", "n_tokens"), names(overlap_out)), drop = FALSE]
+  overlap_wide <-overlap_out[, intersect(c("scope", "group", "n_tokens"), names(overlap_out)), drop = FALSE]
   overlap_wide$percent_overlap <- overlap_out$overlap
 
   key_cols <- if (is.null(group_col)) c("scope", "n_tokens") else c("scope", "group", "n_tokens")
@@ -572,7 +586,8 @@ compare_overlap_metrics <- function(data,
                                                progress = TRUE,
                                                method = "mc",
                                                density = "kde",
-                                               mc_n = 10000L) {
+                                               mc_n = 10000L,
+                                               bw_scale = 1) {
   key_cols <- if (is.null(group_col)) c("scope", "n_tokens") else c("scope", "group", "n_tokens")
 
   if (is.null(group_col)) {
@@ -595,7 +610,8 @@ compare_overlap_metrics <- function(data,
       progress = progress,
       method = method,
       density = density,
-      mc_n = mc_n
+      mc_n = mc_n,
+      bw_scale = bw_scale
     ))
     out <- cbind(point_wide[, key_cols, drop = FALSE], dplyr::bind_rows(boot_rows))
     rownames(out) <- NULL
@@ -628,7 +644,8 @@ compare_overlap_metrics <- function(data,
       progress = progress,
       method = method,
       density = density,
-      mc_n = mc_n
+      mc_n = mc_n,
+      bw_scale = bw_scale
     )
   })
   out <- cbind(point_wide[, key_cols, drop = FALSE], dplyr::bind_rows(boot_rows))
@@ -653,7 +670,8 @@ compare_overlap_metrics <- function(data,
                                           progress = TRUE,
                                           method = "mc",
                                           density = "kde",
-                                          mc_n = 10000L) {
+                                          mc_n = 10000L,
+                                          bw_scale = 1) {
   if (isTRUE(progress)) {
     message(
       "Bootstrapping overlap metrics for ", label, " (",
@@ -693,7 +711,8 @@ compare_overlap_metrics <- function(data,
         eps = eps,
         method = method,
         density = density,
-        mc_n = mc_n
+        mc_n = mc_n,
+        bw_scale = bw_scale
       ),
       error = function(e) NULL
     )

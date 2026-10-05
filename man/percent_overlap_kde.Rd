@@ -17,6 +17,7 @@ percent_overlap_kde(
   method = c("mc", "legacy"),
   density = c("kde", "mvnorm"),
   mc_n = 10000L,
+  bw_scale = 1,
   ...
 )
 }
@@ -68,6 +69,11 @@ estimator draws \code{mc_n} fresh points from each category's fitted
 Gaussian to estimate the overlapping coefficient between the two Gaussians.
 Larger values reduce Monte-Carlo variance. Ignored when
 \code{density = "kde"}.}
+
+\item{bw_scale}{Positive number multiplying the selected kernel bandwidth on
+the standard-deviation scale (univariate bandwidths by \code{bw_scale},
+bandwidth matrices by \code{bw_scale^2}); see \code{jsd_kde_nd()}.
+Ignored when \code{density = "mvnorm"}.}
 
 \item{...}{Reserved for future extensions; currently unused.}
 }

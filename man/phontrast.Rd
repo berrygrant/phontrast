@@ -25,7 +25,8 @@ phontrast(
   progress = TRUE,
   method = c("mc", "legacy"),
   density = c("kde", "mvnorm"),
-  mc_n = 10000L
+  mc_n = 10000L,
+  bw_scale = 1
 )
 }
 \arguments{
@@ -99,6 +100,12 @@ are unaffected by this argument.}
 fitted Gaussian for the Jensen-Shannon and overlap columns when
 \code{density = "mvnorm"} (default \code{10000}). Ignored when
 \code{density = "kde"}.}
+
+\item{bw_scale}{Positive number multiplying the selected kernel bandwidth on
+the standard-deviation scale for the Jensen-Shannon and overlap columns
+(default \code{1}); \code{0.5} and \code{2} give the halved and doubled
+bandwidths of the smoothing-sensitivity check in \code{rank_contrasts()}.
+Ignored when \code{density = "mvnorm"}.}
 }
 \value{
 A data frame containing only the requested \code{metrics}. Wide

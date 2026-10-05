@@ -40,6 +40,10 @@
 #' @param mc_n Positive integer; number of Monte-Carlo samples drawn from each
 #'   fitted Gaussian when \code{density = "mvnorm"} (default \code{10000}).
 #'   Ignored when \code{density = "kde"}.
+#' @param bw_scale Positive number multiplying the selected kernel bandwidth on
+#'   the standard-deviation scale (default \code{1}); \code{0.5} and \code{2}
+#'   give the halved and doubled bandwidths of the smoothing-sensitivity check.
+#'   Passed to \code{jsd_kde_nd()}; ignored when \code{density = "mvnorm"}.
 #' @param ... Additional arguments passed to \code{jsd_kde_nd()} (e.g.,
 #'   \code{loo}).
 #'
@@ -100,6 +104,7 @@ estimate_jsd <- function(data,
                          method = c("mc", "legacy"),
                          density = c("kde", "mvnorm"),
                          mc_n = 10000L,
+                         bw_scale = 1,
                          ...) {
 
   bw <- match.arg(bw)
@@ -107,6 +112,7 @@ estimate_jsd <- function(data,
   engine <- .match_kde_engine(engine)
   method <- match.arg(method)
   density <- match.arg(density)
+  .check_bw_scale(bw_scale)
   .check_conf_level(conf_level)
   if (isTRUE(do_boot)) {
     .check_positive_count(n_boot, "n_boot")
@@ -142,6 +148,7 @@ estimate_jsd <- function(data,
       method    = method,
       density   = density,
       mc_n      = mc_n,
+      bw_scale  = bw_scale,
       ...
     )
 
@@ -190,6 +197,7 @@ estimate_jsd <- function(data,
           method    = method,
           density   = density,
           mc_n      = mc_n,
+          bw_scale  = bw_scale,
           ...
         ),
         error = function(e) NA_real_
@@ -252,6 +260,7 @@ estimate_jsd <- function(data,
     method       = method,
     density      = density,
     mc_n         = mc_n,
+    bw_scale     = bw_scale,
     ...
   ) |>
     dplyr::rename(jsd_point = "jsd")
@@ -295,6 +304,7 @@ estimate_jsd <- function(data,
     method       = method,
     density      = density,
     mc_n         = mc_n,
+    bw_scale     = bw_scale,
     ...
   )
 
