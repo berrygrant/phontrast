@@ -43,9 +43,24 @@ are combined into a labeled \code{group} value such as
 
 \item{metrics}{Character vector selecting which contrast metrics to compute.
 Any of \code{"jsd"}, \code{"js_distance"}, \code{"pillai"},
-\code{"bhattacharyya"}, \code{"mahalanobis"}, and \code{"overlap"}.
-Defaults to all of them. \code{"bhattacharyya"} returns both the
-Bhattacharyya distance and affinity.}
+\code{"bhattacharyya"}, \code{"mahalanobis"}, \code{"overlap"},
+\code{"tv"}, \code{"bhattacharyya_kde"}, and \code{"euclidean"}.
+Defaults to the first six, the metric set of earlier releases.
+\code{"bhattacharyya"} returns both the Bhattacharyya distance and
+affinity under a closed-form multivariate-normal fit. The remaining three
+are opt-in: \code{"tv"} is total variation, \eqn{1 -} proportional
+overlap (\code{total_variation}); \code{"bhattacharyya_kde"} returns the
+Bhattacharyya distance and affinity and the Hellinger distance
+(\code{bhatt_kde_dist}, \code{bhatt_kde_affinity}, \code{hellinger}) read
+off the \emph{same} kernel densities as the Jensen-Shannon and overlap
+columns -- a matched-kernel estimator of the quantity the closed-form
+column estimates parametrically, so measure and estimator can be told
+apart; and \code{"euclidean"} is the Euclidean distance between the two
+category means after dividing each feature by the standard deviation of
+the pooled two-category sample (\code{euclidean_dist}, bounded by
+\eqn{2\sqrt{d}} for equal category sizes). All kernel-family columns
+(Jensen-Shannon, overlap, total variation, kernel Bhattacharyya,
+Hellinger) come from one shared density estimate per comparison.}
 
 \item{min_tokens}{Minimum tokens required globally or per group.}
 

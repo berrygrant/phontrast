@@ -781,6 +781,32 @@
   min(max(0.5 * mean(o1) + 0.5 * mean(o2), 0), 1)
 }
 
+.bhatt_mc <- function(mc, loo = TRUE) {
+  # Bhattacharyya coefficient BC = integral of sqrt(p q), read off the same
+  # density pair as JSD and overlap: E_P[sqrt(q / p)] from P's own samples and
+  # E_Q[sqrt(p / q)] from Q's, averaged. The self-densities take the same
+  # partial leave-one-out correction as `.jsd_mc()`, so the matched-kernel
+  # Bhattacharyya and Jensen-Shannon estimates share one estimator.
+  logp1 <- if (isTRUE(loo)) {
+    .loo_logdens(mc$logp1, mc$n1, mc$kh0_1, .loo_alpha(mc$n1))
+  } else {
+    mc$logp1
+  }
+  logq2 <- if (isTRUE(loo)) {
+    .loo_logdens(mc$logq2, mc$n2, mc$kh0_2, .loo_alpha(mc$n2))
+  } else {
+    mc$logq2
+  }
+  b1 <- exp(0.5 * (mc$logq1 - logp1))
+  b2 <- exp(0.5 * (mc$logp2 - logq2))
+  b1 <- b1[is.finite(b1)]
+  b2 <- b2[is.finite(b2)]
+  if (!length(b1) || !length(b2)) {
+    stop("Monte-Carlo Bhattacharyya: no usable evaluation points.", call. = FALSE)
+  }
+  min(max(0.5 * mean(b1) + 0.5 * mean(b2), 0), 1)
+}
+
 # ---- Parametric multivariate-normal density backend ---------------------
 # `density = "mvnorm"`: fit one Gaussian per category and estimate JSD / overlap
 # with the same Monte-Carlo plug-in used for KDE, but with the parametric

@@ -36,9 +36,24 @@
 #'   \code{"Sex=F | Style=read"}.
 #' @param metrics Character vector selecting which contrast metrics to compute.
 #'   Any of \code{"jsd"}, \code{"js_distance"}, \code{"pillai"},
-#'   \code{"bhattacharyya"}, \code{"mahalanobis"}, and \code{"overlap"}.
-#'   Defaults to all of them. \code{"bhattacharyya"} returns both the
-#'   Bhattacharyya distance and affinity.
+#'   \code{"bhattacharyya"}, \code{"mahalanobis"}, \code{"overlap"},
+#'   \code{"tv"}, \code{"bhattacharyya_kde"}, and \code{"euclidean"}.
+#'   Defaults to the first six, the metric set of earlier releases.
+#'   \code{"bhattacharyya"} returns both the Bhattacharyya distance and
+#'   affinity under a closed-form multivariate-normal fit. The remaining three
+#'   are opt-in: \code{"tv"} is total variation, \eqn{1 -} proportional
+#'   overlap (\code{total_variation}); \code{"bhattacharyya_kde"} returns the
+#'   Bhattacharyya distance and affinity and the Hellinger distance
+#'   (\code{bhatt_kde_dist}, \code{bhatt_kde_affinity}, \code{hellinger}) read
+#'   off the \emph{same} kernel densities as the Jensen-Shannon and overlap
+#'   columns -- a matched-kernel estimator of the quantity the closed-form
+#'   column estimates parametrically, so measure and estimator can be told
+#'   apart; and \code{"euclidean"} is the Euclidean distance between the two
+#'   category means after dividing each feature by the standard deviation of
+#'   the pooled two-category sample (\code{euclidean_dist}, bounded by
+#'   \eqn{2\sqrt{d}} for equal category sizes). All kernel-family columns
+#'   (Jensen-Shannon, overlap, total variation, kernel Bhattacharyya,
+#'   Hellinger) come from one shared density estimate per comparison.
 #' @param min_tokens Minimum tokens required globally or per group.
 #' @param bw Bandwidth selection method passed to \code{jsd_kde_nd()} and
 #'   \code{percent_overlap_kde()}.
@@ -273,7 +288,10 @@ phontrast <- function(data,
     pillai        = "pillai",
     bhattacharyya = c("bhatt_dist", "bhatt_affinity"),
     mahalanobis   = "mahalanobis_dist",
-    overlap       = "percent_overlap"
+    overlap       = "percent_overlap",
+    tv            = "total_variation",
+    bhattacharyya_kde = c("bhatt_kde_dist", "bhatt_kde_affinity", "hellinger"),
+    euclidean     = "euclidean_dist"
   )
 }
 
@@ -399,12 +417,15 @@ compare_overlap_metrics <- function(data,
   method <- match.arg(method)
   density <- match.arg(density)
 
-  jsd_out <- estimate_jsd(
+  # The kernel family -- Jensen-Shannon, proportional overlap (and its
+  # complement, total variation), and the matched-kernel Bhattacharyya and
+  # Hellinger distances -- is read off one shared density estimate per
+  # comparison, so every member is scored on the same densities.
+  kernel_wide <- .estimate_kernel_family(
     data = data,
     features = features,
     category_col = category_col,
     group_col = group_col,
-    do_boot = FALSE,
     min_tokens = min_tokens,
     bw = bw,
     eval_on = eval_on,
@@ -417,9 +438,12 @@ compare_overlap_metrics <- function(data,
     mc_n = mc_n,
     bw_scale = bw_scale
   )
-  jsd_wide <-jsd_out[, intersect(c("scope", "group", "n_tokens"), names(jsd_out)), drop = FALSE]
-  jsd_wide$jsd <- jsd_out$jsd_point
-  jsd_wide$js_distance <- sqrt(jsd_out$jsd_point)
+  kernel_keys <- intersect(c("scope", "group", "n_tokens"), names(kernel_wide))
+  jsd_wide <- kernel_wide[, c(kernel_keys, "jsd", "js_distance"), drop = FALSE]
+  overlap_wide <- kernel_wide[, c(
+    kernel_keys, "percent_overlap", "total_variation",
+    "bhatt_kde_dist", "bhatt_kde_affinity", "hellinger"
+  ), drop = FALSE]
 
   pillai_out <- estimate_pillai(
     data = data,
@@ -453,25 +477,13 @@ compare_overlap_metrics <- function(data,
     eps = eps
   )
 
-  overlap_out <- estimate_overlap(
+  euclid_wide <- .estimate_euclidean(
     data = data,
     features = features,
     category_col = category_col,
     group_col = group_col,
-    min_tokens = min_tokens,
-    bw = bw,
-    eval_on = eval_on,
-    eval_n = eval_n,
-    eval_seed = eval_seed,
-    engine = engine,
-    chunk_size = chunk_size,
-    method = method,
-    density = density,
-    mc_n = mc_n,
-    bw_scale = bw_scale
+    min_tokens = min_tokens
   )
-  overlap_wide <-overlap_out[, intersect(c("scope", "group", "n_tokens"), names(overlap_out)), drop = FALSE]
-  overlap_wide$percent_overlap <- overlap_out$overlap
 
   key_cols <- if (is.null(group_col)) c("scope", "n_tokens") else c("scope", "group", "n_tokens")
   pieces <- list(
@@ -479,7 +491,8 @@ compare_overlap_metrics <- function(data,
     bhatt_wide,
     jsd_wide,
     mahal_wide,
-    overlap_wide
+    overlap_wide,
+    euclid_wide
   )
   if (!is.null(group_col)) {
     pieces <- lapply(pieces, function(piece) {
@@ -504,7 +517,12 @@ compare_overlap_metrics <- function(data,
     "jsd",
     "js_distance",
     "mahalanobis_dist",
-    "percent_overlap"
+    "percent_overlap",
+    "total_variation",
+    "bhatt_kde_dist",
+    "bhatt_kde_affinity",
+    "hellinger",
+    "euclidean_dist"
   )
 }
 
@@ -869,7 +887,17 @@ compare_overlap_metrics <- function(data,
     list(column = "mahalanobis_dist", metric = "Mahalanobis distance",
          orientation = "separation", bounded = FALSE, transform = identity),
     list(column = "percent_overlap", metric = "Percent overlap",
-         orientation = "overlap", bounded = TRUE, transform = function(x) 1 - x)
+         orientation = "overlap", bounded = TRUE, transform = function(x) 1 - x),
+    list(column = "total_variation", metric = "Total variation",
+         orientation = "separation", bounded = TRUE, transform = identity),
+    list(column = "bhatt_kde_dist", metric = "Bhattacharyya distance (kernel)",
+         orientation = "separation", bounded = FALSE, transform = identity),
+    list(column = "bhatt_kde_affinity", metric = "Bhattacharyya affinity (kernel)",
+         orientation = "overlap", bounded = TRUE, transform = function(x) 1 - x),
+    list(column = "hellinger", metric = "Hellinger distance",
+         orientation = "separation", bounded = TRUE, transform = identity),
+    list(column = "euclidean_dist", metric = "Euclidean distance of standardized means",
+         orientation = "separation", bounded = FALSE, transform = identity)
   )
   key_cols <- intersect(c("scope", "group", "n_tokens"), names(wide))
   rows <- lapply(specs, function(spec) {
