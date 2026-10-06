@@ -23,3 +23,5 @@
 ^CRAN-SUBMISSION$
 ^CITATION\.cff$
 ^data-raw$
+^dev$
+^\.release-check$

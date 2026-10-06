@@ -1,26 +1,26 @@
 ## Submission
 
-This update fixes the test failure reported by the CRAN additional checks
-(tests-MKL flavor: R-devel with Intel MKL) for `phontrast` 2.4.0.
+phontrast 2.5.0 is a feature release. It adds a one-call implementation of a
+measurement protocol for ranking speakers' vowel contrasts by Jensen-Shannon
+distance and checking the ranking against the Pillai trace
+(`rank_contrasts()`, with sample-size licensing, a bandwidth-sensitivity
+check, a rank-agreement plot, and an inspection plot), a bandwidth multiplier
+across the kernel-density path, three opt-in metrics for `phontrast()`, a
+small simulated example dataset (`vowel_cohort`, 2200 rows), and a vignette
+that walks through the protocol. The kernel-family metrics that `phontrast()`
+already reported are now computed from one shared density estimate per
+comparison; their values are unchanged. There are no API removals.
 
-One test expected the package's documented "nonsingular" error for a
-collinear two-feature design, but the underlying guard decided singularity
-by whether `chol()` of the within-class error SSCP threw an error. That is
-BLAS-dependent on exactly singular input: reference LAPACK errors where MKL
-can return a tiny positive pivot, so under MKL the degenerate design slipped
-past the guard and failed later inside `summary.manova()` with a different
-message. The guard now decides rank deficiency by R's tolerance-based QR of
-the residual matrix -- the same criterion `summary.manova()` applies -- so
-the documented error is raised identically on every BLAS build. A
-near-collinear regression test pins the behavior. Estimates on well-posed
-designs are unchanged, and there are no other changes.
+All new examples run in under 2.5 seconds each on the local machine (the
+heaviest, `inspect_contrast()`, in 2.2 s); the release keeps the example
+budget that was corrected for 2.4.0.
 
 ## Test environments
 
-- Local: Ubuntu 24.04.4, R 4.3.3 with reference BLAS/LAPACK, and the full
-  test suite additionally run against OpenBLAS (offline build environment;
-  the network-dependent CRAN incoming checks could not run there)
-- R-hub v2 (GitHub Actions): Windows R-devel; Ubuntu R-devel
+- Local: Ubuntu 24.04, R 4.3.3 with reference BLAS/LAPACK (offline build
+  environment; the network-dependent CRAN incoming checks could not run there)
+- R-hub v2 (GitHub Actions): Ubuntu R-devel, Windows R-devel, macOS R-release,
+  and the `mkl` (Intel MKL) container
 - GitHub Actions: Ubuntu latest, R release, `R CMD check --as-cran`
 
 ## R CMD check results
@@ -32,4 +32,5 @@ installable in the offline build container, so it was unavailable for
 checking there. It is available on CRAN's machines.
 
 The local PDF-manual check was skipped (no TeX installation); all Rd checks,
-examples, tests, and vignettes completed successfully.
+examples, tests (649 expectations), and the three vignettes completed
+successfully.
