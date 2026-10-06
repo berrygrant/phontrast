@@ -72,6 +72,12 @@
 #'   points, so small but real divergences remain small positive values rather
 #'   than being floored to exactly 0 (as the full leave-one-out correction did
 #'   through phontrast 2.0.2). Ignored when \code{method = "legacy"}.
+#' @param bw_scale Positive number multiplying the selected kernel bandwidth on
+#'   the standard-deviation scale: univariate bandwidths are multiplied by
+#'   \code{bw_scale} and bandwidth matrices by \code{bw_scale^2}. The default
+#'   \code{1} uses the selected bandwidth unchanged; \code{0.5} and \code{2}
+#'   give the halved and doubled bandwidths of the smoothing-sensitivity check
+#'   in \code{rank_contrasts()}. Ignored when \code{density = "mvnorm"}.
 #'
 #' @return A single numeric JSD value in bits, bounded in \code{[0, 1]}.
 #'
@@ -115,12 +121,14 @@ jsd_kde_nd <- function(data,
                        method = c("mc", "legacy"),
                        density = c("kde", "mvnorm"),
                        mc_n = 10000L,
-                       loo = TRUE) {
+                       loo = TRUE,
+                       bw_scale = 1) {
 
   .validate_metric_inputs(data, features, group)
   method <- match.arg(method)
   density <- match.arg(density)
   .check_bool(loo, "loo")
+  .check_bw_scale(bw_scale)
 
   if (identical(density, "mvnorm")) {
     mc <- .mvnorm_mc_pair(
@@ -144,7 +152,8 @@ jsd_kde_nd <- function(data,
       eval_seed = eval_seed,
       engine = engine,
       chunk_size = chunk_size,
-      metric = "jsd_kde_nd()"
+      metric = "jsd_kde_nd()",
+      bw_scale = bw_scale
     )
     return(.jsd_mc(mc, loo = loo))
   }
@@ -159,7 +168,8 @@ jsd_kde_nd <- function(data,
     eval_seed = eval_seed,
     engine = engine,
     chunk_size = chunk_size,
-    metric = "jsd_kde_nd()"
+    metric = "jsd_kde_nd()",
+    bw_scale = bw_scale
   )
 
   jsd(dens$p, dens$q)

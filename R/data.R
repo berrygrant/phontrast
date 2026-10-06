@@ -1,0 +1,38 @@
+#' Simulated twelve-speaker vowel cohort
+#'
+#' A simulated cohort for demonstrating the ranking protocol of
+#' \code{rank_contrasts()}: twelve speakers, two vowel categories
+#' (\code{"ih"} and \code{"eh"}), and two acoustic features (F1 and F2, in
+#' Hz). Each speaker was built to exercise one part of the protocol:
+#' \describe{
+#'   \item{spk01--spk08}{Gaussian categories whose centroid gap grows from 25
+#'     to 200 Hz, 100 tokens per vowel: a graded ordering that both
+#'     Jensen-Shannon distance and Pillai recover.}
+#'   \item{spk09}{The same centroids for both vowels, but a bimodal
+#'     \code{"eh"} (two variants 190 Hz apart in F1 and 440 Hz apart in F2),
+#'     100 tokens per vowel. A mean-based measure sees no contrast while the
+#'     distributions barely overlap: the planted Pillai / \eqn{\sqrt{JSD}}
+#'     disagreement the agreement flag should catch.}
+#'   \item{spk10}{Fully separated categories, 100 tokens per vowel:
+#'     \eqn{\sqrt{JSD}} at the ceiling.}
+#'   \item{spk11}{60 tokens per vowel: ranking by \eqn{\sqrt{JSD}} is licensed
+#'     at two dimensions (floor 50) but the flag is not readable (floor 100).}
+#'   \item{spk12}{40 tokens per vowel: below the two-dimensional rank floor,
+#'     so the speaker is ordered by Pillai.}
+#' }
+#'
+#' @format A data frame with 2200 rows and 4 columns:
+#' \describe{
+#'   \item{speaker}{Character; speaker identifier \code{"spk01"} to
+#'     \code{"spk12"}.}
+#'   \item{vowel}{Character; vowel category, \code{"ih"} or \code{"eh"}.}
+#'   \item{f1}{Numeric; first formant frequency in Hz.}
+#'   \item{f2}{Numeric; second formant frequency in Hz.}
+#' }
+#' @source Simulated with a fixed seed; the generating script is
+#'   \code{data-raw/vowel_cohort.R} in the package repository.
+#' @seealso \code{rank_contrasts()}, \code{inspect_contrast()}.
+#' @examples
+#' head(vowel_cohort)
+#' table(vowel_cohort$speaker, vowel_cohort$vowel)
+"vowel_cohort"

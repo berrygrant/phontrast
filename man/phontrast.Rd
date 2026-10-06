@@ -25,7 +25,8 @@ phontrast(
   progress = TRUE,
   method = c("mc", "legacy"),
   density = c("kde", "mvnorm"),
-  mc_n = 10000L
+  mc_n = 10000L,
+  bw_scale = 1
 )
 }
 \arguments{
@@ -42,9 +43,24 @@ are combined into a labeled \code{group} value such as
 
 \item{metrics}{Character vector selecting which contrast metrics to compute.
 Any of \code{"jsd"}, \code{"js_distance"}, \code{"pillai"},
-\code{"bhattacharyya"}, \code{"mahalanobis"}, and \code{"overlap"}.
-Defaults to all of them. \code{"bhattacharyya"} returns both the
-Bhattacharyya distance and affinity.}
+\code{"bhattacharyya"}, \code{"mahalanobis"}, \code{"overlap"},
+\code{"tv"}, \code{"bhattacharyya_kde"}, and \code{"euclidean"}.
+Defaults to the first six, the metric set of earlier releases.
+\code{"bhattacharyya"} returns both the Bhattacharyya distance and
+affinity under a closed-form multivariate-normal fit. The remaining three
+are opt-in: \code{"tv"} is total variation, \eqn{1 -} proportional
+overlap (\code{total_variation}); \code{"bhattacharyya_kde"} returns the
+Bhattacharyya distance and affinity and the Hellinger distance
+(\code{bhatt_kde_dist}, \code{bhatt_kde_affinity}, \code{hellinger}) read
+off the \emph{same} kernel densities as the Jensen-Shannon and overlap
+columns -- a matched-kernel estimator of the quantity the closed-form
+column estimates parametrically, so measure and estimator can be told
+apart; and \code{"euclidean"} is the Euclidean distance between the two
+category means after dividing each feature by the standard deviation of
+the pooled two-category sample (\code{euclidean_dist}, bounded by
+\eqn{2\sqrt{d}} for equal category sizes). All kernel-family columns
+(Jensen-Shannon, overlap, total variation, kernel Bhattacharyya,
+Hellinger) come from one shared density estimate per comparison.}
 
 \item{min_tokens}{Minimum tokens required globally or per group.}
 
@@ -99,6 +115,12 @@ are unaffected by this argument.}
 fitted Gaussian for the Jensen-Shannon and overlap columns when
 \code{density = "mvnorm"} (default \code{10000}). Ignored when
 \code{density = "kde"}.}
+
+\item{bw_scale}{Positive number multiplying the selected kernel bandwidth on
+the standard-deviation scale for the Jensen-Shannon and overlap columns
+(default \code{1}); \code{0.5} and \code{2} give the halved and doubled
+bandwidths of the smoothing-sensitivity check in \code{rank_contrasts()}.
+Ignored when \code{density = "mvnorm"}.}
 }
 \value{
 A data frame containing only the requested \code{metrics}. Wide

@@ -25,3 +25,27 @@ bibentry(
     ") [Computer software]. Zenodo. https://doi.org/", doi
   )
 )
+
+bibentry(
+  bibtype = "Unpublished",
+  title = paste(
+    "Estimand or estimator? Comparing vowel overlap measures against a",
+    "known ground truth"
+  ),
+  author = person(given = c("Grant", "M."), family = "Berry"),
+  year = "2026",
+  note = paste(
+    "Manuscript under review, Journal of the Acoustical Society of America",
+    "(JASA-14548R1). Replication package: https://osf.io/t2wsj"
+  ),
+  url = "https://osf.io/t2wsj",
+  header = paste(
+    "To cite the measurement protocol implemented by rank_contrasts()",
+    "(and the simulation study behind its floors), also cite:"
+  ),
+  textVersion = paste0(
+    "Berry, Grant M. (2026). Estimand or estimator? Comparing vowel overlap ",
+    "measures against a known ground truth. Manuscript under review, Journal ",
+    "of the Acoustical Society of America (JASA-14548R1). https://osf.io/t2wsj"
+  )
+)

@@ -23,6 +23,7 @@ estimate_jsd(
   method = c("mc", "legacy"),
   density = c("kde", "mvnorm"),
   mc_n = 10000L,
+  bw_scale = 1,
   ...
 )
 }
@@ -75,6 +76,11 @@ do not apply and the Monte-Carlo sample size is set by \code{mc_n}.}
 \item{mc_n}{Positive integer; number of Monte-Carlo samples drawn from each
 fitted Gaussian when \code{density = "mvnorm"} (default \code{10000}).
 Ignored when \code{density = "kde"}.}
+
+\item{bw_scale}{Positive number multiplying the selected kernel bandwidth on
+the standard-deviation scale (default \code{1}); \code{0.5} and \code{2}
+give the halved and doubled bandwidths of the smoothing-sensitivity check.
+Passed to \code{jsd_kde_nd()}; ignored when \code{density = "mvnorm"}.}
 
 \item{...}{Additional arguments passed to \code{jsd_kde_nd()} (e.g.,
 \code{loo}).}

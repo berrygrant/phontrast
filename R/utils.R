@@ -403,6 +403,25 @@
   eval_pts[idx, , drop = FALSE]
 }
 
+.check_bw_scale <- function(bw_scale) {
+  if (!is.numeric(bw_scale) || length(bw_scale) != 1L ||
+      !is.finite(bw_scale) || bw_scale <= 0) {
+    stop("`bw_scale` must be a single positive finite number.", call. = FALSE)
+  }
+  invisible(bw_scale)
+}
+
+.scale_bandwidth <- function(bwspec, bw_scale = 1) {
+  # `bw_scale` multiplies the bandwidth on the standard-deviation scale: a
+  # univariate bandwidth h becomes bw_scale * h, and a bandwidth *matrix* H (a
+  # covariance-scale object) becomes bw_scale^2 * H. `bw_scale = 0.5` and `2`
+  # are the halved and doubled bandwidths of the smoothing-sensitivity check.
+  if (bw_scale == 1) {
+    return(bwspec)
+  }
+  if (is.matrix(bwspec)) bwspec * bw_scale^2 else bwspec * bw_scale
+}
+
 .select_multivariate_bandwidth <- function(x, bw, label) {
   tryCatch(
     switch(
@@ -433,10 +452,12 @@
                               eval_seed = NULL,
                               engine = c("ks", "fast_diag", "fast_diagonal"),
                               chunk_size = 1000L,
-                              metric = "KDE") {
+                              metric = "KDE",
+                              bw_scale = 1) {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
+  .check_bw_scale(bw_scale)
   if (!is.null(eval_n)) {
     .check_positive_count(eval_n, "eval_n")
   }
@@ -478,8 +499,8 @@
     x1 <- as.numeric(X1[, 1])
     x2 <- as.numeric(X2[, 1])
     eval_vec <- as.numeric(eval_pts[, 1])
-    h1 <- .select_univariate_bandwidth(x1, bw)
-    h2 <- .select_univariate_bandwidth(x2, bw)
+    h1 <- .scale_bandwidth(.select_univariate_bandwidth(x1, bw), bw_scale)
+    h2 <- .scale_bandwidth(.select_univariate_bandwidth(x2, bw), bw_scale)
     p <- .kde_1d_values(x1, eval_vec, h1)
     q <- .kde_1d_values(x2, eval_vec, h2)
   } else {
@@ -492,8 +513,8 @@
       )
     }
 
-    H1 <- .select_multivariate_bandwidth(X1, bw, levs[1])
-    H2 <- .select_multivariate_bandwidth(X2, bw, levs[2])
+    H1 <- .scale_bandwidth(.select_multivariate_bandwidth(X1, bw, levs[1]), bw_scale)
+    H2 <- .scale_bandwidth(.select_multivariate_bandwidth(X2, bw, levs[2]), bw_scale)
 
     if (identical(engine, "fast_diag")) {
       p <- .kde_diag_gaussian_values(X1, eval_pts, H1, chunk_size = chunk_size)
@@ -618,9 +639,12 @@
   log(dens)
 }
 
-.select_kde_bandwidth <- function(train, bw, engine, n_features, label) {
+.select_kde_bandwidth <- function(train, bw, engine, n_features, label,
+                                  bw_scale = 1) {
   if (n_features == 1L) {
-    return(.select_univariate_bandwidth(as.numeric(train[, 1]), bw))
+    return(.scale_bandwidth(
+      .select_univariate_bandwidth(as.numeric(train[, 1]), bw), bw_scale
+    ))
   }
   if (identical(engine, "fast_diag") && !bw %in% c("Hpi.diag", "scott.diag")) {
     stop(
@@ -629,7 +653,7 @@
       call. = FALSE
     )
   }
-  .select_multivariate_bandwidth(train, bw, label)
+  .scale_bandwidth(.select_multivariate_bandwidth(train, bw, label), bw_scale)
 }
 
 .kde_mc_pair <- function(data,
@@ -640,9 +664,11 @@
                          eval_seed = NULL,
                          engine = c("ks", "fast_diag", "fast_diagonal"),
                          chunk_size = 1000L,
-                         metric = "KDE") {
+                         metric = "KDE",
+                         bw_scale = 1) {
   bw <- match.arg(bw)
   engine <- .match_kde_engine(engine)
+  .check_bw_scale(bw_scale)
   if (!is.null(eval_n)) {
     .check_positive_count(eval_n, "eval_n")
   }
@@ -668,8 +694,8 @@
   X1e <- .sample_kde_eval_points(X1, eval_n = eval_n, eval_seed = eval_seed)
   X2e <- .sample_kde_eval_points(X2, eval_n = eval_n, eval_seed = eval_seed)
 
-  bw1 <- .select_kde_bandwidth(X1, bw, engine, n_features, levs[1])
-  bw2 <- .select_kde_bandwidth(X2, bw, engine, n_features, levs[2])
+  bw1 <- .select_kde_bandwidth(X1, bw, engine, n_features, levs[1], bw_scale)
+  bw2 <- .select_kde_bandwidth(X2, bw, engine, n_features, levs[2], bw_scale)
 
   out <- list(
     logp1 = .kde_eval_logdens(X1, X1e, bw1, engine, chunk_size, levs[1]),
@@ -753,6 +779,32 @@
     stop("Monte-Carlo overlap: no usable evaluation points.", call. = FALSE)
   }
   min(max(0.5 * mean(o1) + 0.5 * mean(o2), 0), 1)
+}
+
+.bhatt_mc <- function(mc, loo = TRUE) {
+  # Bhattacharyya coefficient BC = integral of sqrt(p q), read off the same
+  # density pair as JSD and overlap: E_P[sqrt(q / p)] from P's own samples and
+  # E_Q[sqrt(p / q)] from Q's, averaged. The self-densities take the same
+  # partial leave-one-out correction as `.jsd_mc()`, so the matched-kernel
+  # Bhattacharyya and Jensen-Shannon estimates share one estimator.
+  logp1 <- if (isTRUE(loo)) {
+    .loo_logdens(mc$logp1, mc$n1, mc$kh0_1, .loo_alpha(mc$n1))
+  } else {
+    mc$logp1
+  }
+  logq2 <- if (isTRUE(loo)) {
+    .loo_logdens(mc$logq2, mc$n2, mc$kh0_2, .loo_alpha(mc$n2))
+  } else {
+    mc$logq2
+  }
+  b1 <- exp(0.5 * (mc$logq1 - logp1))
+  b2 <- exp(0.5 * (mc$logp2 - logq2))
+  b1 <- b1[is.finite(b1)]
+  b2 <- b2[is.finite(b2)]
+  if (!length(b1) || !length(b2)) {
+    stop("Monte-Carlo Bhattacharyya: no usable evaluation points.", call. = FALSE)
+  }
+  min(max(0.5 * mean(b1) + 0.5 * mean(b2), 0), 1)
 }
 
 # ---- Parametric multivariate-normal density backend ---------------------

@@ -33,6 +33,11 @@
 #'   argument of the metric functions.
 #' @param bw Bandwidth selection method for \code{density = "kde"}; same
 #'   options as \code{jsd_kde_nd()}.
+#' @param bw_scale Positive multiplier on the selected kernel bandwidth for
+#'   \code{density = "kde"} (default \code{1}; see \code{jsd_kde_nd()}). The
+#'   drawn regions, the shaded overlap, and the annotations all use the same
+#'   scaled bandwidth, so \code{bw_scale = 0.5} and \code{2} show the halved
+#'   and doubled smoothing of the bandwidth check in \code{rank_contrasts()}.
 #' @param levels Numeric vector of probability levels in (0, 1) for the drawn
 #'   regions: highest-density regions under \code{"kde"}, coverage ellipses
 #'   under \code{"mvnorm"}.
@@ -91,6 +96,7 @@ plot_contrast <- function(data,
                           group_col = NULL,
                           density = c("kde", "mvnorm"),
                           bw = c("Hpi", "Hscv", "Hpi.diag", "scott.diag"),
+                          bw_scale = 1,
                           levels = c(0.5, 0.8, 0.95),
                           points = TRUE,
                           overlap = TRUE,
@@ -109,6 +115,7 @@ plot_contrast <- function(data,
   .require_ggplot2()
   density <- match.arg(density)
   bw <- match.arg(bw)
+  .check_bw_scale(bw_scale)
   facet_scales <- match.arg(facet_scales)
   .check_bool(points, "points")
   .check_bool(overlap, "overlap")
@@ -169,7 +176,7 @@ plot_contrast <- function(data,
     comp <- .contrast_panel_data(
       df_g = df_g, features = features, category_col = category_col,
       levs = levs, density = density, bw = bw, levels = levels,
-      grid_n = grid_n, label = label
+      grid_n = grid_n, label = label, bw_scale = bw_scale
     )
     layer$curves[[label]] <- comp$curves
     layer$regions[[label]] <- comp$regions
@@ -240,6 +247,7 @@ plot_contrast <- function(data,
       .contrast_annotation_table(
         data = plot_df, features = features, category_col = category_col,
         group_col = group_col, density = density, bw = bw,
+        bw_scale = bw_scale,
         min_tokens = min_tokens, mc_n = mc_n, eval_seed = eval_seed,
         n_boot = n_boot, conf_level = conf_level
       ),
@@ -284,7 +292,7 @@ plot_contrast <- function(data,
 
   p <- p + ggplot2::labs(
     caption = .contrast_caption(
-      density = density, bw = bw,
+      density = density, bw = bw, bw_scale = bw_scale,
       levels = if (d == 2L) levels else NULL,
       mc_n = mc_n, eval_seed = eval_seed, n_boot = n_boot,
       conf_level = conf_level, data = plot_df,
@@ -327,30 +335,32 @@ plot_contrast <- function(data,
 .contrast_ridge <- 1e-6
 
 .contrast_panel_data <- function(df_g, features, category_col, levs,
-                                 density, bw, levels, grid_n, label) {
+                                 density, bw, levels, grid_n, label,
+                                 bw_scale = 1) {
   if (length(features) == 1L) {
     .contrast_panel_1d(
       df_g = df_g, feature = features[[1]], category_col = category_col,
-      levs = levs, density = density, bw = bw, grid_n = grid_n, label = label
+      levs = levs, density = density, bw = bw, grid_n = grid_n, label = label,
+      bw_scale = bw_scale
     )
   } else {
     .contrast_panel_2d(
       df_g = df_g, features = features, category_col = category_col,
       levs = levs, density = density, bw = bw, levels = levels,
-      grid_n = grid_n, label = label
+      grid_n = grid_n, label = label, bw_scale = bw_scale
     )
   }
 }
 
 .contrast_panel_1d <- function(df_g, feature, category_col, levs,
-                               density, bw, grid_n, label) {
+                               density, bw, grid_n, label, bw_scale = 1) {
   x1 <- df_g[df_g[[category_col]] == levs[1], feature]
   x2 <- df_g[df_g[[category_col]] == levs[2], feature]
 
   if (identical(density, "kde")) {
-    # Same univariate bandwidth selection as the 1-D metric path.
-    h1 <- .select_univariate_bandwidth(x1, bw)
-    h2 <- .select_univariate_bandwidth(x2, bw)
+    # Same univariate bandwidth selection (and scaling) as the 1-D metric path.
+    h1 <- .scale_bandwidth(.select_univariate_bandwidth(x1, bw), bw_scale)
+    h2 <- .scale_bandwidth(.select_univariate_bandwidth(x2, bw), bw_scale)
     pad <- 3 * max(h1, h2)
     grid <- seq(min(x1, x2) - pad, max(x1, x2) + pad, length.out = grid_n)
     d1 <- .kde_1d_values(x1, grid, h1)
@@ -383,14 +393,16 @@ plot_contrast <- function(data,
 }
 
 .contrast_panel_2d <- function(df_g, features, category_col, levs,
-                               density, bw, levels, grid_n, label) {
+                               density, bw, levels, grid_n, label,
+                               bw_scale = 1) {
   X1 <- as.matrix(df_g[df_g[[category_col]] == levs[1], features, drop = FALSE])
   X2 <- as.matrix(df_g[df_g[[category_col]] == levs[2], features, drop = FALSE])
 
   if (identical(density, "kde")) {
-    # Same bandwidth selectors and ks evaluation as the KDE metric path.
-    H1 <- .select_multivariate_bandwidth(X1, bw, levs[1])
-    H2 <- .select_multivariate_bandwidth(X2, bw, levs[2])
+    # Same bandwidth selectors (and scaling) and ks evaluation as the KDE
+    # metric path.
+    H1 <- .scale_bandwidth(.select_multivariate_bandwidth(X1, bw, levs[1]), bw_scale)
+    H2 <- .scale_bandwidth(.select_multivariate_bandwidth(X2, bw, levs[2]), bw_scale)
     pad <- 3 * sqrt(pmax(diag(H1), diag(H2)))
     grid <- .contrast_grid_2d(rbind(X1, X2), pad, grid_n)
     z1 <- .kde_grid_values(X1, H1, grid)
@@ -598,7 +610,8 @@ plot_contrast <- function(data,
 
 .contrast_annotation_table <- function(data, features, category_col, group_col,
                                        density, bw, min_tokens, mc_n,
-                                       eval_seed, n_boot, conf_level) {
+                                       eval_seed, n_boot, conf_level,
+                                       bw_scale = 1) {
   # The annotation values are not recomputed ad hoc: they are the phontrast()
   # estimates under the same density model that the plot draws.
   phontrast(
@@ -609,6 +622,7 @@ plot_contrast <- function(data,
     metrics = c("jsd", "overlap"),
     min_tokens = min_tokens,
     bw = bw,
+    bw_scale = bw_scale,
     density = density,
     mc_n = mc_n,
     eval_seed = eval_seed,
@@ -662,7 +676,7 @@ plot_contrast <- function(data,
 
 .contrast_caption <- function(density, bw, levels, mc_n, eval_seed, n_boot,
                               conf_level, data, category_col, levs, grouped,
-                              n_groups) {
+                              n_groups, bw_scale = 1) {
   # `levels = NULL` means no regions are drawn (the 1-D plot), so the caption
   # omits the region clause rather than describing layers that are not there.
   region_lab <- if (is.null(levels)) {
@@ -674,7 +688,11 @@ plot_contrast <- function(data,
     )
   }
   model <- if (identical(density, "kde")) {
-    paste0("density: kde (bw = ", bw, ")", region_lab)
+    paste0(
+      "density: kde (bw = ", bw,
+      if (bw_scale != 1) paste0(" x", format(bw_scale)) else "",
+      ")", region_lab
+    )
   } else {
     paste0(
       "density: mvnorm (mc_n = ", format(mc_n, big.mark = ","),

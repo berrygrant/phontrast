@@ -1,77 +1,74 @@
 # phontrast roadmap
 
 phontrast grew out of `phonJSD`, a package focused on Jensen-Shannon
-divergence, and is being reoriented into a general toolkit for computing and
+divergence, and was reoriented into a general toolkit for computing and
 comparing multiple phonological category **contrast and separation metrics**.
-This document records where it is headed.
+This document records where it is and where it is headed. Last revised for
+2.5.0.
 
-## Now — 2.0.0 (shipped)
+## Shipped — the 2.x series
 
-- Renamed `phonJSD` → `phontrast` and reframed the package around multi-metric
-  contrast rather than JSD alone.
-- Added `phontrast()`, a unified entry point that computes and compares any
-  subset of the supported metrics (Jensen-Shannon divergence and distance,
-  Pillai-Bartlett trace, Bhattacharyya distance and affinity, Mahalanobis
-  distance, proportional overlap) in one call, globally or by group, with
-  optional bootstrap intervals.
-- Deprecated `compare_overlap_metrics()` in favour of `phontrast()`.
+The 2.0.0 plan ("P1 — full architectural redesign") set out eight steps. Most
+of what users were waiting for has shipped as additive releases; the
+architectural steps that remain are listed under *3.0.0* below.
 
-## P1 — Full architectural redesign (next)
+| Release | What shipped | Plan item |
+| --- | --- | --- |
+| 2.0.0 | Renamed `phonJSD` → `phontrast`; `phontrast()` as the unified entry point for any subset of the metrics, globally or by group, with bootstrap intervals; `compare_overlap_metrics()` deprecated; corrected KDE estimator. | — |
+| 2.1.0 | Monte-Carlo JSD with the sample-size-scaled partial leave-one-out correction, so small real divergences are no longer floored to exactly 0. | — |
+| 2.2.0 | Pluggable density backend: `density = c("kde", "mvnorm")` on `phontrast()`, `estimate_jsd()`, `estimate_overlap()`, `jsd_summary()`, `global_boot_jsd()`, `jsd_kde_nd()`, `percent_overlap_kde()`; the Gaussian backend estimates JSD and overlap between the fitted Gaussians by fresh-sample Monte-Carlo (`mc_n`, `eval_seed`). | 3 (KDE and MVN; GMM still open) |
+| 2.3.0 | Distribution-aware, accountable plotting: `plot_contrast()` draws the same density model the metrics use and annotates panels with their values; `plot()` / `autoplot()` on `phontrast()` results; the Okabe-Ito `theme_phontrast()` family; `plot_overlap_metrics()`, `plot_category_space()`, `plot_category_pca()` retrofitted. | *Later: richer visualisation* |
+| 2.3.1 | First CRAN release (2026-08-09). Opt-in proportion-standardized Pillai (`pillai_overlap(proportion_standardized = TRUE)`). | 8 |
+| 2.4.0 / 2.4.1 | Version-aware `inst/CITATION`, `CITATION.cff`, Zenodo DOIs per release; cross-BLAS robustness of the proportion-standardized Pillai guard (CRAN tests-MKL). | — |
+| 2.5.0 | The measurement protocol of the JASA simulation study (Sec. VII.A) in one call: `rank_contrasts()` with `percentile_rank()`, `protocol_floors()`, `recommended_estimator()`, `plot_rank_agreement()` (`plot()` on the ranking), and `inspect_contrast()`; `bw_scale` across the kernel path; the kernel family (JSD, overlap, total variation, kernel Bhattacharyya / Hellinger) scored on one shared density per comparison; opt-in `"tv"`, `"bhattacharyya_kde"`, `"euclidean"` metrics; bundled `vowel_cohort`; protocol vignette. | *Later: additional metrics* (in part) |
 
-Turn the working-but-ad-hoc multi-metric engine into a real, extensible
-architecture. Target: additive across the 2.x series (2.1.0 shipped the
-corrected Monte-Carlo estimator); the shim removals in step 6 are the trigger
-for **3.0.0**.
+Two further plan items are in place in substance, if not in the form the
+plan described: the bootstrap resamples every requested metric with uniform
+`*_mean`, `*_sd`, `*_ci_lower`, `*_ci_upper` columns (item 4), and long
+output carries `orientation`, `separation_value`, and `separation_rank`
+(item 5). The metric list in `phontrast()` is an implicit registry (items 1
+and 2, partially): one internal table names each metric's columns and
+orientation, but adding a metric still touches several places.
 
-1. **Metric registry.** Register each metric with metadata: id, label,
-   orientation (overlap vs separation), theoretical range, whether it supports
-   bootstrap, and modelling assumptions (KDE vs multivariate-normal).
-   `phontrast()` dispatches through the registry.
-2. **Uniform per-metric contract.** One internal interface,
-   `estimate(data, features, group, ...) -> scalar`, that every metric
-   implements, so adding a metric means registering a single function.
-3. **Pluggable density backends for the distributional metrics.** Decouple the
-   density *estimator* from the *metric*: add a `density` argument
-   (`"kde"`, the current default; `"mvnorm"`; later `"gmm"`) to the
-   Jensen-Shannon and proportional-overlap estimators, so the distribution
-   behind each metric is a controlled choice rather than hard-wired to KDE.
-   - *Motivation.* The phontrast metric-comparison analyses find that **each
-     metric aligns best with the overlap estimator whose structural assumptions
-     it shares** — Jensen-Shannon divergence with KDE overlap; Bhattacharyya and
-     Pillai with a multivariate-normal reference. Welding JSD to KDE confounds
-     the metric with its estimator. Making the estimator pluggable turns it into
-     a controlled variable: users can match the estimator to their distributional
-     assumptions, and the package can study the metric × estimator interaction
-     directly (e.g. Jensen-Shannon divergence computed under a Gaussian fit
-     against a Gaussian overlap reference).
-   - *Design.* One internal density-model interface — `fit(X)` and
-     `logdens(model, points)` — with KDE as the current implementation and a
-     multivariate-normal backend (`mvtnorm::dmvnorm`). Jensen-Shannon divergence
-     between two Gaussians has no closed form (the mixture is a Gaussian
-     mixture), so the Gaussian backend estimates it by Monte-Carlo, reusing the
-     existing plug-in averaging without the KDE-specific leave-one-out
-     self-kernel term. The manuscript's MVN Monte-Carlo overlap then becomes a
-     native backend rather than external analysis code. KDE-only arguments
-     (`bw`, `engine`, `eval_on`, `loo`) are ignored with a warning under a
-     parametric backend. Estimated effort ~1–1.5 days for the Gaussian backend;
-     a Gaussian-mixture backend is a larger, separate step (adds an EM /
-     `mclust` dependency and component selection).
-4. **Generalised bootstrap.** Lift the currently JSD-centric bootstrap machinery
-   to resample *any* registered metric with uniform confidence-interval columns.
-5. **Orientation as a first-class concept.** Promote the existing
-   `orientation` / `separation_value` / `separation_rank` idea into the type
-   system so cross-metric comparison and ranking are coherent by construction.
-6. **Consolidate wrappers.** Refactor `speaker_*`, `estimate_*`, `jsd_summary()`,
-   and `hier_boot_jsd_model()` into thin shims over the unified core, deprecating
-   gradually (removal triggers 3.0.0).
-7. **Extensibility.** Document how users register custom metrics.
-8. **CRAN.** Submit once the redesigned API is stable.
+## Next — 2.6.x (additive)
 
-## Later
+- **The rest of the study's measure set.** SOAM (Wassink 2006; 2-SD ellipses
+  on the covariance principal axes, defined at two and three dimensions) and
+  APP (Morrison 2008; per-category QDA trained on fresh draws from the fitted
+  Gaussians) as opt-in `phontrast()` metrics, so the paper's full seven-measure
+  table can be reproduced in-package. APP also covers the "classifier-based
+  separability" idea from the earlier roadmap.
+- **Protocol follow-ups.** A report helper that emits the "what to report"
+  block of the protocol vignette as text or a table; several contrasts per
+  speaker in one `rank_contrasts()` call; `summary()` for `phontrast_ranking`.
+- **Overlap estimator consistency.** `percent_overlap` evaluates the raw
+  self-density where JSD and the kernel Bhattacharyya use the partial
+  leave-one-out correction. Aligning the three is a results-changing step
+  for `percent_overlap` and will be flagged in NEWS if taken.
+- **Gaussian-mixture density backend** (`density = "gmm"`): a larger step
+  that adds an EM dependency and component selection.
+- Energy distance as a further distribution-free metric.
 
-- Additional contrast metrics (e.g. energy distance, classifier-based
-  separability).
-- Richer visualisation of multi-metric comparisons.
+## 3.0.0 — the architectural steps
+
+These change internals and remove shims, so they wait for a major version.
+
+1. **Formal metric registry and per-metric contract** (plan items 1, 2, 7).
+   Register each metric with id, label, orientation, theoretical range,
+   bootstrap support, and modelling assumptions; `phontrast()` dispatches
+   through the registry; adding a metric means registering one
+   `estimate(data, features, group, ...) -> scalar` function; document how
+   users register their own.
+2. **Consolidate wrappers** (plan item 6). Refactor `speaker_*`,
+   `estimate_*`, `jsd_summary()`, and `hier_boot_jsd_model()` into thin shims
+   over the unified core, deprecate gradually, and remove in 3.0.0.
+
+## Maintenance
+
+- Per release: the Zenodo DOI into `inst/CITATION` and `test-citation.R`,
+  the README install pin, and the `CITATION.cff` release date.
+- Replace the "under review" entry in `inst/CITATION` with the published
+  reference once the JASA paper is accepted.
 
 Contributions and suggestions are welcome via
 <https://github.com/berrygrant/phontrast/issues>.

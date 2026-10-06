@@ -1,3 +1,88 @@
+# phontrast 2.5.0
+
+## The ranking protocol in one call
+
+This release implements the measurement protocol recommended by the simulation
+study "Estimand or estimator? Comparing vowel overlap measures against a known
+ground truth" (Berry, under review, Sec. VII.A), so that its three steps and
+their conditions can be run and reported without hand-assembling them.
+
+- `rank_contrasts(data, features, category_col, group_col)` computes, per
+  speaker, Jensen-Shannon distance (`sqrt_jsd`) and shared probability mass
+  from one shared kernel density estimate and the Pillai trace on the same
+  tokens (step 1); ranks the speakers on the percentile-rank scale
+  `(average rank - 1/2) / k`, ties averaged, after setting measurements at the
+  `sqrt(JSD)` ceiling (default 0.99) apart (step 2); and flags speakers whose
+  Pillai and `sqrt(JSD)` percentile ranks differ by `margin` (default 0.25 of
+  the ordering) or more (step 3).
+- The study's conditions are applied and reported rather than left to the
+  user: sample-size floors per speaker from the smaller category's count
+  (`rank_licensed`, `flag_licensed`, `rank_basis`; ranking licensed from 50
+  tokens per category at d = 2, 200 at d = 3-4, 500 at d = 5-8; the flag
+  readable from 100 at d = 2 and 200 at d = 3-4, undefined when `d >= 2n`,
+  withheld from d = 5), a warning below eight speakers, and the bandwidth
+  check (`sqrt(JSD)` recomputed at half and twice the diagonal Scott
+  bandwidth; `bw_shift`, `sign_change`, `set_aside`).
+- The result is a `phontrast_ranking` tibble with a `print()` method that
+  summarizes the protocol, the estimator, the floors, the flagged and
+  set-aside speakers, and the ceiling. The cleaned tokens travel with it in
+  `attr(x, "protocol")`.
+- `plot_rank_agreement()` (also `plot()` / `ggplot2::autoplot()` on the
+  ranking) draws Pillai percentile rank against `sqrt(JSD)` percentile rank
+  with the identity line and the `+/- margin` inspection band; flagged speakers
+  are coloured and labelled, set-aside speakers crossed, unreadable flags
+  hollow, and ceiling speakers listed in the caption.
+- `inspect_contrast(ranking, group)` redraws one speaker with
+  `plot_contrast()`'s distribution-aware layers at half, the selected, and
+  twice the diagonal Scott bandwidth, annotating each panel with `sqrt(JSD)`
+  and shared mass at that bandwidth plus the speaker's Pillai, and restating
+  the reported ranks and the bandwidth-check outcome in the subtitle.
+- Helpers: `percentile_rank()` (the protocol's rank scale, with an `exclude`
+  mask), `protocol_floors(d)` (the licensing floors by dimensionality), and
+  `recommended_estimator(d)` (the kernel estimator settings the study used at
+  each dimensionality: plug-in / `ks` at d <= 4, diagonal Scott / `fast_diag`
+  with 200 evaluation tokens from d = 5, no leave-one-out from d = 14).
+- A bundled, simulated twelve-speaker cohort, `vowel_cohort`, with a planted
+  Pillai / `sqrt(JSD)` disagreement, a ceiling speaker, and two under-sampled
+  speakers; and a vignette, "Ranking speakers by Jensen-Shannon distance and
+  checking Pillai agreement", that walks through the protocol on it.
+
+## Bandwidth multiplier
+
+- New `bw_scale` argument on the kernel path (`jsd_kde_nd()`,
+  `percent_overlap_kde()`, `estimate_jsd()`, `estimate_overlap()`,
+  `phontrast()`, `plot_contrast()`): a positive multiplier on the selected
+  bandwidth on the standard-deviation scale (`h * bw_scale`; bandwidth
+  matrices `H * bw_scale^2`). `0.5` and `2` give the halved and doubled
+  bandwidths of the smoothing-sensitivity check. `plot_contrast()` draws its
+  regions, overlap shading, and annotations at the scaled bandwidth and
+  records it in the caption. Ignored under `density = "mvnorm"`.
+
+## The kernel family on one shared density
+
+- `phontrast()` now reads Jensen-Shannon divergence and distance, proportional
+  overlap, total variation, and the matched-kernel Bhattacharyya affinity /
+  distance and Hellinger distance off a single density estimate per
+  comparison, instead of separate kernel passes for JSD and overlap. Values of
+  the existing columns are unchanged; bootstraps do half the kernel work.
+- New opt-in metrics for `phontrast(metrics = ...)`: `"tv"` (total variation,
+  `total_variation = 1 - percent_overlap`); `"bhattacharyya_kde"`
+  (`bhatt_kde_dist`, `bhatt_kde_affinity`, `hellinger`), the same quantity as
+  the closed-form Gaussian `"bhattacharyya"` columns under a matched kernel
+  estimator, with the same partial leave-one-out self-density as JSD, so
+  measure and estimator can be told apart; and `"euclidean"`
+  (`euclidean_dist`), the distance between the category means after dividing
+  each feature by the pooled two-category standard deviation (bounded by
+  `2 * sqrt(d)` for equal category sizes). The default metric set and the
+  column order of earlier releases are unchanged; long output and bootstraps
+  cover the new columns.
+
+## Citation
+
+- `citation("phontrast")` now lists the study behind the protocol as a second
+  entry (manuscript under review, with the OSF replication package), after the
+  software citation.
+
 # phontrast 2.4.1
 
 ## Cross-BLAS robustness of the proportion-standardized Pillai guard
