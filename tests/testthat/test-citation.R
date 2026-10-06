@@ -11,7 +11,8 @@ test_that("citation metadata matches the installed package release", {
 
   expected_dois <- c(
     "2.3.1" = "10.5281/zenodo.21795954",
-    "2.4.0" = "10.5281/zenodo.21864533"
+    "2.4.0" = "10.5281/zenodo.21864533",
+    "2.5.0" = "10.5281/zenodo.23193095"
   )
   expected_doi <- unname(expected_dois[package_version])
   if (is.na(expected_doi)) {

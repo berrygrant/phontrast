@@ -2,7 +2,8 @@ version <- meta[["Version"]]
 
 version_dois <- c(
   "2.3.1" = "10.5281/zenodo.21795954",
-  "2.4.0" = "10.5281/zenodo.21864533"
+  "2.4.0" = "10.5281/zenodo.21864533",
+  "2.5.0" = "10.5281/zenodo.23193095"
 )
 doi <- unname(version_dois[version])
 if (is.na(doi)) {
