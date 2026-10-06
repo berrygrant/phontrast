@@ -18,6 +18,9 @@
 # Output files from R CMD check
 /*.Rcheck/
 
+# Output of dev/release.py check
+/.release-check/
+
 # RStudio files
 .Rproj.user/
 

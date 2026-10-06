@@ -304,11 +304,18 @@ def cmd_tag(args: argparse.Namespace) -> None:
         problems.append(f"README install pin is @v{readme_pin() or '(none)'}")
     if not news_has_heading(version):
         problems.append("NEWS.md has no heading for this version")
-    dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    # Untracked files (e.g. the .release-check/ output) do not count as dirty.
+    dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+                           cwd=ROOT, capture_output=True, text=True).stdout.strip()
     if dirty:
-        problems.append("working tree has uncommitted changes")
+        problems.append("working tree has uncommitted changes:\n      " + dirty.replace("\n", "\n      "))
+    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                            cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    if branch != "main" and not args.any_branch:
+        problems.append(f"on branch '{branch}', not 'main' (merge first, or pass --any-branch)")
     if problems:
-        die("not tagging:\n  - " + "\n  - ".join(problems) + f"\nRun `python3 dev/release.py bump {version}` and commit first.")
+        die("not tagging:\n  - " + "\n  - ".join(problems) +
+            f"\nFix the above (e.g. `python3 dev/release.py bump {version}` and commit) and rerun.")
     tag = f"v{version}"
     if subprocess.run(["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"], cwd=ROOT, capture_output=True).returncode == 0:
         die(f"tag {tag} already exists locally")
@@ -360,6 +367,7 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("tag", help="verify the metadata and create/push the vX.Y.Z tag")
     p.add_argument("version")
     p.add_argument("--yes", action="store_true", help="do not ask for confirmation")
+    p.add_argument("--any-branch", action="store_true", help="allow tagging a branch other than main")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_tag)
 
