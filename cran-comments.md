@@ -17,8 +17,10 @@ budget that was corrected for 2.4.0.
 
 ## Test environments
 
+- Local: macOS 26 (aarch64), R 4.6.1, `R CMD check --as-cran` including the
+  CRAN incoming feasibility check and the PDF manual
 - Local: Ubuntu 24.04, R 4.3.3 with reference BLAS/LAPACK (offline build
-  environment; the network-dependent CRAN incoming checks could not run there)
+  environment)
 - R-hub v2 (GitHub Actions): Ubuntu R-devel, Windows R-devel, macOS R-release,
   and the `mkl` (Intel MKL) container
 - GitHub Actions: Ubuntu latest, R release, `R CMD check --as-cran`
@@ -27,10 +29,11 @@ budget that was corrected for 2.4.0.
 
 0 errors | 0 warnings | 1 note
 
-The sole local note is environmental: the suggested package `tuneR` is not
-installable in the offline build container, so it was unavailable for
-checking there. It is available on CRAN's machines.
+The sole note is environmental and local: "Skipping checking math rendering:
+package 'V8' unavailable" from the HTML-manual check on the macOS machine,
+where the V8 package is not installed. (The Ubuntu container instead noted
+that the suggested package `tuneR` could not be installed offline.) Both
+packages are available on CRAN's machines.
 
-The local PDF-manual check was skipped (no TeX installation); all Rd checks,
-examples, tests (649 expectations), and the three vignettes completed
-successfully.
+All Rd checks, examples, tests (649 expectations), and the three vignettes
+completed successfully on both local platforms.
