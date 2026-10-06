@@ -11,9 +11,16 @@ needs R on the PATH (and the GitHub CLI `gh` for the `rhub` command).
     python3 dev/release.py report <dir.Rcheck>   # summarize an existing check directory
     python3 dev/release.py rhub [--platforms linux,windows,macos,mkl]
     python3 dev/release.py tag 2.5.0 [--yes]     # verify the metadata agree, then create and push vX.Y.Z
+    python3 dev/release.py doi 2.5.0 10.5281/zenodo.NNNNNNN
+                                                 # record the version DOI Zenodo minted: inst/CITATION map,
+                                                 # test-citation.R, CITATION.cff (doi + url; concept DOI kept
+                                                 # under identifiers)
 
-Run it from anywhere inside the repository. `bump` is idempotent: it sets every
-file to the requested version even if some already carry it.
+Run it from anywhere inside the repository. `bump` and `doi` are idempotent.
+
+Release order that gets the version-specific DOI into the CRAN tarball:
+bump -> check -> rhub -> tag -> GitHub release (Zenodo mints the DOI) -> doi
+-> commit -> check -> submit to CRAN.
 """
 
 from __future__ import annotations
@@ -96,10 +103,78 @@ def cmd_bump(args: argparse.Namespace) -> None:
     else:
         top = next((l for l in NEWS.read_text().splitlines() if l.startswith("# ")), "(none)")
         die(f"NEWS.md has no '# phontrast {version}' heading (top heading: {top})")
-    print("inst/CITATION is version-aware; add the Zenodo DOI for this version to its map "
-          "and to tests/testthat/test-citation.R once minted.")
+    print(f"inst/CITATION is version-aware; once Zenodo mints this version's DOI run "
+          f"`python3 dev/release.py doi {version} 10.5281/zenodo.NNNNNNN`.")
     if args.check:
         cmd_check(args)
+
+
+# ---- doi ---------------------------------------------------------------------
+
+INST_CITATION = ROOT / "inst" / "CITATION"
+TEST_CITATION = ROOT / "tests" / "testthat" / "test-citation.R"
+DOI_RE = re.compile(r"^10\.5281/zenodo\.\d+$")
+
+
+def concept_doi() -> str:
+    m = re.search(r'if \(is\.na\(doi\)\) \{\s*doi <- "([^"]+)"', INST_CITATION.read_text())
+    if not m:
+        die("could not find the concept-DOI fallback in inst/CITATION")
+    return m.group(1)
+
+
+def update_doi_map(path: Path, var_name: str, version: str, doi: str, dry_run: bool) -> None:
+    text = path.read_text()
+    # The block may sit inside a test_that() call, so keep its indentation.
+    block = re.search(
+        rf"^(?P<indent>[ \t]*){re.escape(var_name)} <- c\((?P<body>.*?)^[ \t]*\)",
+        text, re.M | re.S,
+    )
+    if not block:
+        die(f"{path.relative_to(ROOT)}: no `{var_name} <- c(...)` block")
+    indent = block.group("indent")
+    entries = dict(re.findall(r'"(\d+\.\d+\.\d+(?:\.\d+)?)"\s*=\s*"([^"]+)"', block.group("body")))
+    entries[version] = doi
+    ordered = sorted(entries.items(), key=lambda kv: tuple(int(p) for p in kv[0].split(".")))
+    body = ",\n".join(f'{indent}  "{v}" = "{d}"' for v, d in ordered)
+    new = text[:block.start()] + f"{indent}{var_name} <- c(\n{body}\n{indent})" + text[block.end():]
+    changed = new != text
+    label = "unchanged" if not changed else ("would update" if dry_run else "updated")
+    print(f"  {label:12s} {path.relative_to(ROOT)}")
+    if changed and not dry_run:
+        path.write_text(new)
+
+
+def cmd_doi(args: argparse.Namespace) -> None:
+    version, doi = args.version, args.doi.strip()
+    if not VERSION_RE.match(version):
+        die(f"'{version}' is not an X.Y.Z version")
+    if doi.lower().startswith("https://doi.org/"):
+        doi = doi[len("https://doi.org/"):]
+    if not DOI_RE.match(doi):
+        die(f"'{doi}' does not look like a Zenodo DOI (10.5281/zenodo.NNNNNNN)")
+    concept = concept_doi()
+    if doi == concept:
+        die(f"{doi} is the concept (all-versions) DOI; pass the DOI Zenodo minted for {version}")
+    print(f"Recording {doi} as the DOI of phontrast {version}:")
+    update_doi_map(INST_CITATION, "version_dois", version, doi, args.dry_run)
+    update_doi_map(TEST_CITATION, "expected_dois", version, doi, args.dry_run)
+    if not args.no_cff:
+        if cff_version() != version:
+            die(f"CITATION.cff is at version {cff_version() or '(none)'}, not {version}; run `bump {version}` first")
+        substitute(CFF, r"^doi:\s*.*$", f"doi: {doi}", args.dry_run)
+        substitute(CFF, r"^url:\s*.*$", f'url: "https://doi.org/{doi}"', args.dry_run)
+        if "identifiers:" not in CFF.read_text():
+            block = ("identifiers:\n"
+                     "  - type: doi\n"
+                     f"    value: {concept}\n"
+                     "    description: Concept DOI for all versions\n")
+            label = "would update" if args.dry_run else "updated"
+            print(f"  {label:12s} CITATION.cff (identifiers block with the concept DOI)")
+            if not args.dry_run:
+                CFF.write_text(CFF.read_text().rstrip("\n") + "\n" + block)
+    print("Commit the result; if the CRAN tarball has not been built yet, build it after this so "
+          "citation(\"phontrast\") in the released package carries the version DOI.")
 
 
 # ---- check -------------------------------------------------------------------
@@ -287,6 +362,13 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--yes", action="store_true", help="do not ask for confirmation")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_tag)
+
+    p = sub.add_parser("doi", help="record the version DOI Zenodo minted for a release")
+    p.add_argument("version")
+    p.add_argument("doi", help="10.5281/zenodo.NNNNNNN (a https://doi.org/ prefix is accepted)")
+    p.add_argument("--no-cff", action="store_true", help="leave CITATION.cff alone")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(func=cmd_doi)
 
     args = parser.parse_args(argv)
     args.func(args)
