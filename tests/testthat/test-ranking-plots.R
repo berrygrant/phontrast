@@ -133,6 +133,20 @@ test_that("inspect_contrast() works for one-feature rankings and without the ban
   expect_s3_class(plot_rank_agreement(r1), "ggplot")
 })
 
+test_that("annotation labels use whichever border argument ggplot2 supports", {
+  skip_if_not_installed("ggplot2")
+  # Newer ggplot2 deprecates geom_label(label.size =) for the `linewidth`
+  # aesthetic; older releases only know `label.size`.
+  expect_identical(phontrast:::.label_borderless(c("colour", "fill")), list(label.size = 0))
+  expect_identical(phontrast:::.label_borderless(c("colour", "linewidth")), list(linewidth = 0))
+  # Whatever is installed, building the annotated plots must not warn.
+  d <- cohort_plot[cohort_plot$speaker == "s04", ]
+  expect_no_warning(p <- plot_contrast(d, c("f1", "f2"), "vowel", bw = "scott.diag"))
+  expect_no_warning(inspect_contrast(ranking_plot, "s03"))
+  geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_true("GeomLabel" %in% geoms)
+})
+
 test_that("plot_contrast() accepts bw_scale and records it", {
   skip_if_not_installed("ggplot2")
   d <- cohort_plot[cohort_plot$speaker == "s04", ]

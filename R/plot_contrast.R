@@ -267,16 +267,11 @@ plot_contrast <- function(data,
         # scales, so the anchor follows the reverse_* flags.
         lab_df$.x <- if (isTRUE(reverse_x)) Inf else -Inf
         lab_df$.y <- if (isTRUE(reverse_y) && d == 2L) -Inf else Inf
-        p <- p + ggplot2::geom_label(
-          data = lab_df,
+        p <- p + .annotation_label_layer(
+          lab_df,
           ggplot2::aes(
             x = .data[[".x"]], y = .data[[".y"]], label = .data[[".lab"]]
-          ),
-          inherit.aes = FALSE,
-          hjust = 0, vjust = 1,
-          size = 2.9, lineheight = 1.1,
-          label.size = 0, fill = "white", alpha = 0.75,
-          color = .phontrast_ink
+          )
         )
       }
     }
@@ -306,6 +301,33 @@ plot_contrast <- function(data,
     attr(p, "contrast_metrics") <- ann
   }
   p
+}
+
+# ---- annotation label layer ------------------------------------------------
+
+# Argument that removes the border of a geom_label() box. ggplot2 deprecated
+# geom_label(label.size =) in favour of the `linewidth` aesthetic (a width of 0
+# draws no border, as `label.size = 0` did), but older releases only know
+# `label.size`. Choose by whether the installed GeomLabel has a `linewidth`
+# aesthetic; `aesthetics` is a parameter so both branches can be tested.
+.label_borderless <- function(aesthetics = ggplot2::GeomLabel$aesthetics()) {
+  if ("linewidth" %in% aesthetics) list(linewidth = 0) else list(label.size = 0)
+}
+
+# The top-left metric annotation shared by plot_contrast() and
+# inspect_contrast(): a borderless, translucent white box.
+.annotation_label_layer <- function(data, mapping) {
+  do.call(
+    ggplot2::geom_label,
+    c(
+      list(
+        data = data, mapping = mapping, inherit.aes = FALSE,
+        hjust = 0, vjust = 1, size = 2.9, lineheight = 1.1,
+        fill = "white", alpha = 0.75, color = .phontrast_ink
+      ),
+      .label_borderless()
+    )
+  )
 }
 
 # ---- validation helpers ----------------------------------------------------
