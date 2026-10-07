@@ -1,5 +1,12 @@
 # phontrast (development version)
 
+- The metric annotation boxes drawn by `plot_contrast()` and
+  `inspect_contrast()` no longer use `geom_label(label.size =)`, which recent
+  ggplot2 releases deprecate; they pass the `linewidth` aesthetic when the
+  installed ggplot2 has it and `label.size` otherwise. Plots are unchanged.
+- The citation test no longer depends on where the text rendering wraps its
+  lines, which a four-component development version number could trip.
+
 # phontrast 2.5.0
 
 ## The ranking protocol in one call

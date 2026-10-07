@@ -296,11 +296,9 @@ inspect_contrast <- function(ranking,
   )
   lab_df$.x <- if (isTRUE(reverse_x)) Inf else -Inf
   lab_df$.y <- if (isTRUE(reverse_y) && d == 2L) -Inf else Inf
-  p <- p + ggplot2::geom_label(
-    data = lab_df,
-    ggplot2::aes(x = .data[[".x"]], y = .data[[".y"]], label = .data[[".lab"]]),
-    inherit.aes = FALSE, hjust = 0, vjust = 1, size = 2.9, lineheight = 1.1,
-    label.size = 0, fill = "white", alpha = 0.75, color = .phontrast_ink
+  p <- p + .annotation_label_layer(
+    lab_df,
+    ggplot2::aes(x = .data[[".x"]], y = .data[[".y"]], label = .data[[".lab"]])
   )
 
   if (isTRUE(reverse_x)) p <- p + ggplot2::scale_x_reverse()

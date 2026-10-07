@@ -3,8 +3,10 @@ test_that("citation metadata matches the installed package release", {
   citation_entry <- utils::citation("phontrast")[[1L]]
 
   expect_identical(unname(citation_entry$version), package_version)
+  # The text rendering wraps lines, and a long (development) version string can
+  # wrap between "version" and the number, so compare with whitespace collapsed.
   expect_match(
-    format(citation_entry, style = "text"),
+    gsub("\\s+", " ", format(citation_entry, style = "text")),
     paste("version", package_version),
     fixed = TRUE
   )
