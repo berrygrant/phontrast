@@ -51,8 +51,9 @@ combined into a labeled \code{group} value such as
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator passed to \code{percent_overlap_kde()}: \code{"mc"}
-(default) or \code{"legacy"} (pre-1.2.0 self-normalized estimate). Ignored
-when \code{density = "mvnorm"}.}
+(default) or \code{"legacy"} (the self-normalized estimate
+\code{rank_contrasts()} reports). Ignored when
+\code{density = "mvnorm"}.}
 
 \item{density}{Density model passed to \code{percent_overlap_kde()}:
 \code{"kde"} (default) or \code{"mvnorm"} (fit one multivariate normal per

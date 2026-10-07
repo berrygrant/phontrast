@@ -85,6 +85,7 @@ test_that("rank_contrasts() returns the protocol table, sorted by sqrt(JSD)", {
   expect_equal(p$d, 2L)
   expect_equal(p$margin, 0.25)
   expect_equal(p$estimator$bw, "Hpi")
+  expect_equal(p$estimator$method, "legacy")
 })
 
 test_that("step 1 matches the package's own estimators on the same tokens", {
@@ -92,10 +93,11 @@ test_that("step 1 matches the package's own estimators on the same tokens", {
   r <- suppressWarnings(rank_contrasts(d, c("f1", "f2"), "vowel", "speaker",
                                        bw_check = FALSE))
   s03 <- d[d$speaker == "s03", ]
+  # the calibrated estimator is the legacy one, not phontrast's default "mc"
   expect_equal(r$sqrt_jsd[r$group == "s03"],
-               sqrt(jsd_kde_nd(s03, c("f1", "f2"), "vowel")))
+               sqrt(jsd_kde_nd(s03, c("f1", "f2"), "vowel", method = "legacy")))
   expect_equal(r$shared_mass[r$group == "s03"],
-               percent_overlap_kde(s03, c("f1", "f2"), "vowel"))
+               percent_overlap_kde(s03, c("f1", "f2"), "vowel", method = "legacy"))
   expect_equal(r$pillai[r$group == "s03"],
                pillai_overlap(s03, c("f1", "f2"), "vowel")$pillai)
 })
@@ -208,11 +210,33 @@ test_that("the bandwidth check re-ranks at half and twice the Scott bandwidth", 
   # the two re-estimates differ for every ranked speaker (their direction at
   # two dimensions depends on the sample; see test-protocol-helpers.R)
   expect_true(all(r$sqrt_jsd_half[ok] != r$sqrt_jsd_double[ok]))
+  # the study's bracket: one diagonal Scott bandwidth from the pooled pair,
+  # halved and doubled, for both categories, read off the legacy estimator
+  # (recomputed here by hand from the product Gaussian kernel)
   s05 <- d[d$speaker == "s05", ]
-  expect_equal(
-    r$sqrt_jsd_half[r$group == "s05"],
-    sqrt(jsd_kde_nd(s05, c("f1", "f2"), "vowel", bw = "scott.diag", bw_scale = 0.5))
+  pooled_sqrt_jsd <- function(df, s) {
+    X <- as.matrix(df[, c("f1", "f2")])
+    h <- s * nrow(X)^(-1 / 6) * apply(X, 2, stats::sd)
+    dens <- function(train) {
+      apply(X, 1, function(x) {
+        mean(stats::dnorm(x[1], train[, 1], h[1]) * stats::dnorm(x[2], train[, 2], h[2]))
+      })
+    }
+    sqrt(jsd(dens(X[df$vowel == "ih", ]), dens(X[df$vowel == "eh", ])))
+  }
+  expect_equal(r$sqrt_jsd_half[r$group == "s05"], pooled_sqrt_jsd(s05, 0.5))
+  expect_equal(r$sqrt_jsd_double[r$group == "s05"], pooled_sqrt_jsd(s05, 2))
+  # bracket_bw = "scott.diag" selects the Scott bandwidth per category instead
+  r_cat <- rank_contrasts(
+    d, c("f1", "f2"), "vowel", "speaker",
+    estimator = modifyList(recommended_estimator(2), list(bracket_bw = "scott.diag"))
   )
+  expect_equal(
+    r_cat$sqrt_jsd_half[r_cat$group == "s05"],
+    sqrt(jsd_kde_nd(s05, c("f1", "f2"), "vowel", method = "legacy",
+                    bw = "scott.diag", bw_scale = 0.5))
+  )
+  expect_equal(r_cat$sqrt_jsd, r$sqrt_jsd)
   expect_true(is.logical(r$set_aside))
   expect_true(is.logical(r$sign_change))
   expect_true(all(abs(r$bw_shift[ok]) <= 1))
@@ -235,9 +259,51 @@ test_that("estimator settings are validated and honoured", {
   s02 <- d[d$speaker == "s02", ]
   expect_equal(
     r$sqrt_jsd[r$group == "s02"],
-    sqrt(jsd_kde_nd(s02, c("f1", "f2"), "vowel", bw = "scott.diag", engine = "fast_diag"))
+    sqrt(jsd_kde_nd(s02, c("f1", "f2"), "vowel", method = "legacy",
+                    bw = "scott.diag", engine = "fast_diag"))
   )
   expect_equal(attr(r, "protocol")$estimator$engine, "fast_diag")
+
+  # method = "mc" routes step 1 through the Monte-Carlo estimator, with its
+  # leave-one-out setting
+  est_mc <- modifyList(recommended_estimator(2), list(method = "mc", loo = TRUE))
+  r_mc <- suppressWarnings(rank_contrasts(d, c("f1", "f2"), "vowel", "speaker",
+                                          estimator = est_mc, bw_check = FALSE))
+  expect_equal(r_mc$sqrt_jsd[r_mc$group == "s02"],
+               sqrt(jsd_kde_nd(s02, c("f1", "f2"), "vowel", method = "mc", loo = TRUE)))
+  expect_equal(r_mc$shared_mass[r_mc$group == "s02"],
+               percent_overlap_kde(s02, c("f1", "f2"), "vowel", method = "mc"))
+
+  # a list without the 2.5.1 elements takes the calibrated ones
+  est_old <- list(bw = "Hpi", engine = "ks", eval_n = NULL, loo = TRUE)
+  r_old <- suppressWarnings(rank_contrasts(d, c("f1", "f2"), "vowel", "speaker",
+                                           estimator = est_old, bw_check = FALSE))
+  expect_identical(attr(r_old, "protocol")$estimator$method, "legacy")
+  expect_identical(attr(r_old, "protocol")$estimator$eval_on, "pooled")
+  expect_identical(attr(r_old, "protocol")$estimator$bracket_bw, "scott.pooled")
+  r_def <- suppressWarnings(rank_contrasts(d, c("f1", "f2"), "vowel", "speaker",
+                                           bw_check = FALSE))
+  expect_equal(r_old$sqrt_jsd, r_def$sqrt_jsd)
+
+  bad <- function(...) modifyList(recommended_estimator(2), list(...))
+  expect_error(
+    rank_contrasts(d, c("f1", "f2"), "vowel", "speaker", estimator = bad(method = "kde")),
+    "estimator\\$method"
+  )
+  expect_error(
+    rank_contrasts(d, c("f1", "f2"), "vowel", "speaker", estimator = bad(eval_on = "grid")),
+    "estimator\\$eval_on"
+  )
+  expect_error(
+    rank_contrasts(d, c("f1", "f2"), "vowel", "speaker",
+                   estimator = bad(eval_on = "pooled_sample")),
+    "estimator\\$eval_n"
+  )
+  expect_error(
+    rank_contrasts(d, c("f1", "f2"), "vowel", "speaker",
+                   estimator = bad(bracket_bw = "Hpi")),
+    "estimator\\$bracket_bw"
+  )
   expect_error(
     rank_contrasts(d, c("f1", "f2"), "vowel", "speaker", estimator = "Hpi"),
     "estimator"

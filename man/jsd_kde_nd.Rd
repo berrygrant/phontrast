@@ -63,8 +63,9 @@ state is used.}
 points processed per chunk by \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
-estimate of the continuous JSD, or \code{"legacy"} for the pre-1.2.0
-self-normalized sample-point index. Ignored when \code{density = "mvnorm"}.}
+estimate of the continuous JSD, or \code{"legacy"} for the self-normalized
+sample-point index on which the \code{rank_contrasts()} protocol was
+calibrated (see Details). Ignored when \code{density = "mvnorm"}.}
 
 \item{density}{Density model behind the estimate: \code{"kde"} (default)
 estimates each category's density by kernel density estimation;
@@ -92,7 +93,8 @@ leave-one-out correction as the category grows. Removing only part of the
 self-kernel keeps the corrected density strictly positive at isolated
 points, so small but real divergences remain small positive values rather
 than being floored to exactly 0 (as the full leave-one-out correction did
-through phontrast 2.0.2). Ignored when \code{method = "legacy"}.}
+through phontrast 2.0.2). Ignored when \code{method = "legacy"}, which
+applies no leave-one-out correction.}
 
 \item{bw_scale}{Positive number multiplying the selected kernel bandwidth on
 the standard-deviation scale: univariate bandwidths are multiplied by
@@ -114,10 +116,21 @@ available for diagonal bandwidths.
 By default (\code{method = "mc"}) JSD is estimated with a Monte-Carlo plug-in:
 each category's KDE is evaluated at that category's own observations and the
 log density ratio against the mixture is averaged. This is a consistent
-estimator of the continuous JSD in any dimension. \code{method = "legacy"}
-reproduces the pre-1.2.0 self-normalized sample-point estimate (a bounded
-relative separation index rather than the continuous JSD); use it only to
-reproduce results from phonJSD 1.0.0.
+estimator of the continuous JSD in any dimension.
+
+\code{method = "legacy"} is the self-normalized sample-point estimator: both
+categories' KDEs are evaluated at one shared set of points (by default the
+pooled tokens of both categories; see \code{eval_on}), each density vector is
+normalized to sum to one over those points, and the discrete JSD of the two
+vectors is returned. It is a bounded relative separation index rather than a
+consistent estimate of the continuous JSD, and on overlapping categories it
+reads lower than \code{"mc"}. It was phontrast's estimator before 1.2.0, and it
+is the estimator on which the ranking protocol of \code{rank_contrasts()} was
+validated (Berry, under review, Sec. VII A): the protocol's sample-size
+floors, margin, ceiling, and bandwidth check were calibrated on it, so
+\code{recommended_estimator()} returns it and \code{rank_contrasts()} uses it. Use it
+to report values against that protocol or to reproduce the study's
+numbers. No leave-one-out correction is applied under \code{"legacy"}.
 }
 \examples{
 set.seed(2026)

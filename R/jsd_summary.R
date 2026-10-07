@@ -16,7 +16,8 @@
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param method Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
-#'   or \code{"legacy"} (pre-1.2.0 self-normalized estimate). Ignored when
+#'   or \code{"legacy"} (the self-normalized estimate on which the
+#'   \code{rank_contrasts()} protocol was calibrated). Ignored when
 #'   \code{density = "mvnorm"}.
 #' @param density Density model passed to \code{jsd_kde_nd()}: \code{"kde"}
 #'   (default) or \code{"mvnorm"} (fit one multivariate normal per category and

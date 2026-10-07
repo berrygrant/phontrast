@@ -47,18 +47,26 @@ test_that("percentile_rank() validates its inputs", {
 # ---- recommended_estimator() -------------------------------------------------
 
 test_that("recommended_estimator() follows the three Table III tiers", {
+  # the study's estimator at every dimensionality: legacy, pooled evaluation,
+  # no leave-one-out, and the pooled Scott bandwidth for the bandwidth check
+  for (d in c(1, 2, 4, 8, 13, 32)) {
+    est <- recommended_estimator(d)
+    expect_identical(est$method, "legacy")
+    expect_identical(est$eval_on, "pooled")
+    expect_false(est$loo)
+    expect_identical(est$bracket_bw, "scott.pooled")
+  }
+
   low <- recommended_estimator(2)
   expect_identical(low$bw, "Hpi")
   expect_identical(low$engine, "ks")
   expect_null(low$eval_n)
-  expect_true(low$loo)
   expect_identical(recommended_estimator(4)$tier, low$tier)
 
   mid <- recommended_estimator(8)
   expect_identical(mid$bw, "scott.diag")
   expect_identical(mid$engine, "fast_diag")
   expect_identical(mid$eval_n, 200L)
-  expect_true(mid$loo)
   # untabulated dimensionalities take the next higher calibrated row
   expect_identical(recommended_estimator(5)$tier, mid$tier)
   expect_identical(recommended_estimator(13)$tier, mid$tier)
@@ -66,7 +74,7 @@ test_that("recommended_estimator() follows the three Table III tiers", {
   high <- recommended_estimator(32)
   expect_identical(high$bw, "scott.diag")
   expect_identical(high$engine, "fast_diag")
-  expect_false(high$loo)
+  expect_identical(high$eval_n, 200L)
   expect_identical(recommended_estimator(14)$tier, high$tier)
   expect_identical(recommended_estimator(64)$d, 64L)
 })
@@ -75,7 +83,8 @@ test_that("recommended_estimator() settings are accepted by jsd_kde_nd()", {
   d <- protocol_fixture(n = 30)
   est <- recommended_estimator(2)
   expect_no_error(
-    jsd_kde_nd(d, c("f1", "f2"), "vowel", bw = est$bw, engine = est$engine,
+    jsd_kde_nd(d, c("f1", "f2"), "vowel", method = est$method, bw = est$bw,
+               engine = est$engine, eval_on = est$eval_on,
                eval_n = est$eval_n, loo = est$loo)
   )
   est <- recommended_estimator(8)

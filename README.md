@@ -213,7 +213,8 @@ Pillai percentile rank differs from their √JSD percentile rank by 0.25 of the
 ordering or more, and inspect them. `rank_contrasts()` runs the three steps
 and applies their conditions — the √JSD ceiling, the sample-size floors per
 speaker and dimensionality, and a bandwidth check at half and twice the
-diagonal Scott bandwidth — on the bundled `vowel_cohort` or your own data:
+diagonal Scott bandwidth of the pooled pair — on the bundled `vowel_cohort` or
+your own data:
 
 ```r
 ranking <- rank_contrasts(
@@ -228,7 +229,8 @@ inspect_contrast(ranking, "spk09", reverse_x = TRUE, reverse_y = TRUE)
 ```
 
 `protocol_floors(d)` returns the licensing floors, `recommended_estimator(d)`
-the kernel settings the study calibrated at each dimensionality, and
+the kernel settings the study calibrated at each dimensionality (the
+`method = "legacy"` estimator, see below), and
 `percentile_rank()` the rank scale. The vignette *Ranking speakers by
 Jensen–Shannon distance and checking Pillai agreement* walks through the whole
 protocol.
@@ -306,9 +308,13 @@ log density ratio against the mixture is averaged, giving a consistent estimate
 of the continuous JSD in any number of dimensions. A sample-size-scaled partial
 leave-one-out correction reduces resubstitution bias while keeping small real
 divergences as small positive values rather than flooring them to exactly 0.
-The pre-1.2.0 self-normalized sample-point estimate — a bounded relative
-separation index rather than the JSD integral — remains available as
-`method = "legacy"` for reproducing 1.0.0 results.
+`method = "legacy"` gives the self-normalized sample-point estimate — a
+bounded relative separation index rather than the JSD integral, which reads
+lower than `"mc"` on overlapping categories. It was the package's estimator
+before 1.2.0, and it is the estimator the ranking protocol was validated on:
+`rank_contrasts()` uses it, with the settings `recommended_estimator(d)`
+returns, because its floors, margin, ceiling, and bandwidth check were
+calibrated on it. No leave-one-out correction applies under `"legacy"`.
 
 JSD values:
 - **0** → complete overlap (no separation)
@@ -374,7 +380,7 @@ To install the latest tagged GitHub release instead, use:
 
 ```r
 # install.packages("remotes")
-remotes::install_github("berrygrant/phontrast@v2.5.0")
+remotes::install_github("berrygrant/phontrast@v2.5.1")
 ```
 
 For the current development version, use:

@@ -1,4 +1,59 @@
-# phontrast (development version)
+# phontrast 2.5.1
+
+## `rank_contrasts()` now reproduces the published calibration
+
+**`rank_contrasts()` results change relative to 2.5.0.** The ranking protocol
+it implements (Berry, "Estimand or estimator? Comparing vowel overlap measures
+against a known ground truth", JASA, under review, Sec. VII A) was calibrated on
+phontrast's `method = "legacy"` kernel estimator. Its sample-size floors
+(`protocol_floors()`), its 0.25 margin, its 0.99 ceiling, and its bandwidth
+check all hold for that estimator: the self-normalized sample-point
+construction that evaluates both categories' densities at the pooled tokens,
+with no leave-one-out correction. 2.5.0 computed `sqrt_jsd`, `shared_mass`, and
+the bandwidth check with the Monte-Carlo estimator (`method = "mc"`, partial
+leave-one-out) and a per-category Scott bandwidth instead, so its numbers were
+not on the scale the thresholds were set on. On the paper's 45
+Peterson--Barney F1 x F2 vowel pairs, 2.5.0 put 20 pairs at the ceiling instead
+of 23, set no pair aside instead of ɝ--u (rank shift 0.080 against the paper's
+0.273), and read `sqrt_jsd` up to 0.11 higher on overlapping pairs (ɑ--ɔ: 0.730
+against the published 0.627). 2.5.1 reproduces the paper's per-pair values to
+floating-point precision: 45 pairs, 23 at the ceiling, 22 ranked, none flagged,
+ɝ--u set aside. Pillai is unchanged.
+
+- `recommended_estimator()` returns three new elements: `method = "legacy"`,
+  `eval_on = "pooled"`, and `bracket_bw = "scott.pooled"`, at every
+  dimensionality. `loo` is now `FALSE` throughout, because the study applied no
+  leave-one-out correction (`legacy` has none); the earlier `TRUE` described a
+  correction that the calibrated estimator never applied.
+- `rank_contrasts()` routes the reported `sqrt_jsd` and `shared_mass`, and the
+  halved and doubled `scott.diag` bracket of the bandwidth check, through
+  `estimator$method`. Under `bracket_bw = "scott.pooled"` the bracket uses one
+  diagonal Scott bandwidth selected on the pooled tokens of the pair for both
+  categories, as the study did; `bracket_bw = "scott.diag"` selects it per
+  category, as 2.5.0 did. The `estimator` checker validates the new elements;
+  a list without them, such as one built by hand for 2.5.0, takes the
+  calibrated values. To recompute a 2.5.0 ranking, pass
+  `modifyList(recommended_estimator(d), list(method = "mc", loo = TRUE, bracket_bw = "scott.diag"))`.
+- `print()` on a ranking names the estimator method and says when the bracket
+  is pooled; `inspect_contrast()` draws and annotates its panels with the
+  ranking's own estimator and bracket bandwidth, so the x0.5 and x2 panels
+  repeat `sqrt_jsd_half` and `sqrt_jsd_double`.
+- On the bundled `vowel_cohort`, the bandwidth check now sets aside spk09 (the
+  planted disagreement, still flagged) and spk06; the vignette says why.
+- A regression test reproduces the paper's Peterson--Barney outcome and
+  per-pair values from a vendored fixture (`tests/testthat/fixtures/`).
+
+## Documentation
+
+- The help for `method = "legacy"` in `jsd_kde_nd()` and its siblings
+  (`estimate_jsd()`, `percent_overlap_kde()`, `estimate_overlap()`,
+  `phontrast()`, `compare_overlap_metrics()`, `jsd_summary()`,
+  `global_boot_jsd()`) no longer calls it a pre-1.2.0 index to use only to
+  reproduce phonJSD 1.0.0. It now says that `legacy` is the estimator the
+  published protocol was validated on, and that no leave-one-out correction
+  applies under it.
+
+## Other changes
 
 - The metric annotation boxes drawn by `plot_contrast()` and
   `inspect_contrast()` no longer use `geom_label(label.size =)`, which recent

@@ -98,8 +98,10 @@ bootstrap resamples are running.}
 
 \item{method}{KDE estimator for the JSD and percent-overlap columns, passed
 to \code{jsd_kde_nd()}/\code{percent_overlap_kde()}: \code{"mc"} (default)
-for the Monte-Carlo plug-in, or \code{"legacy"} for the pre-1.2.0
-self-normalized estimate. Ignored when \code{density = "mvnorm"}.}
+for the Monte-Carlo plug-in, or \code{"legacy"} for the self-normalized
+sample-point estimate on which the \code{rank_contrasts()} protocol was
+calibrated (see \code{jsd_kde_nd()}). Ignored when
+\code{density = "mvnorm"}.}
 
 \item{density}{Density model behind the two distributional metrics
 (Jensen-Shannon and proportional overlap): \code{"kde"} (default) estimates

@@ -8,10 +8,21 @@
 #' By default (`method = "mc"`) JSD is estimated with a Monte-Carlo plug-in:
 #' each category's KDE is evaluated at that category's own observations and the
 #' log density ratio against the mixture is averaged. This is a consistent
-#' estimator of the continuous JSD in any dimension. `method = "legacy"`
-#' reproduces the pre-1.2.0 self-normalized sample-point estimate (a bounded
-#' relative separation index rather than the continuous JSD); use it only to
-#' reproduce results from phonJSD 1.0.0.
+#' estimator of the continuous JSD in any dimension.
+#'
+#' `method = "legacy"` is the self-normalized sample-point estimator: both
+#' categories' KDEs are evaluated at one shared set of points (by default the
+#' pooled tokens of both categories; see `eval_on`), each density vector is
+#' normalized to sum to one over those points, and the discrete JSD of the two
+#' vectors is returned. It is a bounded relative separation index rather than a
+#' consistent estimate of the continuous JSD, and on overlapping categories it
+#' reads lower than `"mc"`. It was phontrast's estimator before 1.2.0, and it
+#' is the estimator on which the ranking protocol of `rank_contrasts()` was
+#' validated (Berry, under review, Sec. VII A): the protocol's sample-size
+#' floors, margin, ceiling, and bandwidth check were calibrated on it, so
+#' `recommended_estimator()` returns it and `rank_contrasts()` uses it. Use it
+#' to report values against that protocol or to reproduce the study's
+#' numbers. No leave-one-out correction is applied under `"legacy"`.
 #'
 #' @param data A data frame containing observations from exactly two categories.
 #' @param features Character vector of column names giving the acoustic
@@ -45,8 +56,9 @@
 #' @param chunk_size Positive integer controlling the number of evaluation
 #'   points processed per chunk by \code{engine = "fast_diag"}.
 #' @param method Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
-#'   estimate of the continuous JSD, or \code{"legacy"} for the pre-1.2.0
-#'   self-normalized sample-point index. Ignored when \code{density = "mvnorm"}.
+#'   estimate of the continuous JSD, or \code{"legacy"} for the self-normalized
+#'   sample-point index on which the \code{rank_contrasts()} protocol was
+#'   calibrated (see Details). Ignored when \code{density = "mvnorm"}.
 #' @param density Density model behind the estimate: \code{"kde"} (default)
 #'   estimates each category's density by kernel density estimation;
 #'   \code{"mvnorm"} fits one multivariate normal per category and estimates the
@@ -71,7 +83,8 @@
 #'   self-kernel keeps the corrected density strictly positive at isolated
 #'   points, so small but real divergences remain small positive values rather
 #'   than being floored to exactly 0 (as the full leave-one-out correction did
-#'   through phontrast 2.0.2). Ignored when \code{method = "legacy"}.
+#'   through phontrast 2.0.2). Ignored when \code{method = "legacy"}, which
+#'   applies no leave-one-out correction.
 #' @param bw_scale Positive number multiplying the selected kernel bandwidth on
 #'   the standard-deviation scale: univariate bandwidths are multiplied by
 #'   \code{bw_scale} and bandwidth matrices by \code{bw_scale^2}. The default

@@ -63,8 +63,9 @@ into a labeled \code{group} value such as \code{"Sex=F | Style=read"}.}
 
 \item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
 for the Monte-Carlo plug-in estimate of the continuous JSD, or
-\code{"legacy"} to reproduce the pre-1.2.0 self-normalized sample-point
-estimate. Ignored when \code{density = "mvnorm"}.}
+\code{"legacy"} for the self-normalized sample-point estimate on which
+the \code{rank_contrasts()} protocol was calibrated (see
+\code{jsd_kde_nd()}). Ignored when \code{density = "mvnorm"}.}
 
 \item{density}{Density model behind the estimate, passed to
 \code{jsd_kde_nd()}: \code{"kde"} (default) estimates each category's

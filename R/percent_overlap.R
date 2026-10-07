@@ -25,8 +25,10 @@
 #'   points processed per chunk by \code{engine = "fast_diag"}.
 #' @param method Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
 #'   estimate of the overlapping coefficient, or \code{"legacy"} for the
-#'   pre-1.2.0 self-normalized sample-point estimate. \code{eval_on} applies to
-#'   \code{"legacy"} only. Ignored when \code{density = "mvnorm"}.
+#'   self-normalized sample-point estimate (the shared mass that
+#'   \code{rank_contrasts()} reports beside its calibrated \eqn{\sqrt{JSD}};
+#'   see \code{jsd_kde_nd()}). \code{eval_on} applies to \code{"legacy"}
+#'   only. Ignored when \code{density = "mvnorm"}.
 #' @param density Density model behind the estimate: \code{"kde"} (default)
 #'   estimates each category's density by kernel density estimation;
 #'   \code{"mvnorm"} fits one multivariate normal per category and estimates the
@@ -111,17 +113,16 @@ percent_overlap_kde <- function(data,
     bw_scale = bw_scale
   )
 
-  # Normalize to discrete probability masses on a shared grid
+  .overlap_legacy(dens)
+}
+
+# Legacy proportional overlap off a `.kde_density_pair()` result: normalize the
+# two density vectors to discrete probability masses over the shared
+# evaluation points and sum their pointwise minimum.
+.overlap_legacy <- function(dens) {
   p <- dens$p / sum(dens$p)
   q <- dens$q / sum(dens$q)
-
-  # Overlap is the shared area on the grid: sum(min(p, q))
-  overlap <- sum(pmin(p, q))
-
-  # Bound numerically
-  overlap <- max(min(overlap, 1), 0)
-
-  overlap
+  max(min(sum(pmin(p, q)), 1), 0)
 }
 
 #' Estimate proportional overlap globally or by group
@@ -143,8 +144,9 @@ percent_overlap_kde <- function(data,
 #'   \code{"fast_diagonal"} is accepted as an alias for \code{"fast_diag"}.
 #' @param chunk_size Chunk size for \code{engine = "fast_diag"}.
 #' @param method Estimator passed to \code{percent_overlap_kde()}: \code{"mc"}
-#'   (default) or \code{"legacy"} (pre-1.2.0 self-normalized estimate). Ignored
-#'   when \code{density = "mvnorm"}.
+#'   (default) or \code{"legacy"} (the self-normalized estimate
+#'   \code{rank_contrasts()} reports). Ignored when
+#'   \code{density = "mvnorm"}.
 #' @param density Density model passed to \code{percent_overlap_kde()}:
 #'   \code{"kde"} (default) or \code{"mvnorm"} (fit one multivariate normal per
 #'   category and estimate the overlapping coefficient between the two Gaussians

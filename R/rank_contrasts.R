@@ -5,8 +5,9 @@
 #' each speaker (or other unit named by \code{group_col}) it
 #' \enumerate{
 #'   \item computes Jensen-Shannon distance (\eqn{\sqrt{JSD}}) and the Pillai
-#'     trace on the same tokens, from one shared kernel density estimate, and
-#'     reports the estimated shared probability mass beside them;
+#'     trace on the same tokens, and reports the estimated shared probability
+#'     mass beside them, \eqn{\sqrt{JSD}} and shared mass read off one shared
+#'     kernel density estimate;
 #'   \item ranks the speakers by \eqn{\sqrt{JSD}} on the percentile-rank scale
 #'     of \code{percentile_rank()};
 #'   \item flags speakers whose Pillai percentile rank differs from their
@@ -19,6 +20,21 @@
 #' are set apart, sample-size floors decide whether a rank or a flag may be
 #' read, and a bandwidth check marks measurements whose rank depends on the
 #' smoothing.
+#'
+#' @section Estimator:
+#' The floors, the margin, the ceiling, and the bandwidth check were
+#' calibrated on one kernel estimator, and they hold for that estimator only.
+#' By default \code{rank_contrasts()} uses it: phontrast's
+#' \code{method = "legacy"} estimator, which evaluates both categories' kernel
+#' densities at the pooled tokens of the pair and reads \eqn{\sqrt{JSD}} and
+#' shared mass off the two self-normalized density vectors, with the
+#' bandwidth rule, engine, and evaluation subsample of
+#' \code{recommended_estimator()} and no leave-one-out correction. phontrast's
+#' default \code{method = "mc"} estimates the continuous divergence instead;
+#' on overlapping categories it reads higher (on the study's Peterson--Barney
+#' pairs by up to 0.11 in \eqn{\sqrt{JSD}}), so it changes which contrasts
+#' reach the ceiling and which the bandwidth check sets aside. Pass it through
+#' \code{estimator} only knowing that the protocol was not calibrated on it.
 #'
 #' @section Ceiling:
 #' A measurement with \eqn{\sqrt{JSD} \ge} \code{ceiling} (default 0.99) is at
@@ -47,10 +63,15 @@
 #' warning.
 #'
 #' @section Bandwidth check:
-#' With \code{bw_check = TRUE} (the default) \eqn{\sqrt{JSD}} is recomputed at
-#' half and at twice the diagonal Scott bandwidth (\code{bw = "scott.diag"},
-#' \code{bw_scale = 0.5} and \code{2}), at two dimensions as well, where the
-#' reported estimate uses the plug-in rule. The two re-estimates are ranked
+#' With \code{bw_check = TRUE} (the default) \eqn{\sqrt{JSD}} is recomputed,
+#' with the same estimator method, at half and at twice the diagonal Scott
+#' bandwidth (\code{bw = "scott.diag"}, \code{bw_scale = 0.5} and \code{2}),
+#' at two dimensions as well, where the reported estimate uses the plug-in
+#' rule. As in the study, the Scott bandwidth is selected once on the pooled
+#' tokens of the pair and used for both categories
+#' (\code{estimator$bracket_bw = "scott.pooled"}); set
+#' \code{bracket_bw = "scott.diag"} to select it per category, as
+#' \code{jsd_kde_nd(bw = "scott.diag")} does. The two re-estimates are ranked
 #' over the same speakers and \code{bw_shift} is the percentile-rank change
 #' between them. A measurement is set aside (\code{set_aside = TRUE}) when
 #' \code{abs(bw_shift) >= margin}, or when a flagged Pillai--\eqn{\sqrt{JSD}}
@@ -73,10 +94,16 @@
 #' @param ceiling \eqn{\sqrt{JSD}} at or above which a measurement counts as at
 #'   the ceiling (default 0.99).
 #' @param bw_check Logical; run the bandwidth check (default \code{TRUE}).
-#' @param estimator Kernel estimator settings: a list with elements \code{bw},
-#'   \code{engine}, \code{eval_n}, and \code{loo} as returned by
+#' @param estimator Kernel estimator settings: a list with elements
+#'   \code{method}, \code{bw}, \code{engine}, \code{eval_on}, \code{eval_n},
+#'   \code{loo}, and \code{bracket_bw} as returned by
 #'   \code{recommended_estimator()}. Defaults to the settings the study used at
 #'   this dimensionality, \code{recommended_estimator(length(features))}.
+#'   \code{bw}, \code{engine}, \code{eval_n}, and \code{loo} are required;
+#'   a list without \code{method}, \code{eval_on}, or \code{bracket_bw} takes
+#'   the calibrated \code{"legacy"}, \code{"pooled"}, and
+#'   \code{"scott.pooled"}. \code{eval_on} applies under \code{"legacy"}
+#'   only and \code{loo} under \code{"mc"} only.
 #' @param min_tokens Minimum tokens in the smaller category for a speaker to be
 #'   measured at all (default 10). Speakers below it, or without exactly two
 #'   observed categories, are left out with a message; the licensing floors
@@ -270,22 +297,11 @@ rank_contrasts <- function(data,
   }
   row$measured <- TRUE
 
-  kernel_sqrt_jsd <- function(bw, bw_scale, with_overlap = FALSE) {
-    mc <- tryCatch(
-      .kde_mc_pair(
-        data = df_g, features = features, category_col = category_col,
-        bw = bw, eval_n = est$eval_n, eval_seed = eval_seed,
-        engine = est$engine, chunk_size = chunk_size,
-        metric = "rank_contrasts()", bw_scale = bw_scale
-      ),
-      error = function(e) NULL
-    )
-    if (is.null(mc)) {
-      return(list(sqrt_jsd = NA_real_, shared_mass = NA_real_))
-    }
-    list(
-      sqrt_jsd = sqrt(.jsd_mc(mc, loo = est$loo)),
-      shared_mass = if (with_overlap) .overlap_mc(mc) else NA_real_
+  kernel_sqrt_jsd <- function(bw, bw_scale, pool_bw = FALSE, with_overlap = FALSE) {
+    .protocol_kernel(
+      df_g = df_g, features = features, category_col = category_col, est = est,
+      bw = bw, bw_scale = bw_scale, pool_bw = pool_bw, eval_seed = eval_seed,
+      chunk_size = chunk_size, with_overlap = with_overlap
     )
   }
 
@@ -297,10 +313,49 @@ rank_contrasts <- function(data,
     error = function(e) NA_real_
   )
   if (bw_check) {
-    row$sqrt_jsd_half <- kernel_sqrt_jsd("scott.diag", 0.5)$sqrt_jsd
-    row$sqrt_jsd_double <- kernel_sqrt_jsd("scott.diag", 2)$sqrt_jsd
+    pool <- identical(est$bracket_bw, "scott.pooled")
+    row$sqrt_jsd_half <- kernel_sqrt_jsd("scott.diag", 0.5, pool)$sqrt_jsd
+    row$sqrt_jsd_double <- kernel_sqrt_jsd("scott.diag", 2, pool)$sqrt_jsd
   }
   row
+}
+
+# sqrt(JSD), and with `with_overlap = TRUE` shared mass, for one speaker's pair
+# under the protocol's estimator `est` (as validated by
+# .check_estimator_spec()), at bandwidth rule `bw` times `bw_scale`, with the
+# bandwidth pooled over the pair when `pool_bw = TRUE`. Shared by
+# rank_contrasts() and inspect_contrast() so that the panels' annotations are
+# the ranking's own numbers. NA where the estimate fails.
+.protocol_kernel <- function(df_g, features, category_col, est, bw,
+                             bw_scale = 1, pool_bw = FALSE, eval_seed = NULL,
+                             chunk_size = 1000L, with_overlap = FALSE,
+                             metric = "rank_contrasts()") {
+  tryCatch(
+    if (identical(est$method, "legacy")) {
+      dens <- .kde_density_pair(
+        data = df_g, features = features, category_col = category_col,
+        bw = bw, eval_on = est$eval_on, eval_n = est$eval_n,
+        eval_seed = eval_seed, engine = est$engine, chunk_size = chunk_size,
+        metric = metric, bw_scale = bw_scale, pool_bw = pool_bw
+      )
+      list(
+        sqrt_jsd = sqrt(jsd(dens$p, dens$q)),
+        shared_mass = if (with_overlap) .overlap_legacy(dens) else NA_real_
+      )
+    } else {
+      mc <- .kde_mc_pair(
+        data = df_g, features = features, category_col = category_col,
+        bw = bw, eval_n = est$eval_n, eval_seed = eval_seed,
+        engine = est$engine, chunk_size = chunk_size, metric = metric,
+        bw_scale = bw_scale, pool_bw = pool_bw
+      )
+      list(
+        sqrt_jsd = sqrt(.jsd_mc(mc, loo = est$loo)),
+        shared_mass = if (with_overlap) .overlap_mc(mc) else NA_real_
+      )
+    },
+    error = function(e) list(sqrt_jsd = NA_real_, shared_mass = NA_real_)
+  )
 }
 
 # The agreement test is undefined when dimensionality outruns the sample
@@ -321,24 +376,52 @@ rank_contrasts <- function(data,
   if (!is.list(estimator) || !all(needed %in% names(estimator))) {
     stop(
       "`estimator` must be a list with elements `bw`, `engine`, `eval_n`, and ",
-      "`loo`, as returned by recommended_estimator().",
+      "`loo` (and optionally `method`, `eval_on`, and `bracket_bw`), as returned ",
+      "by recommended_estimator().",
       call. = FALSE
     )
   }
+  # Elements added in 2.5.1; a list without them takes the calibrated values.
+  defaults <- list(method = "legacy", eval_on = "pooled", bracket_bw = "scott.pooled")
+  for (nm in names(defaults)) {
+    if (is.null(estimator[[nm]])) estimator[[nm]] <- defaults[[nm]]
+  }
+  .check_estimator_choice(estimator$method, "method", c("legacy", "mc"))
   bw <- estimator$bw
-  if (!is.character(bw) || length(bw) != 1L ||
-      !bw %in% c("Hpi", "Hscv", "Hpi.diag", "scott.diag")) {
-    stop(
-      "`estimator$bw` must be one of \"Hpi\", \"Hscv\", \"Hpi.diag\", \"scott.diag\".",
-      call. = FALSE
-    )
-  }
+  .check_estimator_choice(bw, "bw", c("Hpi", "Hscv", "Hpi.diag", "scott.diag"))
   engine <- .match_kde_engine(estimator$engine)
+  .check_estimator_choice(
+    estimator$eval_on, "eval_on", c("pooled", "group1", "group2", "pooled_sample")
+  )
   if (!is.null(estimator$eval_n)) {
     .check_positive_count(estimator$eval_n, "estimator$eval_n")
+  } else if (identical(estimator$eval_on, "pooled_sample")) {
+    stop(
+      "`estimator$eval_n` must be supplied when `estimator$eval_on` is ",
+      "\"pooled_sample\".",
+      call. = FALSE
+    )
   }
   .check_bool(estimator$loo, "estimator$loo")
-  list(bw = bw, engine = engine, eval_n = estimator$eval_n, loo = estimator$loo)
+  .check_estimator_choice(
+    estimator$bracket_bw, "bracket_bw", c("scott.pooled", "scott.diag")
+  )
+  list(
+    method = estimator$method, bw = bw, engine = engine,
+    eval_on = estimator$eval_on, eval_n = estimator$eval_n,
+    loo = estimator$loo, bracket_bw = estimator$bracket_bw
+  )
+}
+
+.check_estimator_choice <- function(x, name, choices) {
+  if (!is.character(x) || length(x) != 1L || is.na(x) || !x %in% choices) {
+    stop(
+      "`estimator$", name, "` must be one of ",
+      paste0("\"", choices, "\"", collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  invisible(x)
 }
 
 #' Sample-size floors of the ranking protocol
@@ -412,11 +495,25 @@ print.phontrast_ranking <- function(x, ...) {
     nrow(x), if (nrow(x) == 1L) "" else "s", p$d, if (p$d == 1L) "" else "s",
     paste(p$features, collapse = ", ")
   ))
+  legacy <- identical(est$method, "legacy")
+  # legacy evaluates both densities at one shared point set (eval_on); mc
+  # evaluates each category at its own tokens
+  eval_set <- if (!legacy) {
+    ""
+  } else if (est$eval_on %in% c("pooled", "pooled_sample")) {
+    "pooled "
+  } else {
+    paste0(est$eval_on, " ")
+  }
   cat(sprintf(
-    "sqrt(JSD), Pillai, and shared mass from the same tokens; kernel: %s / %s, %s, leave-one-out %s.\n",
-    est$bw, est$engine,
-    if (is.null(est$eval_n)) "all tokens" else paste(est$eval_n, "evaluation tokens"),
-    if (isTRUE(est$loo)) "on" else "off"
+    "sqrt(JSD), Pillai, and shared mass from the same tokens; kernel: %s estimator, %s / %s, %s, %s.\n",
+    est$method, est$bw, est$engine,
+    if (is.null(est$eval_n)) {
+      paste0("all ", eval_set, "tokens")
+    } else {
+      paste0(est$eval_n, " ", eval_set, "evaluation tokens")
+    },
+    if (legacy) "no leave-one-out" else if (isTRUE(est$loo)) "leave-one-out on" else "leave-one-out off"
   ))
   cat(sprintf(
     "Ranked: %d%s. Floors at d = %d: rank from %s, flag from %s tokens per category%s.\n",
@@ -436,7 +533,8 @@ print.phontrast_ranking <- function(x, ...) {
   if (isTRUE(p$bw_check)) {
     aside <- x$group[x$set_aside %in% TRUE]
     cat(sprintf(
-      "Bandwidth check (scott.diag x0.5 / x2): %d set aside%s.\n",
+      "Bandwidth check (%sscott.diag x0.5 / x2): %d set aside%s.\n",
+      if (identical(est$bracket_bw, "scott.pooled")) "pooled " else "",
       length(aside),
       if (length(aside)) paste0(" -> ", paste(aside, collapse = ", ")) else ""
     ))

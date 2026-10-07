@@ -17,8 +17,9 @@ knitr::opts_chunk$set(
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 ```
 
-This vignette walks through the measurement protocol that phontrast 2.5.0
-implements in `rank_contrasts()`. The protocol comes from a simulation study
+This vignette walks through the measurement protocol that phontrast
+implements in `rank_contrasts()` (since 2.5.0; with the study's calibrated
+estimator since 2.5.1). The protocol comes from a simulation study
 that scored seven vowel-overlap measures against a known ground truth (Berry,
 under review, Sec. VII.A). Its recommendations, in three steps:
 
@@ -66,7 +67,8 @@ one row per speaker, sorted by $\sqrt{JSD}$. Reading it column by column:
 
 - `sqrt_jsd`, `pillai`, `shared_mass`: step 1. $\sqrt{JSD}$ and shared mass are
   read off one kernel density estimate per speaker, Pillai off the same
-  tokens.
+  tokens. The kernel estimator is the one the protocol was calibrated on (see
+  "The estimator behind the numbers" below).
 - `at_ceiling`: `TRUE` where $\sqrt{JSD} \ge 0.99$. spk10's vowels are fully
   separated, so its kernel estimate can no longer grade separation; its shared
   mass and Pillai are still reported, but it leaves both rankings.
@@ -118,14 +120,25 @@ plot(ranking)
 ## Inspecting a flagged speaker across bandwidths
 
 Before interpreting a flag, the protocol asks for one more check: recompute
-$\sqrt{JSD}$ at half and at twice the diagonal Scott bandwidth, re-rank, and
-set the measurement aside if its rank moves by 0.25 of the ordering or more,
-or if a flagged rank difference changes sign. `rank_contrasts()` runs this
-check by default (`bw_check = TRUE`):
+$\sqrt{JSD}$ at half and at twice the diagonal Scott bandwidth (selected once
+on the pooled tokens of the pair, as in the study), re-rank, and set the
+measurement aside if its rank moves by 0.25 of the ordering or more, or if a
+flagged rank difference changes sign. `rank_contrasts()` runs this check by
+default (`bw_check = TRUE`):
 
 ```{r bw-check}
 ranking[, c("group", "sqrt_jsd_half", "sqrt_jsd_double", "bw_shift", "sign_change", "set_aside")]
 ```
+
+```{r set-aside, include = FALSE}
+aside <- ranking$group[ranking$set_aside %in% TRUE]
+```
+
+Here the check sets aside `r if (length(aside)) paste(aside, collapse = " and ") else "no speaker"`.
+spk09's separation lives in the shape of its bimodal "eh", which twice the
+Scott bandwidth smooths away, so its $\sqrt{JSD}$ rank falls when the
+bandwidth doubles. The flag stands, but the protocol asks for the
+distributions to be inspected before it is interpreted.
 
 `inspect_contrast()` then redraws one speaker with `plot_contrast()`'s layers,
 one panel per bandwidth, so the flag can be judged against the distributions
@@ -144,14 +157,23 @@ bracketed by hand.
 
 ## The estimator behind the numbers
 
-The floors above were calibrated with particular estimator settings, which
-change with dimensionality. `recommended_estimator()` returns them, and
-`rank_contrasts()` uses them by default:
+The floors, the margin, the ceiling, and the bandwidth check above were
+calibrated on one kernel estimator: phontrast's `method = "legacy"`, which
+evaluates both vowels' kernel densities at the pooled tokens and reads
+$\sqrt{JSD}$ off the two self-normalized density vectors, with no
+leave-one-out correction. Its bandwidth rule, engine, and evaluation subsample
+change with dimensionality. `recommended_estimator()` returns the settings,
+and `rank_contrasts()` uses them by default:
 
 ```{r estimator}
-recommended_estimator(2)[c("tier", "bw", "engine", "eval_n", "loo")]
-recommended_estimator(8)[c("tier", "bw", "engine", "eval_n", "loo")]
+recommended_estimator(2)[c("tier", "method", "bw", "engine", "eval_on", "eval_n", "bracket_bw")]
+recommended_estimator(8)[c("tier", "method", "bw", "engine", "eval_on", "eval_n", "bracket_bw")]
 ```
+
+phontrast's default estimator elsewhere, `method = "mc"`, targets the
+continuous divergence and reads higher on overlapping vowels, so it moves
+contrasts across the ceiling and through the bandwidth check. Rankings computed
+with it are not covered by the study's calibration.
 
 To run the protocol with other settings, pass a modified list:
 

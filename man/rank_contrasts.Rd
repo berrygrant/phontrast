@@ -41,10 +41,16 @@ the ceiling (default 0.99).}
 
 \item{bw_check}{Logical; run the bandwidth check (default \code{TRUE}).}
 
-\item{estimator}{Kernel estimator settings: a list with elements \code{bw},
-\code{engine}, \code{eval_n}, and \code{loo} as returned by
+\item{estimator}{Kernel estimator settings: a list with elements
+\code{method}, \code{bw}, \code{engine}, \code{eval_on}, \code{eval_n},
+\code{loo}, and \code{bracket_bw} as returned by
 \code{recommended_estimator()}. Defaults to the settings the study used at
-this dimensionality, \code{recommended_estimator(length(features))}.}
+this dimensionality, \code{recommended_estimator(length(features))}.
+\code{bw}, \code{engine}, \code{eval_n}, and \code{loo} are required;
+a list without \code{method}, \code{eval_on}, or \code{bracket_bw} takes
+the calibrated \code{"legacy"}, \code{"pooled"}, and
+\code{"scott.pooled"}. \code{eval_on} applies under \code{"legacy"}
+only and \code{loo} under \code{"mc"} only.}
 
 \item{min_tokens}{Minimum tokens in the smaller category for a speaker to be
 measured at all (default 10). Speakers below it, or without exactly two
@@ -78,8 +84,9 @@ simulation study behind phontrast (Berry, under review, Sec. VII.A). For
 each speaker (or other unit named by \code{group_col}) it
 \enumerate{
 \item computes Jensen-Shannon distance (\eqn{\sqrt{JSD}}) and the Pillai
-trace on the same tokens, from one shared kernel density estimate, and
-reports the estimated shared probability mass beside them;
+trace on the same tokens, and reports the estimated shared probability
+mass beside them, \eqn{\sqrt{JSD}} and shared mass read off one shared
+kernel density estimate;
 \item ranks the speakers by \eqn{\sqrt{JSD}} on the percentile-rank scale
 of \code{percentile_rank()};
 \item flags speakers whose Pillai percentile rank differs from their
@@ -93,6 +100,23 @@ are set apart, sample-size floors decide whether a rank or a flag may be
 read, and a bandwidth check marks measurements whose rank depends on the
 smoothing.
 }
+\section{Estimator}{
+
+The floors, the margin, the ceiling, and the bandwidth check were
+calibrated on one kernel estimator, and they hold for that estimator only.
+By default \code{rank_contrasts()} uses it: phontrast's
+\code{method = "legacy"} estimator, which evaluates both categories' kernel
+densities at the pooled tokens of the pair and reads \eqn{\sqrt{JSD}} and
+shared mass off the two self-normalized density vectors, with the
+bandwidth rule, engine, and evaluation subsample of
+\code{recommended_estimator()} and no leave-one-out correction. phontrast's
+default \code{method = "mc"} estimates the continuous divergence instead;
+on overlapping categories it reads higher (on the study's Peterson--Barney
+pairs by up to 0.11 in \eqn{\sqrt{JSD}}), so it changes which contrasts
+reach the ceiling and which the bandwidth check sets aside. Pass it through
+\code{estimator} only knowing that the protocol was not calibrated on it.
+}
+
 \section{Ceiling}{
 
 A measurement with \eqn{\sqrt{JSD} \ge} \code{ceiling} (default 0.99) is at
@@ -125,10 +149,15 @@ warning.
 
 \section{Bandwidth check}{
 
-With \code{bw_check = TRUE} (the default) \eqn{\sqrt{JSD}} is recomputed at
-half and at twice the diagonal Scott bandwidth (\code{bw = "scott.diag"},
-\code{bw_scale = 0.5} and \code{2}), at two dimensions as well, where the
-reported estimate uses the plug-in rule. The two re-estimates are ranked
+With \code{bw_check = TRUE} (the default) \eqn{\sqrt{JSD}} is recomputed,
+with the same estimator method, at half and at twice the diagonal Scott
+bandwidth (\code{bw = "scott.diag"}, \code{bw_scale = 0.5} and \code{2}),
+at two dimensions as well, where the reported estimate uses the plug-in
+rule. As in the study, the Scott bandwidth is selected once on the pooled
+tokens of the pair and used for both categories
+(\code{estimator$bracket_bw = "scott.pooled"}); set
+\code{bracket_bw = "scott.diag"} to select it per category, as
+\code{jsd_kde_nd(bw = "scott.diag")} does. The two re-estimates are ranked
 over the same speakers and \code{bw_shift} is the percentile-rank change
 between them. A measurement is set aside (\code{set_aside = TRUE}) when
 \code{abs(bw_shift) >= margin}, or when a flagged Pillai--\eqn{\sqrt{JSD}}

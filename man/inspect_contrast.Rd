@@ -45,9 +45,13 @@ Redraws a single speaker from a \code{rank_contrasts()} ranking with
 \code{plot_contrast()}'s distribution-aware layers, one panel per kernel
 bandwidth, so a flagged or set-aside speaker can be inspected the way the
 protocol asks: at half, at the selected, and at twice the diagonal Scott
-bandwidth (the smoothing used by the bandwidth check). Each panel is
-labelled with the Jensen-Shannon distance and shared mass at that
-bandwidth and with the speaker's Pillai trace, which takes no bandwidth;
+bandwidth (the smoothing used by the bandwidth check, pooled over the pair
+when the ranking's \code{estimator$bracket_bw} is \code{"scott.pooled"}).
+Each panel is labelled with the Jensen-Shannon distance and shared mass at
+that bandwidth, computed with the ranking's estimator method (so the x0.5
+and x2 panels repeat the ranking's \code{sqrt_jsd_half} and
+\code{sqrt_jsd_double}), and with the speaker's Pillai trace, which takes
+no bandwidth;
 the subtitle restates the reported ranks, the rank difference, and the
 outcome of the bandwidth check. The tokens come from the ranking itself
 (\code{attr(ranking, "protocol")$data}), so no further data is needed.

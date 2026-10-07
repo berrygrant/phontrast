@@ -60,7 +60,18 @@ test_that("status encodes flagged, set-aside, and unreadable speakers", {
   df <- as.data.frame(ranking_plot)
   status <- phontrast:::.ranking_status(df)
   expect_s3_class(status, "factor")
-  expect_identical(as.character(status[df$group == "plant"]), "flagged")
+  # the planted speaker is flagged, and the bandwidth check sets it aside:
+  # the doubled bandwidth smooths away the bimodality its flag rests on, and
+  # "set aside" outranks "flagged"
+  expect_true(df$flag[df$group == "plant"])
+  expect_true(df$set_aside[df$group == "plant"])
+  expect_identical(as.character(status[df$group == "plant"]), "set aside")
+  df_kept <- df
+  df_kept$set_aside[df_kept$group == "plant"] <- FALSE
+  expect_identical(
+    as.character(phontrast:::.ranking_status(df_kept)[df_kept$group == "plant"]),
+    "flagged"
+  )
   expect_true(all(as.character(status[grepl("^s", df$group)]) == "agrees"))
   df$flag[1] <- NA
   expect_identical(as.character(phontrast:::.ranking_status(df)[1]), "flag not readable")
@@ -98,7 +109,7 @@ test_that("inspect_contrast() draws one panel per bandwidth with that bandwidth'
   expect_identical(p$labels$title, "plant")
   expect_match(p$labels$subtitle, "flagged")
   expect_match(p$labels$subtitle, "bandwidth check")
-  expect_match(p$labels$caption, "scott.diag x0.5/1/2")
+  expect_match(p$labels$caption, "pooled scott.diag x0.5/1/2")
   geoms <- .ranking_layer_geoms(p)
   expect_true(all(c("GeomTile", "GeomPoint", "GeomPath", "GeomLabel") %in% geoms))
 })

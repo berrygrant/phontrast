@@ -358,31 +358,35 @@ plot_contrast <- function(data,
 
 .contrast_panel_data <- function(df_g, features, category_col, levs,
                                  density, bw, levels, grid_n, label,
-                                 bw_scale = 1) {
+                                 bw_scale = 1, pool_bw = FALSE) {
   if (length(features) == 1L) {
     .contrast_panel_1d(
       df_g = df_g, feature = features[[1]], category_col = category_col,
       levs = levs, density = density, bw = bw, grid_n = grid_n, label = label,
-      bw_scale = bw_scale
+      bw_scale = bw_scale, pool_bw = pool_bw
     )
   } else {
     .contrast_panel_2d(
       df_g = df_g, features = features, category_col = category_col,
       levs = levs, density = density, bw = bw, levels = levels,
-      grid_n = grid_n, label = label, bw_scale = bw_scale
+      grid_n = grid_n, label = label, bw_scale = bw_scale, pool_bw = pool_bw
     )
   }
 }
 
 .contrast_panel_1d <- function(df_g, feature, category_col, levs,
-                               density, bw, grid_n, label, bw_scale = 1) {
+                               density, bw, grid_n, label, bw_scale = 1,
+                               pool_bw = FALSE) {
   x1 <- df_g[df_g[[category_col]] == levs[1], feature]
   x2 <- df_g[df_g[[category_col]] == levs[2], feature]
 
   if (identical(density, "kde")) {
     # Same univariate bandwidth selection (and scaling) as the 1-D metric path.
-    h1 <- .scale_bandwidth(.select_univariate_bandwidth(x1, bw), bw_scale)
-    h2 <- .scale_bandwidth(.select_univariate_bandwidth(x2, bw), bw_scale)
+    h <- .pair_bandwidths(
+      matrix(x1, ncol = 1), matrix(x2, ncol = 1), bw, "ks", levs, bw_scale, pool_bw
+    )
+    h1 <- h[[1]]
+    h2 <- h[[2]]
     pad <- 3 * max(h1, h2)
     grid <- seq(min(x1, x2) - pad, max(x1, x2) + pad, length.out = grid_n)
     d1 <- .kde_1d_values(x1, grid, h1)
@@ -416,15 +420,16 @@ plot_contrast <- function(data,
 
 .contrast_panel_2d <- function(df_g, features, category_col, levs,
                                density, bw, levels, grid_n, label,
-                               bw_scale = 1) {
+                               bw_scale = 1, pool_bw = FALSE) {
   X1 <- as.matrix(df_g[df_g[[category_col]] == levs[1], features, drop = FALSE])
   X2 <- as.matrix(df_g[df_g[[category_col]] == levs[2], features, drop = FALSE])
 
   if (identical(density, "kde")) {
     # Same bandwidth selectors (and scaling) and ks evaluation as the KDE
     # metric path.
-    H1 <- .scale_bandwidth(.select_multivariate_bandwidth(X1, bw, levs[1]), bw_scale)
-    H2 <- .scale_bandwidth(.select_multivariate_bandwidth(X2, bw, levs[2]), bw_scale)
+    H <- .pair_bandwidths(X1, X2, bw, "ks", levs, bw_scale, pool_bw)
+    H1 <- H[[1]]
+    H2 <- H[[2]]
     pad <- 3 * sqrt(pmax(diag(H1), diag(H2)))
     grid <- .contrast_grid_2d(rbind(X1, X2), pad, grid_n)
     z1 <- .kde_grid_values(X1, H1, grid)

@@ -51,8 +51,10 @@ points processed per chunk by \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator: \code{"mc"} (default) for the Monte-Carlo plug-in
 estimate of the overlapping coefficient, or \code{"legacy"} for the
-pre-1.2.0 self-normalized sample-point estimate. \code{eval_on} applies to
-\code{"legacy"} only. Ignored when \code{density = "mvnorm"}.}
+self-normalized sample-point estimate (the shared mass that
+\code{rank_contrasts()} reports beside its calibrated \eqn{\sqrt{JSD}};
+see \code{jsd_kde_nd()}). \code{eval_on} applies to \code{"legacy"}
+only. Ignored when \code{density = "mvnorm"}.}
 
 \item{density}{Density model behind the estimate: \code{"kde"} (default)
 estimates each category's density by kernel density estimation;

@@ -135,9 +135,13 @@ autoplot.phontrast_ranking <- function(object, ...) {
 #' \code{plot_contrast()}'s distribution-aware layers, one panel per kernel
 #' bandwidth, so a flagged or set-aside speaker can be inspected the way the
 #' protocol asks: at half, at the selected, and at twice the diagonal Scott
-#' bandwidth (the smoothing used by the bandwidth check). Each panel is
-#' labelled with the Jensen-Shannon distance and shared mass at that
-#' bandwidth and with the speaker's Pillai trace, which takes no bandwidth;
+#' bandwidth (the smoothing used by the bandwidth check, pooled over the pair
+#' when the ranking's \code{estimator$bracket_bw} is \code{"scott.pooled"}).
+#' Each panel is labelled with the Jensen-Shannon distance and shared mass at
+#' that bandwidth, computed with the ranking's estimator method (so the x0.5
+#' and x2 panels repeat the ranking's \code{sqrt_jsd_half} and
+#' \code{sqrt_jsd_double}), and with the speaker's Pillai trace, which takes
+#' no bandwidth;
 #' the subtitle restates the reported ranks, the rank difference, and the
 #' outcome of the bandwidth check. The tokens come from the ranking itself
 #' (\code{attr(ranking, "protocol")$data}), so no further data is needed.
@@ -231,7 +235,8 @@ inspect_contrast <- function(ranking,
   levs <- .two_levels(data[[category_col]], "category_col")
   df_g <- .split_groups(data, pa$group_col)[[group]]
   row <- as.data.frame(ranking)[ranking$group == group, , drop = FALSE]
-  est <- pa$estimator
+  est <- .check_estimator_spec(pa$estimator)
+  pool_bw <- identical(est$bracket_bw, "scott.pooled")
 
   # ---- one panel per bandwidth, drawn and scored at that bandwidth ----
   layer <- list(curves = list(), regions = list(), ov = list(), tokens = list())
@@ -242,7 +247,7 @@ inspect_contrast <- function(ranking,
     comp <- .contrast_panel_data(
       df_g = df_g, features = features, category_col = category_col,
       levs = levs, density = "kde", bw = "scott.diag", levels = levels,
-      grid_n = grid_n, label = panel, bw_scale = s
+      grid_n = grid_n, label = panel, bw_scale = s, pool_bw = pool_bw
     )
     layer$curves[[panel]] <- comp$curves
     layer$regions[[panel]] <- comp$regions
@@ -250,7 +255,8 @@ inspect_contrast <- function(ranking,
     layer$tokens[[panel]] <- comp$tokens
     metrics[[i]] <- .inspect_panel_metrics(
       df_g = df_g, features = pa$features, category_col = category_col,
-      est = est, bw_scale = s, eval_seed = pa$eval_seed, panel = panel
+      est = est, bw_scale = s, pool_bw = pool_bw, eval_seed = pa$eval_seed,
+      panel = panel
     )
   }
   metrics <- do.call(rbind, metrics)
@@ -310,7 +316,7 @@ inspect_contrast <- function(ranking,
     title = group,
     subtitle = .inspect_subtitle(row, pa),
     caption = paste0(
-      "density: kde (bw = scott.diag x",
+      "density: kde (bw = ", if (pool_bw) "pooled " else "", "scott.diag x",
       paste(vapply(bw_scales, format, character(1)), collapse = "/"), ")",
       if (d == 2L) paste0("; regions: ", paste0(round(100 * levels), "%", collapse = "/"),
                           " highest-density") else "",
@@ -373,7 +379,8 @@ inspect_contrast <- function(ranking,
     sprintf("margin %s", format(pa$margin)),
     sprintf("d = %d: rank floor %s, flag floor %s tokens per category", pa$d,
             fmt_floor(pa$floors$rank_floor), fmt_floor(pa$floors$flag_floor)),
-    sprintf("kernel %s/%s", pa$estimator$bw, pa$estimator$engine),
+    sprintf("kernel %s %s/%s", pa$estimator$method,
+            pa$estimator$bw, pa$estimator$engine),
     if (isTRUE(pa$bw_check)) {
       sprintf("bandwidth check x0.5/x2: %d set aside", sum(df$set_aside %in% TRUE))
     } else {
@@ -384,21 +391,17 @@ inspect_contrast <- function(ranking,
 }
 
 .inspect_panel_metrics <- function(df_g, features, category_col, est, bw_scale,
-                                   eval_seed, panel) {
-  mc <- tryCatch(
-    .kde_mc_pair(
-      data = df_g, features = features, category_col = category_col,
-      bw = "scott.diag", eval_n = est$eval_n, eval_seed = eval_seed,
-      engine = est$engine, chunk_size = 1000L, metric = "inspect_contrast()",
-      bw_scale = bw_scale
-    ),
-    error = function(e) NULL
+                                   pool_bw, eval_seed, panel) {
+  m <- .protocol_kernel(
+    df_g = df_g, features = features, category_col = category_col, est = est,
+    bw = "scott.diag", bw_scale = bw_scale, pool_bw = pool_bw,
+    eval_seed = eval_seed, with_overlap = TRUE, metric = "inspect_contrast()"
   )
   data.frame(
     panel = panel,
     bw_scale = bw_scale,
-    sqrt_jsd = if (is.null(mc)) NA_real_ else sqrt(.jsd_mc(mc, loo = est$loo)),
-    shared_mass = if (is.null(mc)) NA_real_ else .overlap_mc(mc),
+    sqrt_jsd = m$sqrt_jsd,
+    shared_mass = m$shared_mass,
     stringsAsFactors = FALSE
   )
 }

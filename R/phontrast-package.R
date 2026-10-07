@@ -49,7 +49,8 @@
 #' (\code{protocol_floors()}) decide per speaker whether a rank or a flag may
 #' be read, and a bandwidth check marks measurements whose rank depends on the
 #' smoothing. \code{recommended_estimator()} supplies the kernel settings the
-#' study used at each dimensionality; \code{plot_rank_agreement()} and
+#' study used at each dimensionality (the \code{method = "legacy"} estimator
+#' the protocol was calibrated on); \code{plot_rank_agreement()} and
 #' \code{inspect_contrast()} draw the ranking and a flagged speaker; the
 #' bundled \code{vowel_cohort} data and the vignette "Ranking speakers by
 #' Jensen-Shannon distance and checking Pillai agreement" walk through it.

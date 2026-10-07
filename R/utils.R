@@ -453,7 +453,8 @@
                               engine = c("ks", "fast_diag", "fast_diagonal"),
                               chunk_size = 1000L,
                               metric = "KDE",
-                              bw_scale = 1) {
+                              bw_scale = 1,
+                              pool_bw = FALSE) {
   bw <- match.arg(bw)
   eval_on <- match.arg(eval_on)
   engine <- .match_kde_engine(engine)
@@ -499,22 +500,13 @@
     x1 <- as.numeric(X1[, 1])
     x2 <- as.numeric(X2[, 1])
     eval_vec <- as.numeric(eval_pts[, 1])
-    h1 <- .scale_bandwidth(.select_univariate_bandwidth(x1, bw), bw_scale)
-    h2 <- .scale_bandwidth(.select_univariate_bandwidth(x2, bw), bw_scale)
-    p <- .kde_1d_values(x1, eval_vec, h1)
-    q <- .kde_1d_values(x2, eval_vec, h2)
+    h <- .pair_bandwidths(X1, X2, bw, engine, levs, bw_scale, pool_bw)
+    p <- .kde_1d_values(x1, eval_vec, h[[1]])
+    q <- .kde_1d_values(x2, eval_vec, h[[2]])
   } else {
-    if (identical(engine, "fast_diag") &&
-        !bw %in% c("Hpi.diag", "scott.diag")) {
-      stop(
-        "`engine = \"fast_diag\"` requires `bw = \"scott.diag\"` or ",
-        "`bw = \"Hpi.diag\"` for multivariate KDE.",
-        call. = FALSE
-      )
-    }
-
-    H1 <- .scale_bandwidth(.select_multivariate_bandwidth(X1, bw, levs[1]), bw_scale)
-    H2 <- .scale_bandwidth(.select_multivariate_bandwidth(X2, bw, levs[2]), bw_scale)
+    H <- .pair_bandwidths(X1, X2, bw, engine, levs, bw_scale, pool_bw)
+    H1 <- H[[1]]
+    H2 <- H[[2]]
 
     if (identical(engine, "fast_diag")) {
       p <- .kde_diag_gaussian_values(X1, eval_pts, H1, chunk_size = chunk_size)
@@ -656,6 +648,26 @@
   .scale_bandwidth(.select_multivariate_bandwidth(train, bw, label), bw_scale)
 }
 
+# Bandwidths for a two-category KDE pair: by default each category's own,
+# selected on that category's tokens. With `pool_bw = TRUE` one bandwidth is
+# selected on the pooled pair and used for both categories: the bandwidth of
+# the simulation study's bandwidth-check bracket (rank_contrasts()).
+.pair_bandwidths <- function(X1, X2, bw, engine, levs, bw_scale = 1,
+                             pool_bw = FALSE) {
+  n_features <- ncol(X1)
+  if (isTRUE(pool_bw)) {
+    pooled <- .select_kde_bandwidth(
+      rbind(X1, X2), bw, engine, n_features,
+      paste(levs, collapse = " + "), bw_scale
+    )
+    return(list(pooled, pooled))
+  }
+  list(
+    .select_kde_bandwidth(X1, bw, engine, n_features, levs[1], bw_scale),
+    .select_kde_bandwidth(X2, bw, engine, n_features, levs[2], bw_scale)
+  )
+}
+
 .kde_mc_pair <- function(data,
                          features,
                          category_col,
@@ -665,7 +677,8 @@
                          engine = c("ks", "fast_diag", "fast_diagonal"),
                          chunk_size = 1000L,
                          metric = "KDE",
-                         bw_scale = 1) {
+                         bw_scale = 1,
+                         pool_bw = FALSE) {
   bw <- match.arg(bw)
   engine <- .match_kde_engine(engine)
   .check_bw_scale(bw_scale)
@@ -694,8 +707,9 @@
   X1e <- .sample_kde_eval_points(X1, eval_n = eval_n, eval_seed = eval_seed)
   X2e <- .sample_kde_eval_points(X2, eval_n = eval_n, eval_seed = eval_seed)
 
-  bw1 <- .select_kde_bandwidth(X1, bw, engine, n_features, levs[1], bw_scale)
-  bw2 <- .select_kde_bandwidth(X2, bw, engine, n_features, levs[2], bw_scale)
+  bws <- .pair_bandwidths(X1, X2, bw, engine, levs, bw_scale, pool_bw)
+  bw1 <- bws[[1]]
+  bw2 <- bws[[2]]
 
   out <- list(
     logp1 = .kde_eval_logdens(X1, X1e, bw1, engine, chunk_size, levs[1]),

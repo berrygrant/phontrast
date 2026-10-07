@@ -57,7 +57,8 @@ to compare (e.g., "vowel"). Must have exactly two unique values.}
 \item{chunk_size}{Chunk size for \code{engine = "fast_diag"}.}
 
 \item{method}{Estimator passed to \code{jsd_kde_nd()}: \code{"mc"} (default)
-or \code{"legacy"} (pre-1.2.0 self-normalized estimate). Ignored when
+or \code{"legacy"} (the self-normalized estimate on which the
+\code{rank_contrasts()} protocol was calibrated). Ignored when
 \code{density = "mvnorm"}.}
 
 \item{density}{Density model passed to \code{estimate_jsd()}: \code{"kde"}
