@@ -4,7 +4,7 @@ phontrast grew out of `phonJSD`, a package focused on Jensen-Shannon
 divergence, and was reoriented into a general toolkit for computing and
 comparing multiple phonological category **contrast and separation metrics**.
 This document records where it is and where it is headed. Last revised for
-2.5.0.
+2.5.1.
 
 ## Shipped — the 2.x series
 
@@ -21,6 +21,7 @@ architectural steps that remain are listed under *3.0.0* below.
 | 2.3.1 | First CRAN release (2026-08-09). Opt-in proportion-standardized Pillai (`pillai_overlap(proportion_standardized = TRUE)`). | 8 |
 | 2.4.0 / 2.4.1 | Version-aware `inst/CITATION`, `CITATION.cff`, Zenodo DOIs per release; cross-BLAS robustness of the proportion-standardized Pillai guard (CRAN tests-MKL). | — |
 | 2.5.0 | The measurement protocol of the JASA simulation study (Sec. VII.A) in one call: `rank_contrasts()` with `percentile_rank()`, `protocol_floors()`, `recommended_estimator()`, `plot_rank_agreement()` (`plot()` on the ranking), and `inspect_contrast()`; `bw_scale` across the kernel path; the kernel family (JSD, overlap, total variation, kernel Bhattacharyya / Hellinger) scored on one shared density per comparison; opt-in `"tv"`, `"bhattacharyya_kde"`, `"euclidean"` metrics; bundled `vowel_cohort`; protocol vignette. | *Later: additional metrics* (in part) |
+| 2.5.1 | `rank_contrasts()` reproduces the study's published calibration: `recommended_estimator()` carries `method = "legacy"`, `eval_on = "pooled"`, and `bracket_bw = "scott.pooled"`, and the reported √JSD, shared mass, and bandwidth-check bracket run through that estimator; Peterson–Barney regression test; `legacy` help text revised. | — |
 
 Two further plan items are in place in substance, if not in the form the
 plan described: the bootstrap resamples every requested metric with uniform
@@ -32,6 +33,20 @@ orientation, but adding a metric still touches several places.
 
 ## Next — 2.6.x (additive)
 
+- **Recalibrate the ranking protocol on the Monte-Carlo estimator.**
+  `rank_contrasts()` runs on `method = "legacy"` because the study calibrated
+  the protocol's floors, 0.25 margin, 0.99 ceiling, and bandwidth check on
+  that estimator and never simulated `"mc"`. The rest of the kernel path
+  (`phontrast()`, `jsd_kde_nd()`, ...) defaults to `"mc"`, so the two report
+  different √JSD for the same tokens: on the 45 Peterson–Barney pairs `"mc"`
+  reads up to 0.11 higher, though the two orderings agree (Spearman 0.99, no
+  pair more than two places apart), and three pairs sit at the ceiling under
+  `"legacy"` only. `"mc"` is the consistent estimator of the continuous JSD,
+  the estimand. Rerunning the study's ceiling, floor, and bandwidth-check
+  cells with `method = "mc"` would show whether the thresholds carry over or
+  need values of their own; with that evidence `recommended_estimator()` can
+  move to `"mc"` and the split ends. Results-changing for `rank_contrasts()`,
+  so flagged in NEWS when taken. Kept out of 2.5.1 by decision of 2026-10-07.
 - **The rest of the study's measure set.** SOAM (Wassink 2006; 2-SD ellipses
   on the covariance principal axes, defined at two and three dimensions) and
   APP (Morrison 2008; per-category QDA trained on fresh draws from the fitted
